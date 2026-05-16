@@ -18,6 +18,12 @@ tell the user to run `{{command_prefix}}adhd milestones` first.
    surface across all milestones — pages, screens, views, key flows — grouped by the
    milestone that introduces it. Give each surface a one-line purpose. Do not design
    layouts or interactions here; that is the per-surface Design stage's job.
+
+   For each surface, also record its `kind` (`ui` | `api` | `lib`) and — in `multi`
+   mode — the registered `repo` it will be built in. Persist both with
+   `node {{scripts_path}}/adhd-state.mjs surface-meta <name> --milestone <N> --kind <kind>`
+   (add `--repo <repo>` in `multi` mode). A repo's registered `kind` is a sensible
+   default for surfaces in that repo; the surface's own `kind` is authoritative.
 2. **Sketch the domain / data model.** Identify the core entities, their key fields,
    and the relationships between them. Write this model to `docs/DOMAIN.md`.
 3. **Write `project/map.md`.** Record the sitemap and overall structure, grouped by

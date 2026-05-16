@@ -20,6 +20,12 @@ user to run `{{command_prefix}}adhd map` first.
    content it holds. Keep the detail low: this document must stay easy to read whole
    in one pass. Detailed layout and interaction are the per-surface Design stage's job,
    not this one.
+
+   Tag each surface with its `kind` (`ui` | `api` | `lib`) and — in `multi` mode —
+   the registered `repo` it will be built in, using
+   `node {{scripts_path}}/adhd-state.mjs surface-meta <name> --milestone {{N}} --kind <kind>`
+   (add `--repo <repo>` in `multi` mode). If `map` already tagged the surface,
+   confirm the tag still fits and correct it if not.
 2. **Note cross-surface relationships.** Describe how the milestone's surfaces connect:
    which surface leads to which, the shared state that moves between them, and the
    rough user journey a real user takes through the milestone end to end.
