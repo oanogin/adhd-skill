@@ -7,7 +7,7 @@ import path from 'node:path';
 import {
   defaultState, loadState, saveState, initState,
   setStageStatus, gate, nextStage, statusReport,
-  sessionAdd, sessionReset, FRONTLOAD_STAGES,
+  sessionAdd, sessionReset, FRONTLOAD_STAGES, STAGE_STATUSES,
 } from './adhd-state.mjs';
 
 function tmp() {
@@ -122,4 +122,38 @@ test('statusReport mentions the next runnable stage', () => {
   const cwd = tmp();
   initState(cwd);
   assert.match(statusReport(cwd), /setup/);
+});
+
+test('loadState throws a clear error on corrupt state.json', () => {
+  const cwd = tmp();
+  fs.mkdirSync(path.join(cwd, 'project'), { recursive: true });
+  fs.writeFileSync(path.join(cwd, 'project/state.json'), '{ not json');
+  assert.throws(() => loadState(cwd), /corrupt or not valid JSON/);
+});
+
+test('sessionAdd throws a clear error when no state.json', () => {
+  assert.throws(() => sessionAdd(tmp(), 'vision'), /adhd setup/);
+});
+
+test('sessionReset throws a clear error when no state.json', () => {
+  assert.throws(() => sessionReset(tmp()), /adhd setup/);
+});
+
+test('effortLog records the resolved milestone and surface for surface stages', () => {
+  const cwd = tmp();
+  initState(cwd);
+  setStageStatus(cwd, { stage: 'build', status: 'done', surface: 'home' });
+  const log = loadState(cwd).effortLog.at(-1);
+  assert.equal(log.milestone, 1);
+  assert.equal(log.surface, 'home');
+});
+
+test('saveState leaves no .tmp file behind', () => {
+  const cwd = tmp();
+  initState(cwd);
+  assert.equal(fs.existsSync(path.join(cwd, 'project/state.json.tmp')), false);
+});
+
+test('STAGE_STATUSES lists the four valid statuses', () => {
+  assert.deepEqual(STAGE_STATUSES, ['blocked', 'pending', 'in-progress', 'done']);
 });

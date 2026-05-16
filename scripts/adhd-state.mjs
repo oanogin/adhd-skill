@@ -18,6 +18,8 @@ export const STAGE_EFFORT = {
 
 export const EFFORT_WEIGHT = { low: 1, medium: 2, high: 3, 'extra-high': 4 };
 
+export const STAGE_STATUSES = ['blocked', 'pending', 'in-progress', 'done'];
+
 // Gate predecessors. Tokens: {docHome} {N} {surface}.
 const STAGE_GATES = {
   setup:              { files: [],                                                  stages: [] },
@@ -61,14 +63,21 @@ export function defaultState() {
 export function loadState(cwd = process.cwd()) {
   const p = statePath(cwd);
   if (!fs.existsSync(p)) return null;
-  return JSON.parse(fs.readFileSync(p, 'utf-8'));
+  const raw = fs.readFileSync(p, 'utf-8');
+  try {
+    return JSON.parse(raw);
+  } catch (e) {
+    throw new Error(`project/state.json is corrupt or not valid JSON: ${e.message}`);
+  }
 }
 
 export function saveState(cwd, state) {
   state.updatedAt = new Date().toISOString();
   const p = statePath(cwd);
   fs.mkdirSync(path.dirname(p), { recursive: true });
-  fs.writeFileSync(p, JSON.stringify(state, null, 2) + '\n');
+  const tmpPath = p + '.tmp';
+  fs.writeFileSync(tmpPath, JSON.stringify(state, null, 2) + '\n');
+  fs.renameSync(tmpPath, p);
   return p;
 }
 
@@ -123,7 +132,12 @@ export function setStageStatus(cwd, { stage, status, milestone, surface }) {
   entry.status = status;
   if (status === 'done') {
     entry.completedAt = new Date().toISOString();
-    state.effortLog.push({ stage, milestone: milestone ?? null, surface: surface ?? null, at: entry.completedAt });
+    state.effortLog.push({
+      stage,
+      milestone: FRONTLOAD_STAGES.includes(stage) ? null : m,
+      surface: SURFACE_STAGES.includes(stage) ? (surface ?? state.currentSurface) : null,
+      at: entry.completedAt,
+    });
   }
   saveState(cwd, state);
   return state;
@@ -204,6 +218,7 @@ export function statusReport(cwd = process.cwd()) {
 
 export function sessionAdd(cwd, stage) {
   const state = loadState(cwd);
+  if (!state) throw new Error('No state.json — run `adhd setup` first.');
   state.session.stagesRun.push(stage);
   saveState(cwd, state);
   return state;
@@ -211,6 +226,7 @@ export function sessionAdd(cwd, stage) {
 
 export function sessionReset(cwd) {
   const state = loadState(cwd);
+  if (!state) throw new Error('No state.json — run `adhd setup` first.');
   state.session = { startedAt: new Date().toISOString(), stagesRun: [] };
   saveState(cwd, state);
   return state;
@@ -249,6 +265,16 @@ function main(argv) {
       break;
     case 'set': {
       const [stage, status] = rest;
+      if (!stage || !status) {
+        console.error('Usage: adhd-state.mjs set <stage> <status> [--milestone N] [--surface name]');
+        process.exitCode = 1;
+        break;
+      }
+      if (!STAGE_STATUSES.includes(status)) {
+        console.error(`Invalid status "${status}". Valid: ${STAGE_STATUSES.join(', ')}`);
+        process.exitCode = 1;
+        break;
+      }
       setStageStatus(cwd, { stage, status, milestone: flags.milestone, surface: flags.surface });
       console.log(`set ${stage} = ${status}`);
       break;
