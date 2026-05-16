@@ -21,6 +21,13 @@ user to run `{{command_prefix}}adhd milestone-ux --milestone {{N}}` first.
 2. **Keep it minimal but real.** The point is to surface hard reality early, not to
    ship the surface. Build only enough to make each risk class real; leave the polish,
    the edge cases, and the remaining surfaces for the per-surface stages.
+
+   In `multi` mode the slice's code is written in the relevant registered code
+   repo: read the target surface's `repo`
+   (`node {{scripts_path}}/adhd-state.mjs surface-meta <name> --milestone {{N}}`),
+   resolve its path from `node {{scripts_path}}/adhd-state.mjs workspace-list`, and
+   `cd` into that path to write code. The `tracer.md` notes always stay in the
+   orchestration repo's `project/`. The commit gate applies in the target repo.
 3. **Record findings in `m{{N}}/tracer.md`.** Write down what was built, what each risk
    class revealed when it met a real backend, and every surprise — a rule you
    discovered, an assumption that turned out wrong, a decision that was never made and

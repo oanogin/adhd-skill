@@ -20,6 +20,15 @@ first.
    `plans/{{name}}.md` with `superpowers:executing-plans`, completing one task at a
    time. For UI craft within a task, use `impeccable craft` so the implementation
    matches the design system.
+
+   In `multi` mode, code is written in the surface's registered repo. Read the
+   surface's `repo` with
+   `node {{scripts_path}}/adhd-state.mjs surface-meta {{name}} --milestone {{N}}`,
+   resolve its path from `node {{scripts_path}}/adhd-state.mjs workspace-list`, and
+   `cd` into that path before writing code. Honor that repo's own conventions
+   (`CLAUDE.md`, etc.). The commit gate applies in the target repo — never `git
+   commit` there without the user's explicit "ok". The `build` status is still
+   tracked in the orchestration repo's `state.json`.
 2. **Track progress.** Keep the surface's `build` status at `in-progress` while work is
    underway, and set it to `done` only when the whole surface plan is complete — every
    task finished. Do not mark the surface done partway through.

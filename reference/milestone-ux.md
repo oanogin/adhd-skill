@@ -28,6 +28,12 @@ the user to run `{{command_prefix}}adhd surface-overview --milestone {{N}}` firs
    These are decisions, not detailed implementations; the per-surface stages build them.
 3. **Write `m{{N}}/ux.md`** capturing the cross-surface walkthrough and the security and
    error-handling commitments.
+4. **Optional prototype.** When the milestone has `ui` surfaces and the UX benefits
+   from being seen, you may build a clickable throwaway prototype with `impeccable`
+   instead of, or alongside, `ux.md` — useful for stakeholder sign-off. The
+   prototype is disposable: it is not the real UI, it is not committed to a code
+   repo, and it carries no gate. Sign-off on it is informal. Record in `ux.md` that
+   a prototype was produced and what was decided from it.
 
 ## Output
 `project/milestones/m{{N}}/ux.md` with:
