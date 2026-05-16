@@ -1,6 +1,6 @@
 ---
 name: adhd
-description: "Use when starting, structuring, or building a software project end-to-end and you want a conductor that front-loads vision, scope, and structure before any code, then forbids skipping ahead. Sequences brainstorming and impeccable per surface, enforces hard stage gates, parks new feature ideas, and tracks progress in project/state.json. Triggers: /adhd, project kickoff, 'where am I in the build', milestone planning, scope discipline, feature parking lot, resume after a fresh session."
+description: "Use when starting, structuring, or building a software project end-to-end and you want a conductor that front-loads vision, scope, and structure before any code, then forbids skipping ahead. Triggers: /adhd, project kickoff, 'where am I in the build', milestone planning, scope discipline, feature parking lot, resume after a fresh session, new feature idea raised mid-project, a stage gate refusing to run."
 argument-hint: "[stage] [milestone|surface]"
 user-invocable: true
 license: Apache 2.0
@@ -141,6 +141,36 @@ Every stage's reference file begins with a gate check:
 `node {{scripts_path}}/adhd-state.mjs gate <stage> [--milestone N] [--surface name]`.
 If it reports `missing`, HALT and tell the user which predecessor stage to run.
 
+**Violating the letter of the gates is violating the spirit of `adhd`.** The whole
+skill IS the gate discipline. A "harmless" skip is exactly the failure mode it exists
+to prevent.
+
+### Red flags — STOP
+
+You are about to break a gate if you catch yourself thinking any of these:
+
+- "The user clearly wants code, I'll skip ahead and backfill the stage later."
+- "This project is small / just a prototype, gates are overkill here."
+- "Setup/vision is obvious, I'll start a stage or two in."
+- "The gate says `missing` but I already know the answer in my head."
+- "I'll run the stage but skip its reference file — I remember the procedure."
+- "User said go fast / no clarifying questions, so gates don't apply."
+- "One `git commit` without an explicit ok is fine, it's clearly wanted."
+
+Each of these means: STOP. Run the gate. Run the missing predecessor stage.
+
+### Rationalization table
+
+| Excuse | Reality |
+|---|---|
+| "It's a prototype — skip the front-load." | Prototype scope still needs vision + milestones or the build wanders. They run fast at low effort. Run them. |
+| "User wants code now." | `adhd`'s value is code that fits a plan. Skipping the plan is the exact thing the user invoked `adhd` to prevent. |
+| "I know the predecessor's output — no need to run it." | The output is a file later stages and fresh sessions read. In-your-head ≠ on disk. Run the stage. |
+| "'No clarifying questions' means skip gates." | That instruction sets pace, not discipline. A gate is not a question. |
+| "The gate is a false positive." | The gate reads `state.json`. If it says `missing`, the artifact is missing. Fix the artifact, never the gate. |
+| "I'll backfill the skipped stage afterward." | Later lacks the context this stage has now. Stages are ordered because each feeds the next. |
+| "One commit without explicit ok is harmless." | The commit gate has zero exceptions. Ask first. |
+
 ## Management commands
 
 These are not stages — they have no gates and no place in the stage flow:
@@ -199,6 +229,21 @@ every invocation: surface specs go to `project/milestones/m<N>/surfaces/`, plans
 `project/milestones/m<N>/plans/`. Always pass the canonical target path when invoking
 a sub-skill. Leave `.superpowers/` and `.impeccable/` untouched — Setup adds both to
 `.gitignore`.
+
+## Common mistakes
+
+These are operational slips, not gate-skipping (gate rationalizations are tabled above).
+
+| Mistake | Fix |
+|---|---|
+| Hand-editing `project/state.json`. | It is owned by `adhd-state.mjs`. Mutate it only through CLI subcommands — hand edits desync gates and the effort log. |
+| Running a stage from memory, skipping its `reference/<stage>.md`. | Always load the reference file. It owns the gate check, procedure, and completion steps; memory drifts from the current version. |
+| Letting sub-skills write to their default `docs/superpowers/` paths. | Pass the canonical target on every invocation — specs to `project/milestones/m<N>/surfaces/`, plans to `.../plans/`. |
+| Treating `project/notes.md` as durable storage. | It is a transient scratchpad. Migrate durable facts to `DECISIONS.md`, `DOMAIN.md`, a surface spec, or `.ruler/`. Healthy `notes.md` is empty. |
+| Invoking `impeccable` for an `api` or `lib` surface. | `impeccable` runs only for `ui` surfaces. `api` → contract design; `lib` → spec only. |
+| Forgetting `advance-milestone` after a milestone's `review` passes. | Run `adhd-state.mjs advance-milestone` — without it `currentMilestone` never bumps and `status` keeps reporting the finished milestone. |
+| In `multi` mode, writing `project/` or `docs/` artifacts into a code repo. | All `adhd` artifacts live in the orchestration repo. Only `tracer` and `build` touch a registered code repo, and only to write code. |
+| Bolting a mid-project feature idea onto the current milestone. | File it to `features.md` and assign a later milestone. Soft-warn if it would expand the current milestone. |
 
 ## Scripts
 

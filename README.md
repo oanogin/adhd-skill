@@ -91,7 +91,7 @@ PER-MILESTONE LOOP
 | surface-overview | helicopter view of a milestone's surfaces | `m<N>/overview.md` |
 | milestone-ux | cross-surface UX; must-have security & errors | `m<N>/ux.md` |
 | tracer | one thin end-to-end slice — surfaces hard reality early | `m<N>/tracer.md` + code |
-| replan | revise surface plan against tracer findings | updated `overview.md` |
+| replan | revise surface plan against tracer findings | updated `overview.md` + `tracer.md` |
 | design | per-surface UX then UI; surface-specific security & errors | `surfaces/<name>.md` |
 | plan | per-surface implementation plan | `plans/<name>.md` |
 | build | implement the surface | code |
@@ -102,6 +102,12 @@ PER-MILESTONE LOOP
 A stage refuses to run unless every predecessor's output exists. **No skip, no
 override.** If a gate fails, `adhd` halts and names the predecessor stage to run.
 This is the skill's central discipline — it is not a bug when a stage refuses.
+
+The gate is mechanical: it reads `state.json`, not intent. "Small project", "just
+a prototype", "go fast", or "I already know the answer" do not open it — `adhd`
+treats those as the failure mode the gate exists to catch, and the only way past
+is to run the missing stage. The commit gate is absolute: no `git commit` without
+your explicit "ok".
 
 ## What it creates in your project
 
