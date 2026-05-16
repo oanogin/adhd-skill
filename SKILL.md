@@ -27,9 +27,10 @@ There is no programmatic probe — self-confirm: state, in the response, that ea
 skill is present and invocable. If any is missing, name the missing skill(s) and
 HALT. Do not give installation instructions — installing them is the user's job.
 
-Once confirmed, set `preflight.skillsConfirmed`:
-`node {{scripts_path}}/adhd-state.mjs read` to check; the conductor records the
-confirmation in its first setup run.
+The Setup stage records this: after confirming the three skills, it runs
+`node {{scripts_path}}/adhd-state.mjs preflight-confirm`, which writes
+`preflight.skillsConfirmed` in `state.json`. Later runs can inspect it with
+`node {{scripts_path}}/adhd-state.mjs read`.
 
 Codex / Cursor agents must also state this line before mutating files:
 
@@ -87,6 +88,13 @@ Flow: front-load runs once (`setup → vision → features → milestones → ma
 milestone: `surface-overview → milestone-ux → tracer → replan`, then per surface
 `design → plan → build`, then `review`, then the next milestone.
 
+After a milestone's `review` passes, advance with
+`node {{scripts_path}}/adhd-state.mjs advance-milestone` — it bumps
+`currentMilestone`, clears `currentSurface`, and resets the context-watch
+session. Then run `surface-overview` for the new milestone. When
+`adhd-state.mjs status` reports the next stage as `next-milestone`, this is
+the step it means.
+
 ## Hard gates
 
 A stage refuses to run unless every predecessor is satisfied. **No skip. No override.**
@@ -137,7 +145,7 @@ a sub-skill. Leave `.superpowers/` and `.impeccable/` untouched — Setup adds b
 ## Scripts
 
 ```bash
-node {{scripts_path}}/adhd-state.mjs <init|read|status|next|set|gate|session-add|session-reset>
+node {{scripts_path}}/adhd-state.mjs <init|read|status|next|set|gate|session-add|session-reset|preflight-confirm|advance-milestone>
 node {{scripts_path}}/context-watch.mjs [--next <stage>]
 node {{scripts_path}}/handoff-prompt.mjs
 ```

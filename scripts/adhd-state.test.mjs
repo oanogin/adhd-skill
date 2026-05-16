@@ -8,6 +8,7 @@ import {
   defaultState, loadState, saveState, initState,
   setStageStatus, gate, nextStage, statusReport,
   sessionAdd, sessionReset, FRONTLOAD_STAGES, STAGE_STATUSES,
+  confirmPreflight, advanceMilestone,
 } from './adhd-state.mjs';
 
 function tmp() {
@@ -156,4 +157,42 @@ test('saveState leaves no .tmp file behind', () => {
 
 test('STAGE_STATUSES lists the four valid statuses', () => {
   assert.deepEqual(STAGE_STATUSES, ['blocked', 'pending', 'in-progress', 'done']);
+});
+
+test('confirmPreflight sets skillsConfirmed true with a timestamp', () => {
+  const cwd = tmp();
+  initState(cwd);
+  confirmPreflight(cwd);
+  const s = loadState(cwd);
+  assert.equal(s.preflight.skillsConfirmed, true);
+  assert.ok(s.preflight.confirmedAt);
+});
+
+test('confirmPreflight throws a clear error when no state.json', () => {
+  assert.throws(() => confirmPreflight(tmp()), /adhd setup/);
+});
+
+test('advanceMilestone bumps currentMilestone, clears surface, resets session', () => {
+  const cwd = tmp();
+  initState(cwd);
+  sessionAdd(cwd, 'vision');
+  setStageStatus(cwd, { stage: 'design', status: 'done', surface: 'home' });
+  advanceMilestone(cwd);
+  const s = loadState(cwd);
+  assert.equal(s.currentMilestone, 2);
+  assert.equal(s.currentSurface, null);
+  assert.deepEqual(s.session.stagesRun, []);
+});
+
+test('advanceMilestone throws a clear error when no state.json', () => {
+  assert.throws(() => advanceMilestone(tmp()), /adhd setup/);
+});
+
+test('setStageStatus updates the currentMilestone and currentSurface pointers', () => {
+  const cwd = tmp();
+  initState(cwd);
+  setStageStatus(cwd, { stage: 'design', status: 'in-progress', milestone: 2, surface: 'login' });
+  const s = loadState(cwd);
+  assert.equal(s.currentMilestone, 2);
+  assert.equal(s.currentSurface, 'login');
 });

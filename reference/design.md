@@ -16,9 +16,10 @@ be `done`. If the gate reports `replan` is not done, HALT and tell the user to r
 
 ## Procedure
 1. **Pick the surface to design.** Choose one surface from the milestone's revised
-   surface plan in `m{{N}}/overview.md`. The conductor records the choice by passing
-   `--surface {{name}}` on every state command for this stage, which sets
-   `currentSurface` — the rest of the per-surface loop follows that surface.
+   surface plan in `m{{N}}/overview.md`. Every per-surface state command takes
+   `--surface {{name}}`; when it runs, `adhd-state.mjs` records that surface as
+   `currentSurface` in `state.json`, so `status` and later commands track the active
+   surface through the rest of the per-surface loop.
 2. **Brainstorm the UX.** Run `superpowers:brainstorming` for the surface's user
    experience — the flows, states, and interactions a user moves through. OVERRIDE its
    default output path: `brainstorming` defaults its spec to `docs/superpowers/specs/`,

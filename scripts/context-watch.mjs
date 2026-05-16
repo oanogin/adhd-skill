@@ -3,6 +3,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadState, STAGE_EFFORT, EFFORT_WEIGHT } from './adhd-state.mjs';
 
+// Heuristic tuned by feel, not a measured constant — roughly three high-effort
+// stages in one session. Adjust if sessions consistently feel too short or long.
 export const THRESHOLD = 8;
 
 function weight(stage) {

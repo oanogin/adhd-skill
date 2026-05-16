@@ -139,6 +139,8 @@ export function setStageStatus(cwd, { stage, status, milestone, surface }) {
       at: entry.completedAt,
     });
   }
+  if (milestone != null) state.currentMilestone = m;
+  if (surface != null) state.currentSurface = surface;
   saveState(cwd, state);
   return state;
 }
@@ -232,6 +234,24 @@ export function sessionReset(cwd) {
   return state;
 }
 
+export function confirmPreflight(cwd = process.cwd()) {
+  const state = loadState(cwd);
+  if (!state) throw new Error('No state.json — run `adhd setup` first.');
+  state.preflight = { skillsConfirmed: true, confirmedAt: new Date().toISOString() };
+  saveState(cwd, state);
+  return state;
+}
+
+export function advanceMilestone(cwd = process.cwd()) {
+  const state = loadState(cwd);
+  if (!state) throw new Error('No state.json — run `adhd setup` first.');
+  state.currentMilestone = state.currentMilestone + 1;
+  state.currentSurface = null;
+  state.session = { startedAt: new Date().toISOString(), stagesRun: [] };
+  saveState(cwd, state);
+  return state;
+}
+
 // ---- CLI ----
 function parseFlags(args) {
   const flags = {};
@@ -294,8 +314,17 @@ function main(argv) {
       sessionReset(cwd);
       console.log('session reset');
       break;
+    case 'preflight-confirm':
+      confirmPreflight(cwd);
+      console.log('preflight confirmed: required skills recorded');
+      break;
+    case 'advance-milestone': {
+      const s = advanceMilestone(cwd);
+      console.log(`advanced to milestone ${s.currentMilestone}`);
+      break;
+    }
     default:
-      console.error('Usage: adhd-state.mjs <init|read|status|next|set|gate|session-add|session-reset>');
+      console.error('Usage: adhd-state.mjs <init|read|status|next|set|gate|session-add|session-reset|preflight-confirm|advance-milestone>');
       process.exitCode = 1;
   }
 }

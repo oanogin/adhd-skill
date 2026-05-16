@@ -24,7 +24,9 @@ re-scaffolding.
    and `project/milestones/`. Create an empty `project/notes.md`. Create
    `docs/DECISIONS.md` containing only a single `# Decisions` heading.
 3. **Initialise state.** Run `node {{scripts_path}}/adhd-state.mjs init` to create
-   `project/state.json`.
+   `project/state.json`. Then run
+   `node {{scripts_path}}/adhd-state.mjs preflight-confirm` to record in
+   `state.json` that the three required skills were confirmed in step 1.
 4. **Configure `.gitignore`.** Append `.superpowers/` and `.impeccable/` to
    `.gitignore` (create the file if it does not exist). Do NOT gitignore `project/` —
    it holds tracked, durable project state and must be committed.

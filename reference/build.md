@@ -42,8 +42,10 @@ first.
    `node {{scripts_path}}/adhd-state.mjs set build in-progress --milestone {{N}} --surface {{name}}`.
    Only mark `done` when the entire surface plan is complete.
 3. `node {{scripts_path}}/adhd-state.mjs session-add build`
-4. `node {{scripts_path}}/context-watch.mjs --next design` — if it advises a fresh
-   session, run `node {{scripts_path}}/handoff-prompt.mjs` and give the user the prompt.
+4. `node {{scripts_path}}/context-watch.mjs --next <stage>` — pass the actual next
+   stage: `--next design` when another surface remains in the milestone, or
+   `--next review` when this was the last surface. If it advises a fresh session, run
+   `node {{scripts_path}}/handoff-prompt.mjs` and give the user the prompt.
 5. Drain `project/notes.md`: migrate any durable entry to its canonical home; healthy = empty.
 6. Tell the user the next runnable stage: `design` for the next surface of the
    milestone, or `review` once all surfaces in the milestone are built.

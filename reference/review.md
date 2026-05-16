@@ -47,7 +47,7 @@ first. Review only runs once every surface in the milestone is built.
    fresh session, run `node {{scripts_path}}/handoff-prompt.mjs` and give the user the
    prompt.
 5. Drain `project/notes.md`: migrate any durable entry to its canonical home; healthy = empty.
-6. Milestone {{N}} is complete. Advise the user to advance to the next milestone: bump
-   `currentMilestone` in `project/state.json`, run
-   `node {{scripts_path}}/adhd-state.mjs session-reset`, and the next runnable stage is
-   `surface-overview` for the next milestone.
+6. Milestone {{N}} is complete. Advance to the next milestone with
+   `node {{scripts_path}}/adhd-state.mjs advance-milestone` — a single command that
+   bumps `currentMilestone`, clears `currentSurface`, and resets the session. The next
+   runnable stage is then `surface-overview` for the next milestone.
