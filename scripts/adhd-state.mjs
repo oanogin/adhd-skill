@@ -20,6 +20,9 @@ export const EFFORT_WEIGHT = { low: 1, medium: 2, high: 3, 'extra-high': 4 };
 
 export const STAGE_STATUSES = ['blocked', 'pending', 'in-progress', 'done'];
 
+export const SURFACE_KINDS = ['ui', 'api', 'lib'];
+export const MODES = ['single', 'multi'];
+
 // Gate predecessors. Tokens: {docHome} {N} {surface}.
 const STAGE_GATES = {
   setup:              { files: [],                                                  stages: [] },
@@ -48,6 +51,8 @@ export function defaultState() {
   return {
     version: STATE_VERSION,
     docHome: 'docs',
+    mode: 'single',
+    repos: {},
     createdAt: now,
     updatedAt: now,
     currentMilestone: 1,
@@ -108,11 +113,17 @@ function ensureMilestone(state, n) {
 function ensureSurface(state, n, name) {
   const m = ensureMilestone(state, n);
   if (!m.surfaces[name]) {
-    m.surfaces[name] = Object.fromEntries(
+    const surf = Object.fromEntries(
       SURFACE_STAGES.map((s) => [s, { status: 'blocked', effort: STAGE_EFFORT[s] }]),
     );
+    surf.repo = null;
+    surf.kind = null;
+    m.surfaces[name] = surf;
   }
-  return m.surfaces[name];
+  const surf = m.surfaces[name];
+  if (surf.repo === undefined) surf.repo = null;
+  if (surf.kind === undefined) surf.kind = null;
+  return surf;
 }
 
 export function setStageStatus(cwd, { stage, status, milestone, surface }) {
@@ -252,6 +263,60 @@ export function advanceMilestone(cwd = process.cwd()) {
   return state;
 }
 
+export function setMode(cwd = process.cwd(), mode) {
+  if (!MODES.includes(mode)) throw new Error(`Invalid mode "${mode}". Valid: ${MODES.join(', ')}`);
+  const state = loadState(cwd);
+  if (!state) throw new Error('No state.json — run `adhd setup` first.');
+  state.mode = mode;
+  saveState(cwd, state);
+  return state;
+}
+
+function isGitRepo(p) {
+  return fs.existsSync(path.join(p, '.git'));
+}
+
+export function addRepo(cwd = process.cwd(), { name, repoPath, kind }) {
+  if (!name) throw new Error('Repo name is required.');
+  if (!SURFACE_KINDS.includes(kind)) throw new Error(`Invalid kind "${kind}". Valid: ${SURFACE_KINDS.join(', ')}`);
+  const state = loadState(cwd);
+  if (!state) throw new Error('No state.json — run `adhd setup` first.');
+  if (!fs.existsSync(repoPath)) throw new Error(`Path does not exist: ${repoPath}`);
+  if (!isGitRepo(repoPath)) throw new Error(`Not a git repository: ${repoPath}`);
+  state.repos[name] = { path: path.resolve(repoPath), kind };
+  saveState(cwd, state);
+  return state;
+}
+
+export function removeRepo(cwd = process.cwd(), name) {
+  const state = loadState(cwd);
+  if (!state) throw new Error('No state.json — run `adhd setup` first.');
+  delete state.repos[name];
+  saveState(cwd, state);
+  return state;
+}
+
+export function listRepos(cwd = process.cwd()) {
+  const state = loadState(cwd);
+  return state?.repos ?? {};
+}
+
+export function setSurfaceMeta(cwd = process.cwd(), { milestone, surface, repo, kind }) {
+  if (kind !== undefined && !SURFACE_KINDS.includes(kind)) {
+    throw new Error(`Invalid kind "${kind}". Valid: ${SURFACE_KINDS.join(', ')}`);
+  }
+  const state = loadState(cwd);
+  if (!state) throw new Error('No state.json — run `adhd setup` first.');
+  const m = milestone ?? state.currentMilestone;
+  const surf = ensureSurface(state, m, surface ?? state.currentSurface);
+  if (repo !== undefined) surf.repo = repo;
+  if (kind !== undefined) surf.kind = kind;
+  state.currentMilestone = m;
+  if (surface != null) state.currentSurface = surface;
+  saveState(cwd, state);
+  return state;
+}
+
 // ---- CLI ----
 function parseFlags(args) {
   const flags = {};
@@ -260,6 +325,8 @@ function parseFlags(args) {
     if (args[i] === '--milestone') flags.milestone = Number(args[++i]);
     else if (args[i] === '--surface') flags.surface = args[++i];
     else if (args[i] === '--doc-home') flags.docHome = args[++i];
+    else if (args[i] === '--repo') flags.repo = args[++i];
+    else if (args[i] === '--kind') flags.kind = args[++i];
     else rest.push(args[i]);
   }
   return { flags, rest };
@@ -323,8 +390,50 @@ function main(argv) {
       console.log(`advanced to milestone ${s.currentMilestone}`);
       break;
     }
+    case 'workspace-mode': {
+      const [mode] = rest;
+      setMode(cwd, mode);
+      console.log(`mode = ${mode}`);
+      break;
+    }
+    case 'workspace-add': {
+      const [name, repoPath, kind] = rest;
+      if (!name || !repoPath || !kind) {
+        console.error('Usage: adhd-state.mjs workspace-add <name> <path> <ui|api|lib>');
+        process.exitCode = 1;
+        break;
+      }
+      addRepo(cwd, { name, repoPath, kind });
+      console.log(`registered repo "${name}"`);
+      break;
+    }
+    case 'workspace-remove':
+      removeRepo(cwd, rest[0]);
+      console.log(`removed repo "${rest[0]}"`);
+      break;
+    case 'workspace-list':
+      console.log(JSON.stringify(listRepos(cwd), null, 2));
+      break;
+    case 'surface-meta': {
+      const [surface] = rest;
+      if (!surface) {
+        console.error('Usage: adhd-state.mjs surface-meta <surface> [--milestone N] [--repo name] [--kind ui|api|lib]');
+        process.exitCode = 1;
+        break;
+      }
+      if (flags.repo === undefined && flags.kind === undefined) {
+        const state = loadState(cwd);
+        const m = flags.milestone ?? state?.currentMilestone ?? 1;
+        const surf = state?.milestones?.[String(m)]?.surfaces?.[surface];
+        console.log(JSON.stringify({ repo: surf?.repo ?? null, kind: surf?.kind ?? null }, null, 2));
+        break;
+      }
+      setSurfaceMeta(cwd, { milestone: flags.milestone, surface, repo: flags.repo, kind: flags.kind });
+      console.log(`surface "${surface}" updated`);
+      break;
+    }
     default:
-      console.error('Usage: adhd-state.mjs <init|read|status|next|set|gate|session-add|session-reset|preflight-confirm|advance-milestone>');
+      console.error('Usage: adhd-state.mjs <init|read|status|next|set|gate|session-add|session-reset|preflight-confirm|advance-milestone|workspace-mode|workspace-add|workspace-remove|workspace-list|surface-meta>');
       process.exitCode = 1;
   }
 }

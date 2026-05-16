@@ -9,6 +9,7 @@ import {
   setStageStatus, gate, nextStage, statusReport,
   sessionAdd, sessionReset, FRONTLOAD_STAGES, STAGE_STATUSES,
   confirmPreflight, advanceMilestone,
+  setMode, addRepo, removeRepo, listRepos, setSurfaceMeta, SURFACE_KINDS, MODES,
 } from './adhd-state.mjs';
 
 function tmp() {
@@ -195,4 +196,86 @@ test('setStageStatus updates the currentMilestone and currentSurface pointers', 
   const s = loadState(cwd);
   assert.equal(s.currentMilestone, 2);
   assert.equal(s.currentSurface, 'login');
+});
+
+function gitRepo() {
+  const cwd = tmp();
+  fs.mkdirSync(path.join(cwd, '.git'));
+  return cwd;
+}
+
+test('defaultState has mode "single" and empty repos', () => {
+  const s = defaultState();
+  assert.equal(s.mode, 'single');
+  assert.deepEqual(s.repos, {});
+});
+
+test('SURFACE_KINDS and MODES list the valid values', () => {
+  assert.deepEqual(SURFACE_KINDS, ['ui', 'api', 'lib']);
+  assert.deepEqual(MODES, ['single', 'multi']);
+});
+
+test('setMode switches mode and rejects an invalid value', () => {
+  const cwd = tmp();
+  initState(cwd);
+  setMode(cwd, 'multi');
+  assert.equal(loadState(cwd).mode, 'multi');
+  assert.throws(() => setMode(cwd, 'bogus'), /Invalid mode/);
+});
+
+test('addRepo registers a repo with absolute path and kind', () => {
+  const cwd = tmp();
+  initState(cwd);
+  const repo = gitRepo();
+  addRepo(cwd, { name: 'repo-a', repoPath: repo, kind: 'api' });
+  const repos = loadState(cwd).repos;
+  assert.equal(repos['repo-a'].kind, 'api');
+  assert.equal(repos['repo-a'].path, path.resolve(repo));
+});
+
+test('addRepo rejects a missing path, a non-git path, and a bad kind', () => {
+  const cwd = tmp();
+  initState(cwd);
+  assert.throws(() => addRepo(cwd, { name: 'x', repoPath: '/no/such/path', kind: 'api' }), /does not exist/);
+  assert.throws(() => addRepo(cwd, { name: 'x', repoPath: tmp(), kind: 'api' }), /Not a git repository/);
+  assert.throws(() => addRepo(cwd, { name: 'x', repoPath: gitRepo(), kind: 'bogus' }), /Invalid kind/);
+});
+
+test('removeRepo deletes a registered repo', () => {
+  const cwd = tmp();
+  initState(cwd);
+  addRepo(cwd, { name: 'repo-a', repoPath: gitRepo(), kind: 'lib' });
+  removeRepo(cwd, 'repo-a');
+  assert.deepEqual(loadState(cwd).repos, {});
+});
+
+test('listRepos returns the registry', () => {
+  const cwd = tmp();
+  initState(cwd);
+  addRepo(cwd, { name: 'repo-a', repoPath: gitRepo(), kind: 'ui' });
+  assert.deepEqual(Object.keys(listRepos(cwd)), ['repo-a']);
+});
+
+test('a new surface has null repo and null kind', () => {
+  const cwd = tmp();
+  initState(cwd);
+  setStageStatus(cwd, { stage: 'design', status: 'in-progress', milestone: 1, surface: 'home' });
+  const surf = loadState(cwd).milestones['1'].surfaces.home;
+  assert.equal(surf.repo, null);
+  assert.equal(surf.kind, null);
+});
+
+test('setSurfaceMeta sets repo and kind, and validates kind', () => {
+  const cwd = tmp();
+  initState(cwd);
+  setSurfaceMeta(cwd, { milestone: 1, surface: 'home', repo: 'repo-a', kind: 'ui' });
+  const surf = loadState(cwd).milestones['1'].surfaces.home;
+  assert.equal(surf.repo, 'repo-a');
+  assert.equal(surf.kind, 'ui');
+  assert.throws(() => setSurfaceMeta(cwd, { milestone: 1, surface: 'home', kind: 'bogus' }), /Invalid kind/);
+});
+
+test('setMode / addRepo throw a clear error when no state.json', () => {
+  assert.throws(() => setMode(tmp(), 'multi'), /adhd setup/);
+  assert.throws(() => addRepo(tmp(), { name: 'x', repoPath: gitRepo(), kind: 'api' }), /adhd setup/);
 });
