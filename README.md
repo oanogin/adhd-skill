@@ -41,6 +41,29 @@ Run inside the project you are building (not in this skill's repo):
 
 Start a new project with `/adhd setup`.
 
+Two management commands sit outside the stage flow:
+
+- `/adhd workspace` — switch to `multi` mode and register code repos.
+- `/adhd adopt` — bring an existing, already-built project under `adhd` (drafts the
+  front-load docs from the project's existing documentation).
+
+You can also describe a task in plain words — `/adhd <free text>` — and `adhd`
+picks the stage or command that fits, respecting the gates.
+
+## Modes
+
+`adhd` runs in one of two modes:
+
+- **`single`** (default) — everything lives in one repo. `setup` scaffolds this;
+  nothing extra to do.
+- **`multi`** — the product spans several git repos. `adhd`'s `project/` tree lives
+  in an orchestration repo; code repos are registered by local path. Run
+  `/adhd workspace` to switch to `multi` mode and register repos.
+
+Surfaces carry a `kind` — `ui`, `api`, or `lib`. The `design` stage uses
+`impeccable` only for `ui` surfaces; `api` surfaces get an API-contract design and
+`lib` surfaces get a plain spec.
+
 ## The flow
 
 Front-load runs once. The per-milestone loop then repeats; the per-surface loop
