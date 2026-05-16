@@ -1,0 +1,54 @@
+# adhd — Vision
+
+**Effort:** high
+**Gate:** `setup` is done — the canonical layout and `project/state.json` exist.
+**Output:** `docs/PRODUCT.md`.
+**Sub-skill:** none.
+
+## Gate check
+Run `node {{scripts_path}}/adhd-state.mjs gate vision`.
+If it reports missing items, HALT. Tell the user exactly which predecessor stage to run.
+No skip, no override — this is the skill's central discipline.
+
+If the gate reports `setup` is missing, HALT and tell the user to run
+`{{command_prefix}}adhd setup` first.
+
+## Procedure
+1. **Interview the user.** Vision is a conversation, not a guess. Draw out, one topic
+   at a time:
+   - the product one-liner — what it is, in a single sentence;
+   - target users — who they are and the context they operate in;
+   - the problem being solved;
+   - usage context — where, how, and when the product is used;
+   - brand and tone — how it should feel;
+   - anti-references — what it must NOT feel like;
+   - strategic principles — the durable rules that guide every later decision.
+2. **Write `docs/PRODUCT.md`** in the shape `impeccable` expects, with exactly these
+   seven sections, in this order: `# Product`, `## Users`, `## Problem`,
+   `## Usage context`, `## Brand & tone`, `## Anti-references`,
+   `## Strategic principles`.
+3. **No invention.** Capture only what the user actually states — do not invent users,
+   scope, or principles. Where an answer is still open, leave a clearly marked
+   placeholder, then resolve every such placeholder marker before finishing the stage.
+   `impeccable` rejects a PRODUCT.md that still contains unresolved placeholder
+   markers, so the file must be complete when Vision ends.
+
+## Output
+`docs/PRODUCT.md` with these seven sections:
+
+1. `# Product` — the one-line definition of the product.
+2. `## Users` — who the target users are and their context.
+3. `## Problem` — the problem the product solves.
+4. `## Usage context` — where, how, and when it is used.
+5. `## Brand & tone` — how the product should feel.
+6. `## Anti-references` — what the product must NOT feel like.
+7. `## Strategic principles` — the durable principles guiding later decisions.
+
+## On completion
+1. Write the output file(s) above.
+2. `node {{scripts_path}}/adhd-state.mjs set vision done`
+3. `node {{scripts_path}}/adhd-state.mjs session-add vision`
+4. `node {{scripts_path}}/context-watch.mjs --next features` — if it advises a fresh
+   session, run `node {{scripts_path}}/handoff-prompt.mjs` and give the user the prompt.
+5. Drain `project/notes.md`: migrate any durable entry to its canonical home; healthy = empty.
+6. Tell the user the next runnable stage is `features`.
