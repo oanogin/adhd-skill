@@ -27,8 +27,8 @@ defined in `SKILL.md`:
 ADHD_PREFLIGHT: skills=pass gate=pass|fail:<stage> mutation=open
 ```
 
-`skills=pass` confirms `brainstorming`, `impeccable`, and `writing-plans` are
-all present and invocable; if any is missing, name it and HALT instead of
+`skills=pass` confirms the `superpowers` plugin and `impeccable` are
+present and invocable; if either is missing, name it and HALT instead of
 emitting the line. `gate=pass` or `gate=fail:<stage>` reports the hard-gate
 check for the stage being run. `mutation=open` is stated only once the agent is
 clear to write files. No file mutation happens before this line appears.

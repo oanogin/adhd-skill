@@ -19,15 +19,22 @@ skills own the work inside each stage.
 
 ## Required-skill preflight (non-optional)
 
-`adhd` hard-depends on three skills with no fallback and no degraded mode:
-`brainstorming`, `impeccable`, `writing-plans`.
+`adhd` hard-depends on two things, with no fallback and no degraded mode:
 
-Before ANY file mutation, confirm all three are available in the current agent.
-There is no programmatic probe — self-confirm: state, in the response, that each
-skill is present and invocable. If any is missing, name the missing skill(s) and
-HALT. Do not give installation instructions — installing them is the user's job.
+- the **`superpowers` plugin** — `adhd` invokes `brainstorming` (design stage),
+  `writing-plans` (plan stage), and `executing-plans` (build stage) from it.
+  The whole plugin is required, not just those three: other superpowers skills
+  (e.g. `subagent-driven-development`, `systematic-debugging`) are useful during
+  the build stage too.
+- the **`impeccable` skill** — UI design for the `design` and `build` stages.
 
-The Setup stage records this: after confirming the three skills, it runs
+Before ANY file mutation, confirm both are available in the current agent.
+There is no programmatic probe — self-confirm: state, in the response, that the
+`superpowers` plugin and `impeccable` are present and invocable. If either is
+missing, name it and HALT. Do not give installation instructions — installing
+them is the user's job.
+
+The Setup stage records this: after confirming both dependencies, it runs
 `node {{scripts_path}}/adhd-state.mjs preflight-confirm`, which writes
 `preflight.skillsConfirmed` in `state.json`. Later runs can inspect it with
 `node {{scripts_path}}/adhd-state.mjs read`.

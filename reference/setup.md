@@ -16,17 +16,17 @@ re-scaffolding.
 
 ## Procedure
 1. **Required-skill preflight.** Run the preflight from `SKILL.md`. State explicitly,
-   in your response, that `brainstorming`, `impeccable`, and `writing-plans` are each
-   present and invocable in this agent. If any of the three is missing, name the
-   missing skill(s) and HALT — do not give installation instructions; installing them
-   is the user's job. Do not mutate any file until all three are confirmed.
+   in your response, that the `superpowers` plugin and the `impeccable` skill are
+   present and invocable in this agent. If either is missing, name it and HALT — do
+   not give installation instructions; installing them is the user's job. Do not
+   mutate any file until both are confirmed.
 2. **Create the canonical directory tree.** Create `.ruler/`, `docs/`, `project/`,
    and `project/milestones/`. Create an empty `project/notes.md`. Create
    `docs/DECISIONS.md` containing only a single `# Decisions` heading.
 3. **Initialise state.** Run `node {{scripts_path}}/adhd-state.mjs init` to create
    `project/state.json`. Then run
    `node {{scripts_path}}/adhd-state.mjs preflight-confirm` to record in
-   `state.json` that the three required skills were confirmed in step 1.
+   `state.json` that both required dependencies were confirmed in step 1.
 4. **Configure `.gitignore`.** Append `.superpowers/` and `.impeccable/` to
    `.gitignore` (create the file if it does not exist). Do NOT gitignore `project/` —
    it holds tracked, durable project state and must be committed.
