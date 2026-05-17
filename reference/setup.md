@@ -27,9 +27,9 @@ re-scaffolding.
    `project/state.json`. Then run
    `node {{scripts_path}}/adhd-state.mjs preflight-confirm` to record in
    `state.json` that both required dependencies were confirmed in step 1.
-4. **Configure `.gitignore`.** Append `.superpowers/` and `.impeccable/` to
-   `.gitignore` (create the file if it does not exist). Do NOT gitignore `project/` —
-   it holds tracked, durable project state and must be committed.
+4. **Configure `.gitignore`.** Append `.superpowers/` to `.gitignore` (create the file
+   if it does not exist). Do NOT gitignore `.impeccable/` — it is tracked. Do NOT
+   gitignore `project/` — it holds tracked, durable project state and must be committed.
 5. **Seed `.ruler/`.** If `.ruler/` is empty, add a short `.ruler/00-adhd.md` note
    stating that this project is run by the `adhd` conductor and that
    `project/notes.md` is read first at the start of every session.
@@ -41,7 +41,7 @@ Setup produces the canonical layout defined in `SKILL.md`:
 - `docs/` — with `DECISIONS.md` (`# Decisions` heading only).
 - `project/` — with `state.json` and an empty `notes.md`.
 - `project/milestones/` — empty, ready for per-milestone subdirectories.
-- `.gitignore` — extended with `.superpowers/` and `.impeccable/`.
+- `.gitignore` — extended with `.superpowers/` (`.impeccable/` stays tracked).
 
 `project/state.json` is owned exclusively by `adhd-state.mjs`. Never hand-edit it —
 all reads and writes go through the script's subcommands.

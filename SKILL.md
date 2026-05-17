@@ -272,8 +272,8 @@ If `state.json` does not exist, the only runnable stage is `setup`.
 `docs/superpowers/specs/` and `docs/superpowers/plans/`. `adhd` overrides this on
 every invocation: surface specs go to `project/milestones/m<N>/surfaces/`, plans to
 `project/milestones/m<N>/plans/`. Always pass the canonical target path when invoking
-a sub-skill. Leave `.superpowers/` and `.impeccable/` untouched — Setup adds both to
-`.gitignore`.
+a sub-skill. Leave `.superpowers/` and `.impeccable/` untouched — Setup gitignores
+`.superpowers/`; `.impeccable/` stays tracked in git.
 
 ## Common mistakes
 
