@@ -1,7 +1,8 @@
 # adhd — Plan
 
 **Effort:** medium
-**Gate:** `project/milestones/m{{N}}/surfaces/{{name}}.md` exists — the Design stage is done.
+**Gate:** the surface spec `surfaces/{{name}}.md` exists (Design done) AND the
+milestone's `gap` stage is done.
 **Output:** `project/milestones/m{{N}}/plans/{{name}}.md`.
 **Sub-skill:** `superpowers:writing-plans`.
 
@@ -12,12 +13,15 @@ No skip, no override — this is the skill's central discipline.
 
 If the gate reports `project/milestones/m{{N}}/surfaces/{{name}}.md` is missing, HALT
 and tell the user to run `{{command_prefix}}adhd design --milestone {{N}} --surface {{name}}`
-first.
+first. If it reports the milestone's `gap` stage is not done, HALT and tell the user to
+run `{{command_prefix}}adhd gap --milestone {{N}}` first.
 
 ## Procedure
 1. **Write the implementation plan.** Run `superpowers:writing-plans` against the
    surface spec `surfaces/{{name}}.md`. The plan turns the spec into an ordered set of
-   concrete implementation tasks for the Build stage.
+   concrete implementation tasks for the Build stage. In **production phase**, the plan
+   must also close this surface's delta from `m{{N}}/gap.md` — building/updating the
+   production app to match the prototype is part of the plan's tasks.
 2. **Override the plan output path.** `writing-plans` defaults its plan to
    `docs/superpowers/plans/`. OVERRIDE that: save the plan to the canonical target
    `project/milestones/m{{N}}/plans/{{name}}.md`. Pass that path when invoking the

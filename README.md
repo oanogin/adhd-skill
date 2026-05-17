@@ -75,8 +75,9 @@ FRONT-LOAD (once)
 
 PER-MILESTONE LOOP
   surface-overview → milestone-ux → tracer → replan
-  PER-SURFACE LOOP
-    design → plan → build
+  design          (every surface)
+  gap             (prototype vs production, once per milestone)
+  plan → build    (every surface)
   review
   → advance-milestone → next milestone
 ```
@@ -87,15 +88,33 @@ PER-MILESTONE LOOP
 | vision | product, users, usage | `docs/PRODUCT.md` |
 | features | brain-dump every feature — the "spaceship" lives here | `project/features.md` |
 | milestones | group features; Milestone 1 = first valuable product | `project/milestones.md` |
-| map | sitemap of surfaces + domain model | `project/map.md`, `docs/DOMAIN.md` |
+| map | sitemap of surfaces + domain glossary | `project/map.md`, `docs/DOMAIN.md` |
 | surface-overview | helicopter view of a milestone's surfaces | `m<N>/overview.md` |
 | milestone-ux | cross-surface UX; must-have security & errors | `m<N>/ux.md` |
 | tracer | one thin end-to-end slice — surfaces hard reality early | `m<N>/tracer.md` + code |
 | replan | revise surface plan against tracer findings | updated `overview.md` + `tracer.md` |
 | design | per-surface UX then UI; surface-specific security & errors | `surfaces/<name>.md` |
+| gap | per-milestone delta between the prototype and the production app | `m<N>/gap.md` |
 | plan | per-surface implementation plan | `plans/<name>.md` |
 | build | implement the surface | code |
 | review | fresh-session design audit of the milestone | `m<N>/review.md` |
+
+## Prototype and production apps
+
+Every project builds two apps that coexist even in single-repo mode:
+
+- the **prototype app** — the product's UX on mock data, the persistent and
+  always-current reference;
+- the **production app** — the real UI on real data and a real backend.
+
+The project runs in **prototype phase** until the first milestone with real `infra`,
+then flips to **production phase** for good. In prototype phase `design → plan → build`
+build the prototype. In production phase `build` targets the production app, and the
+per-milestone `gap` stage measures the delta between prototype and production so the
+following builds close it. When reality contradicts the prototype, the prototype is
+updated first — it stays the reference, and the production UI is moved to match it.
+
+Where the two apps live in the repo is a tech decision, logged in `docs/DECISIONS.md`.
 
 ## How the gates work
 
@@ -115,11 +134,12 @@ your explicit "ok".
 .ruler/                  agent instructions
 docs/
   PRODUCT.md  DESIGN.md  DOMAIN.md  DECISIONS.md
+  DATA.md                data model — created lazily, only once a milestone persists data
 project/
   state.json             workflow progress — never hand-edit
   notes.md               transient scratchpad — healthy when empty
   features.md  milestones.md  map.md
-  milestones/m<N>/        overview, ux, tracer, surfaces/, plans/, review
+  milestones/m<N>/        overview, ux, tracer, gap, surfaces/, plans/, review
 ```
 
 `project/state.json` is owned by `scripts/adhd-state.mjs`. Never edit it by hand;
@@ -130,6 +150,13 @@ use the CLI (`/adhd` drives it for you).
 - **Commit gate** — `adhd` never runs `git commit` without your explicit "ok".
 - **Milestone discipline** — a new feature idea raised mid-project is filed to
   `features.md` and parked in a later milestone, not bolted onto the current one.
+- **Product before tech** — the scope stages (`vision`, `features`, `milestones`,
+  `map`) describe *what the product does* in capability terms — never a stack,
+  framework, database, or architecture. Tech decisions live in `docs/DECISIONS.md`.
+- **Tech, just-in-time** — each stack decision is made by the milestone that first
+  needs it, not up front. A milestone can declare `infra: none` and ship as a
+  fully-working UX prototype on mock data — no database, no data model. The data model
+  appears in `docs/DATA.md` only once a milestone actually persists data.
 - **notes.md** — a scratchpad read first every session; durable facts get
   migrated to their real home (`DECISIONS.md`, `DOMAIN.md`, a surface spec).
 - **Context watch** — `adhd` flags when to start a fresh session and emits a

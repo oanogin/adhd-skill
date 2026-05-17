@@ -51,6 +51,13 @@ be `done`. If the gate reports `replan` is not done, HALT and tell the user to r
    set in `milestone-ux`; this stage catches the rest. Nothing reaches Build undefined.
 6. **Consolidate the spec.** Merge the UX/UI (or API-contract) work and the
    security/error cases into a single coherent spec at `surfaces/{{name}}.md`.
+7. **Build the prototype surface — production phase, `ui` surfaces only.** Determine
+   the phase from the `infra` fields in `project/milestones.md` (see SKILL.md,
+   "Prototype and production apps"). In **production phase**, also build this `ui`
+   surface into the **prototype app** on mock data, so the prototype stays the current,
+   always-ahead reference before `gap` and `build` touch the production app. In
+   **prototype phase**, design produces only the spec — the prototype app is built by
+   this milestone's `plan` and `build`. `api` and `lib` surfaces have no prototype.
 
 ## Output
 `project/milestones/m{{N}}/surfaces/{{name}}.md` with three sections:
@@ -71,7 +78,10 @@ kinds.
 1. Write the output file(s) above.
 2. `node {{scripts_path}}/adhd-state.mjs set design done --milestone {{N}} --surface {{name}}`
 3. `node {{scripts_path}}/adhd-state.mjs session-add design`
-4. `node {{scripts_path}}/context-watch.mjs --next plan` — if it advises a fresh
-   session, run `node {{scripts_path}}/handoff-prompt.mjs` and give the user the prompt.
+4. `node {{scripts_path}}/context-watch.mjs --next <stage>` — pass the actual next
+   stage: `--next design` when another surface still needs designing, or `--next gap`
+   when this was the last surface. If it advises a fresh session, run
+   `node {{scripts_path}}/handoff-prompt.mjs` and give the user the prompt.
 5. Drain `project/notes.md`: migrate any durable entry to its canonical home; healthy = empty.
-6. Tell the user the next runnable stage is `plan` for this surface.
+6. Tell the user the next runnable stage: `design` for the next surface of the
+   milestone, or `gap` once every surface in the milestone is designed.

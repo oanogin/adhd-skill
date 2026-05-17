@@ -29,7 +29,14 @@ user to run `{{command_prefix}}adhd map` first.
 2. **Note cross-surface relationships.** Describe how the milestone's surfaces connect:
    which surface leads to which, the shared state that moves between them, and the
    rough user journey a real user takes through the milestone end to end.
-3. **Write the overview.** Create the milestone folder `project/milestones/m{{N}}/` if
+3. **Settle infra mechanisms — latest responsible moment.** Read this milestone's
+   `infra` need from `project/milestones.md`. For each capability it requires that has
+   no mechanism chosen yet, decide the mechanism now, with the user, and log it in
+   `docs/DECISIONS.md`. If `infra` is `none`, there is nothing to decide — the milestone
+   is a UX prototype on mock data; do not invent a backend or a database. The data model
+   itself (`docs/DATA.md`) is not authored here; it is created lazily when the milestone
+   first persists real data (see the `tracer` and `design` stages).
+4. **Write the overview.** Create the milestone folder `project/milestones/m{{N}}/` if
    it does not already exist, then write `overview.md` inside it.
 
 ## Output

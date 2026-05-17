@@ -24,18 +24,24 @@ tell the user to run `{{command_prefix}}adhd milestones` first.
    `node {{scripts_path}}/adhd-state.mjs surface-meta <name> --milestone <N> --kind <kind>`
    (add `--repo <repo>` in `multi` mode). A repo's registered `kind` is a sensible
    default for surfaces in that repo; the surface's own `kind` is authoritative.
-2. **Sketch the domain / data model.** Identify the core entities, their key fields,
-   and the relationships between them. Write this model to `docs/DOMAIN.md`.
+2. **Sketch the domain glossary.** Identify the core concepts the product is about and
+   the relationships between them — each concept's name and what it represents in plain
+   product terms. This is product vocabulary, NOT a data model: no field types, no
+   persistence, no schema, no database. Write the glossary to `docs/DOMAIN.md`. The data
+   model (`docs/DATA.md`) is a tech artifact created later, only when a milestone
+   actually persists data — never here.
 3. **Write `project/map.md`.** Record the sitemap and overall structure, grouped by
-   milestone. Cross-reference `docs/DOMAIN.md` so the structural map and the data
-   model stay linked.
+   milestone. Cross-reference `docs/DOMAIN.md` so the structural map and the domain
+   glossary stay linked. Name capabilities, never mechanisms — no stack, framework,
+   database, or architecture appears in `map.md`.
 
 ## Output
 - `project/map.md` — a sitemap grouped by milestone. Each milestone heading lists its
   surfaces, and each surface has a one-line purpose. Includes a cross-reference to
   `docs/DOMAIN.md`.
-- `docs/DOMAIN.md` — the domain / data model: a list of entities with their key
-  fields, and the relationships between them.
+- `docs/DOMAIN.md` — the domain glossary: the core product concepts and the
+  relationships between them, in plain product terms. No field types, no schema, no
+  persistence.
 
 ## On completion
 1. Write the output file(s) above.

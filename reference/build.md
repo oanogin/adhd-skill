@@ -19,7 +19,10 @@ first.
 1. **Execute the plan task-by-task.** Work through the surface plan
    `plans/{{name}}.md` with `superpowers:executing-plans`, completing one task at a
    time. For UI craft within a task, use `impeccable craft` so the implementation
-   matches the design system.
+   matches the design system. The plan's tasks already target the right app for the
+   project's phase — the **prototype app** on mock data in prototype phase, the
+   **production app** (closing this surface's `m{{N}}/gap.md` delta) in production
+   phase. See SKILL.md, "Prototype and production apps".
 
    In `multi` mode, code is written in the surface's registered repo. Read the
    surface's `repo` with
@@ -52,9 +55,9 @@ first.
    Only mark `done` when the entire surface plan is complete.
 3. `node {{scripts_path}}/adhd-state.mjs session-add build`
 4. `node {{scripts_path}}/context-watch.mjs --next <stage>` — pass the actual next
-   stage: `--next design` when another surface remains in the milestone, or
+   stage: `--next plan` when another surface still needs planning/building, or
    `--next review` when this was the last surface. If it advises a fresh session, run
    `node {{scripts_path}}/handoff-prompt.mjs` and give the user the prompt.
 5. Drain `project/notes.md`: migrate any durable entry to its canonical home; healthy = empty.
-6. Tell the user the next runnable stage: `design` for the next surface of the
+6. Tell the user the next runnable stage: `plan` for the next surface of the
    milestone, or `review` once all surfaces in the milestone are built.

@@ -22,7 +22,15 @@ the user to run `{{command_prefix}}adhd features` first.
    spaceship — it is the smallest thing real users would actually find worth using.
    Every later milestone is the parking lot: ambitious features wait there in order.
 3. **Record each milestone** with: an id, a title, the features it includes, the user
-   value it unlocks, and the rationale for its ordering relative to the others.
+   value it unlocks, the rationale for its ordering, and its `infra` need — the
+   capabilities it newly requires, in capability terms only ("none — mock data",
+   "persistence", "auth", "realtime"). Never name a mechanism here. A milestone with
+   `infra: none` is a valid, fully-working UX prototype — it needs no data model and no
+   database, and the build runs entirely on mock data. Defer every infra capability you
+   can: the later a milestone introduces one, the later its mechanism must be chosen.
+   The `infra` fields also set the project's phase: it stays in **prototype phase**
+   until the first milestone with an `infra` other than `none`, which flips it to
+   **production phase** permanently (see SKILL.md, "Prototype and production apps").
 4. **Back-fill `project/features.md`.** Fill the previously blank `Candidate milestone`
    column so every feature is assigned to the milestone it now belongs to.
 
@@ -34,6 +42,8 @@ the user to run `{{command_prefix}}adhd features` first.
 - `features` — the features included in this milestone.
 - `value` — the user value this milestone unlocks.
 - `rationale` — why this milestone is ordered where it is.
+- `infra` — the capabilities this milestone newly requires, in capability terms only
+  (`none — mock data`, `persistence`, `auth`, ...). No mechanisms.
 
 `project/features.md` is also updated: the `Candidate milestone` column is filled in.
 

@@ -110,6 +110,54 @@ test('nextStage walks front-load then milestone then surfaces', () => {
   assert.equal(nextStage(cwd).stage, 'surface-overview');
 });
 
+test('gate(gap) needs every surface designed', () => {
+  const cwd = tmp();
+  initState(cwd);
+  setStageStatus(cwd, { stage: 'design', status: 'done', milestone: 1, surface: 'login' });
+  setStageStatus(cwd, { stage: 'design', status: 'in-progress', milestone: 1, surface: 'home' });
+  assert.equal(gate(cwd, 'gap', { milestone: 1 }).pass, false);
+  setStageStatus(cwd, { stage: 'design', status: 'done', milestone: 1, surface: 'home' });
+  assert.equal(gate(cwd, 'gap', { milestone: 1 }).pass, true);
+});
+
+test('gate(plan) needs the surface spec and the milestone gap done', () => {
+  const cwd = tmp();
+  initState(cwd);
+  touch(cwd, 'project/milestones/m1/surfaces/login.md');
+  assert.equal(gate(cwd, 'plan', { milestone: 1, surface: 'login' }).pass, false);
+  setStageStatus(cwd, { stage: 'gap', status: 'done', milestone: 1 });
+  assert.equal(gate(cwd, 'plan', { milestone: 1, surface: 'login' }).pass, true);
+});
+
+test('nextStage runs every design, then gap, then plan/build', () => {
+  const cwd = tmp();
+  initState(cwd);
+  for (const s of FRONTLOAD_STAGES) setStageStatus(cwd, { stage: s, status: 'done' });
+  for (const s of ['surface-overview', 'milestone-ux', 'tracer', 'replan']) {
+    setStageStatus(cwd, { stage: s, status: 'done', milestone: 1 });
+  }
+  setStageStatus(cwd, { stage: 'design', status: 'in-progress', milestone: 1, surface: 'login' });
+  setStageStatus(cwd, { stage: 'design', status: 'in-progress', milestone: 1, surface: 'home' });
+  assert.equal(nextStage(cwd).stage, 'design');
+  setStageStatus(cwd, { stage: 'design', status: 'done', milestone: 1, surface: 'login' });
+  setStageStatus(cwd, { stage: 'design', status: 'done', milestone: 1, surface: 'home' });
+  assert.equal(nextStage(cwd).stage, 'gap');
+  setStageStatus(cwd, { stage: 'gap', status: 'done', milestone: 1 });
+  assert.equal(nextStage(cwd).stage, 'plan');
+});
+
+test('ensureMilestone backfills stages missing from older state', () => {
+  const cwd = tmp();
+  initState(cwd);
+  const s = loadState(cwd);
+  s.milestones['1'] = { title: null, stages: { 'surface-overview': { status: 'done' } }, surfaces: {} };
+  saveState(cwd, s);
+  setStageStatus(cwd, { stage: 'replan', status: 'done', milestone: 1 });
+  const after = loadState(cwd).milestones['1'].stages;
+  assert.ok(after.gap);
+  assert.equal(after.gap.status, 'blocked');
+});
+
 test('sessionAdd / sessionReset track stages this session', () => {
   const cwd = tmp();
   initState(cwd);

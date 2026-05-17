@@ -72,8 +72,9 @@ The Setup stage scaffolds this exact tree in every project. Never deviate.
 docs/
   PRODUCT.md                 Vision output — impeccable reads this
   DESIGN.md                  design system — impeccable reads/writes this
-  DOMAIN.md                  domain / data model — Map output
-  DECISIONS.md               decision log
+  DOMAIN.md                  domain glossary (concepts + relationships) — Map output
+  DATA.md                    data model / schema — created lazily when a milestone persists data
+  DECISIONS.md               decision log, incl. tech stack (decided just-in-time)
 project/
   state.json                 progress, stage status, effort log, doc-home config
   notes.md                   transient scratchpad (healthy = empty)
@@ -84,6 +85,7 @@ project/
     overview.md              Surface overview
     ux.md                    Milestone UX
     tracer.md                tracer slice notes + replan
+    gap.md                   prototype-vs-production gap analysis
     surfaces/<name>.md       per-surface Design spec
     plans/<name>.md          per-surface implementation Plan
     review.md                milestone review-pass findings
@@ -103,13 +105,15 @@ project/
 | `tracer` | per-milestone | high | `m<N>/tracer.md` + code | none | [reference/tracer.md](reference/tracer.md) |
 | `replan` | per-milestone | medium | updated `m<N>/overview.md` + `tracer.md` | none | [reference/replan.md](reference/replan.md) |
 | `design` | per-surface | high | `m<N>/surfaces/<name>.md` | brainstorming + impeccable | [reference/design.md](reference/design.md) |
+| `gap` | per-milestone | medium | `m<N>/gap.md` | none | [reference/gap.md](reference/gap.md) |
 | `plan` | per-surface | medium | `m<N>/plans/<name>.md` | writing-plans | [reference/plan.md](reference/plan.md) |
 | `build` | per-surface | medium | code + `state.json` | impeccable craft / executing-plans | [reference/build.md](reference/build.md) |
 | `review` | per-milestone | high | `m<N>/review.md` | none | [reference/review.md](reference/review.md) |
 
 Flow: front-load runs once (`setup → vision → features → milestones → map`). Then per
-milestone: `surface-overview → milestone-ux → tracer → replan`, then per surface
-`design → plan → build`, then `review`, then the next milestone.
+milestone: `surface-overview → milestone-ux → tracer → replan`, then `design` for every
+surface, then the milestone-wide `gap`, then `plan → build` for every surface, then
+`review`, then the next milestone.
 
 After a milestone's `review` passes, advance with
 `node {{scripts_path}}/adhd-state.mjs advance-milestone` — it bumps
@@ -131,6 +135,33 @@ Every surface has a `kind` — `ui`, `api`, or `lib` — assigned during `map` a
 In `multi` mode each surface is also tagged with the registered `repo` it is built
 in. `map` and `surface-overview` record both with
 `node {{scripts_path}}/adhd-state.mjs surface-meta <name> --milestone {{N}} --repo <repo> --kind <kind>`.
+
+## Prototype and production apps
+
+Every `adhd` project builds two apps that coexist even in `single` mode:
+
+- the **prototype app** — the product's UX on mock data. It is the persistent,
+  always-current reference for UX and for the data shape the UI needs. It is never
+  thrown away.
+- the **production app** — the real UI on real data and a real backend.
+
+A project runs in one of two **phases**, derived from the `infra` field of
+`project/milestones.md` — no separate state flag:
+
+- **prototype phase** — no milestone has yet introduced real infra. `design → plan →
+  build` build the prototype app on mock data. The `gap` stage is a trivial pass:
+  there is no production app to compare against.
+- **production phase** — begins at the first milestone whose `infra` is not `none`,
+  and is permanent. From here `build` targets the production app; `design` also builds
+  the prototype surface (mock data) so the prototype stays ahead as the reference; the
+  `gap` stage does the real prototype-vs-production analysis.
+
+When real-backend reality contradicts the prototype, the `gap` stage updates the
+prototype FIRST, then records the gap — the prototype stays the current reference and
+the production UI is moved to match it.
+
+Where the two apps live in the repo is a tech decision, logged in `docs/DECISIONS.md`
+at the milestone that needs it — `adhd` does not fix the layout.
 
 ## Hard gates
 
@@ -184,7 +215,7 @@ These are not stages — they have no gates and no place in the stage flow:
 
 1. **No argument** — run `adhd-state.mjs status`, print it, name the next runnable
    stage. Stop.
-2. **First word is a stage or a management command** — the 13 stages are in the
+2. **First word is a stage or a management command** — the 14 stages are in the
    table above; `workspace` and `adopt` are management commands. Load the matching
    `reference/<name>.md` and follow it exactly. The reference owns the gate check
    (stages), the procedure, and the completion steps.
@@ -217,9 +248,23 @@ If `state.json` does not exist, the only runnable stage is `setup`.
 - **Milestone discipline (soft warn)** — once milestones are set, a new feature idea is
   filed to `features.md` and assigned a milestone (usually later). Warn when an idea
   would expand the current milestone; do not hard-block.
+- **No "MVP"** — never write "MVP" in any `adhd` artifact or message. The term is vague
+  and smuggles in scope assumptions. Say "Milestone 1" or "the first valuable product".
+- **Capability, not mechanism** — the product-scope stages (`vision`, `features`,
+  `milestones`, `map`) describe *what the product does* in capability terms ("data
+  persists", "users sign in", "results update live"). They never name a mechanism — no
+  stack, framework, database, or architecture. Mechanism talk belongs in
+  `docs/DECISIONS.md`, never in a product-scope artifact.
+- **Tech at the latest responsible moment** — a stack/architecture decision is made by
+  the milestone that first needs the capability, never earlier, and logged in
+  `docs/DECISIONS.md`. A known-firm choice (e.g. a frontend framework) may be logged at
+  any time, but is never required to start. A capability with no mechanism yet is
+  normal: a milestone whose infra need is "none" is a valid, fully-working UX prototype —
+  mock data, no data model, no database. The data model lives in `docs/DATA.md`, created
+  lazily the first time a milestone persists real data.
 - **notes.md discipline** — `project/notes.md` is a transient scratchpad, read first
   every session, healthy when empty. Migrate anything durable to its canonical home
-  (`DECISIONS.md`, `DOMAIN.md`, a surface spec, `.ruler/`, `milestones.md`).
+  (`DECISIONS.md`, `DOMAIN.md`, `DATA.md`, a surface spec, `.ruler/`, `milestones.md`).
 
 ## Sub-skill output routing
 

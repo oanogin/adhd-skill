@@ -7,13 +7,13 @@ export const STATE_VERSION = 1;
 export const STATE_FILE = 'project/state.json';
 
 export const FRONTLOAD_STAGES = ['setup', 'vision', 'features', 'milestones', 'map'];
-export const MILESTONE_STAGES = ['surface-overview', 'milestone-ux', 'tracer', 'replan', 'review'];
+export const MILESTONE_STAGES = ['surface-overview', 'milestone-ux', 'tracer', 'replan', 'gap', 'review'];
 export const SURFACE_STAGES = ['design', 'plan', 'build'];
 
 export const STAGE_EFFORT = {
   setup: 'low', vision: 'high', features: 'medium', milestones: 'high', map: 'high',
   'surface-overview': 'medium', 'milestone-ux': 'high', tracer: 'high', replan: 'medium',
-  review: 'high', design: 'high', plan: 'medium', build: 'medium',
+  gap: 'medium', review: 'high', design: 'high', plan: 'medium', build: 'medium',
 };
 
 export const EFFORT_WEIGHT = { low: 1, medium: 2, high: 3, 'extra-high': 4 };
@@ -35,7 +35,8 @@ const STAGE_GATES = {
   tracer:             { files: ['project/milestones/m{N}/ux.md'],                   stages: [] },
   replan:             { files: ['project/milestones/m{N}/tracer.md'],               stages: [] },
   design:             { files: [],                                                  stages: [['milestone', 'replan', 'done']] },
-  plan:               { files: ['project/milestones/m{N}/surfaces/{surface}.md'],   stages: [] },
+  gap:                { files: [],                                                  stages: [['allSurfacesDesigned']] },
+  plan:               { files: ['project/milestones/m{N}/surfaces/{surface}.md'],   stages: [['milestone', 'gap', 'done']] },
   build:              { files: ['project/milestones/m{N}/plans/{surface}.md'],      stages: [] },
   review:             { files: [],                                                  stages: [['allSurfacesBuilt']] },
 };
@@ -107,7 +108,12 @@ function ensureMilestone(state, n) {
       surfaces: {},
     };
   }
-  return state.milestones[key];
+  const m = state.milestones[key];
+  // Backfill stages added after this milestone's state was first written.
+  for (const s of MILESTONE_STAGES) {
+    if (!m.stages[s]) m.stages[s] = { status: 'blocked', effort: STAGE_EFFORT[s] };
+  }
+  return m;
 }
 
 function ensureSurface(state, n, name) {
@@ -175,6 +181,13 @@ export function gate(cwd, stage, { milestone, surface } = {}) {
       if (state?.milestones?.[String(m)]?.stages?.[cond[1]]?.status !== cond[2]) {
         missing.push(`milestone ${m} stage "${cond[1]}" not ${cond[2]}`);
       }
+    } else if (cond[0] === 'allSurfacesDesigned') {
+      const surfaces = state?.milestones?.[String(m)]?.surfaces ?? {};
+      const names = Object.keys(surfaces);
+      if (names.length === 0) missing.push(`milestone ${m} has no surfaces defined`);
+      for (const name of names) {
+        if (surfaces[name].design?.status !== 'done') missing.push(`surface "${name}" not designed`);
+      }
     } else if (cond[0] === 'allSurfacesBuilt') {
       const surfaces = state?.milestones?.[String(m)]?.surfaces ?? {};
       const names = Object.keys(surfaces);
@@ -197,14 +210,18 @@ export function nextStage(cwd = process.cwd()) {
   const ms = state.milestones[String(m)];
   if (!ms) return { stage: 'surface-overview', milestone: m, surface: null };
   for (const s of ['surface-overview', 'milestone-ux', 'tracer', 'replan']) {
-    if (ms.stages[s].status !== 'done') return { stage: s, milestone: m, surface: null };
+    if (ms.stages[s]?.status !== 'done') return { stage: s, milestone: m, surface: null };
   }
   for (const [name, surf] of Object.entries(ms.surfaces)) {
-    for (const s of SURFACE_STAGES) {
+    if (surf.design.status !== 'done') return { stage: 'design', milestone: m, surface: name };
+  }
+  if (ms.stages.gap?.status !== 'done') return { stage: 'gap', milestone: m, surface: null };
+  for (const [name, surf] of Object.entries(ms.surfaces)) {
+    for (const s of ['plan', 'build']) {
       if (surf[s].status !== 'done') return { stage: s, milestone: m, surface: name };
     }
   }
-  if (ms.stages.review.status !== 'done') return { stage: 'review', milestone: m, surface: null };
+  if (ms.stages.review?.status !== 'done') return { stage: 'review', milestone: m, surface: null };
   return { stage: 'next-milestone', milestone: m + 1, surface: null };
 }
 
@@ -217,7 +234,7 @@ export function statusReport(cwd = process.cwd()) {
   lines.push('Front-load:  ' + FRONTLOAD_STAGES.map((s) => `${s} ${ICON[state.frontload[s].status]}`).join('  '));
   for (const [key, ms] of Object.entries(state.milestones)) {
     lines.push(`Milestone ${key}${ms.title ? ` — ${ms.title}` : ''}:`);
-    lines.push('  ' + MILESTONE_STAGES.map((s) => `${s} ${ICON[ms.stages[s].status]}`).join('  '));
+    lines.push('  ' + MILESTONE_STAGES.map((s) => `${s} ${ICON[ms.stages[s]?.status]}`).join('  '));
     for (const [name, surf] of Object.entries(ms.surfaces)) {
       lines.push(`  surface ${name}:  ` + SURFACE_STAGES.map((s) => `${s} ${ICON[surf[s].status]}`).join('  '));
     }

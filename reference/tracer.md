@@ -15,9 +15,17 @@ user to run `{{command_prefix}}adhd milestone-ux --milestone {{N}}` first.
 
 ## Procedure
 1. **Build one deliberate thin slice.** Pick a single surface from the milestone and
-   build it end to end with a real backend — not a mock. Choose the slice so it
-   exercises the risk classes that hurt late: auth, errors, rate limits, and data
-   shape. One slice, threaded all the way through the stack.
+   build it end to end, threaded through whatever stack this milestone actually has —
+   read the milestone's `infra` need from `project/milestones.md`:
+   - **`infra` names a backend capability** (persistence, auth, ...) — thread the slice
+     through the real mechanism, not a mock. Choose the slice so it exercises the risk
+     classes that hurt late: auth, errors, rate limits, and data shape. If the slice
+     persists real data, this is where `docs/DATA.md` is first authored — write the
+     schema for the entities the slice touches.
+   - **`infra` is `none`** (UX prototype) — there is no backend; do not invent one.
+     Thread the slice through the frontend on mock or in-memory data. The risk classes
+     become the UX ones that hurt late: shared state, navigation and routing, responsive
+     layout, and the single riskiest interaction. No data model, no `docs/DATA.md`.
 2. **Keep it minimal but real.** The point is to surface hard reality early, not to
    ship the surface. Build only enough to make each risk class real; leave the polish,
    the edge cases, and the remaining surfaces for the per-surface stages.
@@ -38,10 +46,11 @@ user to run `{{command_prefix}}adhd milestone-ux --milestone {{N}}` first.
 ## Output
 `project/milestones/m{{N}}/tracer.md` with:
 
-- A description of the slice that was built — which surface, which backend, what path
-  through the stack.
-- Findings per risk class — what auth, errors, rate limits, and data shape each
-  revealed when exercised against a real backend.
+- A description of the slice that was built — which surface, what path through the
+  stack the milestone has (real backend, or frontend on mock data).
+- Findings per risk class — backend milestone: what auth, errors, rate limits, and data
+  shape each revealed against the real mechanism. UX-prototype milestone: what shared
+  state, navigation, responsive layout, and the riskiest interaction each revealed.
 - A surprises list — discovered rules, wrong assumptions, and missing decisions.
 
 The tracer code itself is also produced this stage, committed only after the user's
