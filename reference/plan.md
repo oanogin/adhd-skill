@@ -19,9 +19,10 @@ run `{{command_prefix}}adhd gap --milestone {{N}}` first.
 ## Procedure
 1. **Write the implementation plan.** Run `superpowers:writing-plans` against the
    surface spec `surfaces/{{name}}.md`. The plan turns the spec into an ordered set of
-   concrete implementation tasks for the Build stage. In **production phase**, the plan
-   must also close this surface's delta from `m{{N}}/gap.md` — building/updating the
-   production app to match the prototype is part of the plan's tasks.
+   concrete implementation tasks for the Build stage. `plan` runs only on
+   production-track milestones, so the plan targets the **production app**: it must
+   close this surface's delta from `m{{N}}/gap.md` — moving the production UI to match
+   the signed-off prototype, on real data, is the plan's job.
 2. **Override the plan output path.** `writing-plans` defaults its plan to
    `docs/superpowers/plans/`. OVERRIDE that: save the plan to the canonical target
    `project/milestones/m{{N}}/plans/{{name}}.md`. Pass that path when invoking the

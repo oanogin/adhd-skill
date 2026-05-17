@@ -26,11 +26,12 @@ the user to run `{{command_prefix}}adhd features` first.
    capabilities it newly requires, in capability terms only ("none — mock data",
    "persistence", "auth", "realtime"). Never name a mechanism here. A milestone with
    `infra: none` is a valid, fully-working UX prototype — it needs no data model and no
-   database, and the build runs entirely on mock data. Defer every infra capability you
-   can: the later a milestone introduces one, the later its mechanism must be chosen.
-   The `infra` fields also set the project's phase: it stays in **prototype phase**
-   until the first milestone with an `infra` other than `none`, which flips it to
-   **production phase** permanently (see SKILL.md, "Prototype and production apps").
+   database, and ends at the clickable `prototype` stage. Defer every infra capability
+   you can: the later a milestone introduces one, the later its mechanism must be chosen.
+   The `infra` field sets each milestone's **track**: `infra: none` → a prototype-only
+   milestone (`surface-overview → milestone-ux → design → prototype → review`); any real
+   `infra` → a production-track milestone, which also runs `tracer → replan → gap →
+   plan → build` (see SKILL.md, "Prototype and production apps").
 4. **Back-fill `project/features.md`.** Fill the previously blank `Candidate milestone`
    column so every feature is assigned to the milestone it now belongs to.
 

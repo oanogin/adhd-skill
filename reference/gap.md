@@ -1,7 +1,7 @@
 # adhd — Gap
 
 **Effort:** medium
-**Gate:** every surface in the milestone has its `design` stage done.
+**Gate:** the milestone's `replan` stage is done; production-track milestones only.
 **Output:** `project/milestones/m{{N}}/gap.md`.
 **Sub-skill:** none.
 
@@ -10,40 +10,40 @@ Run `node {{scripts_path}}/adhd-state.mjs gate gap --milestone {{N}}`.
 If it reports missing items, HALT. Tell the user exactly which predecessor stage to run.
 No skip, no override — this is the skill's central discipline.
 
-If the gate reports a surface is "not designed", HALT and tell the user to run
-`{{command_prefix}}adhd design --milestone {{N}} --surface <name>` for it first.
+If the gate reports `replan` is not done, HALT and tell the user to run
+`{{command_prefix}}adhd replan --milestone {{N}}` first. `gap` runs only on
+production-track milestones — a prototype-only milestone has no production app and goes
+straight from `prototype` to `review`.
+
+## What this stage is
+
+The prototype is signed off and reconciled with the tracer's backend reality. `gap`
+measures the delta the production app must close to match it, surface by surface, so
+`plan` and `build` have a concrete target.
 
 ## Procedure
-1. **Determine the phase.** Read every milestone's `infra` field from
-   `project/milestones.md`. The project is in **production phase** if milestone `{{N}}`
-   or any earlier milestone has an `infra` other than `none`; otherwise it is in
-   **prototype phase**.
-2. **Prototype phase — trivial pass.** There is no production app yet. The prototype
-   built by this milestone's `design`/`build` is the deliverable. Write a short
-   `gap.md` recording: phase = prototype, no production app, gap = none. Done.
-3. **Production phase — analyse the gap.** A production app exists (or is about to be
-   stood up at the first production milestone). For each `ui` surface in milestone
-   `{{N}}`:
-   - Compare the **prototype app** against the **production app** — missing surfaces or
-     states, data-shape differences (mock shape vs real shape), and any UX that has
-     drifted between the two.
-   - If real-backend reality contradicts the prototype, **update the prototype first**
-     so it stays the current reference, then record what changed. The production UI is
-     always moved to match the prototype, never the reverse.
-   - Record the concrete delta the `build` stage must close for that surface.
-   At the first production milestone the production app does not exist yet, so the gap
-   is the whole prototype so far — the surfaces production must be stood up to reach.
-4. **Write `m{{N}}/gap.md`.** One block per `ui` surface with its delta; `api`/`lib`
-   surfaces have no prototype and are noted as not applicable.
+0. **UI-less milestone — trivial pass.** If the milestone has no `ui` surfaces (every
+   surface is `api` or `lib`), there is no prototype-vs-production UI delta. Write a
+   short `m{{N}}/gap.md` recording "no `ui` surfaces — no UI gap; `plan`/`build` carry
+   the backend work", mark the stage done, and proceed to `plan`. Skip steps 1–3.
+1. **Diff prototype against production, per `ui` surface.** For each `ui` surface in
+   milestone `{{N}}`, compare the **prototype app** against the current **production
+   app** — missing surfaces or states, data-shape differences (mock shape vs the real
+   shape from `docs/DATA.md`), and any behaviour the production app still lacks. At the
+   first production-track milestone the production app does not exist yet, so the gap is
+   the whole prototype so far — the surfaces production must be stood up to reach.
+2. **The prototype is the target, never the other way round.** If something still
+   contradicts the prototype, that is a `replan` reconciliation that was missed — fix
+   the prototype first, then record the gap. The production UI is always moved to match
+   the prototype.
+3. **Write `m{{N}}/gap.md`.** One block per `ui` surface with the concrete delta
+   `build` must close. `api`/`lib` surfaces have no prototype — note them as not
+   applicable.
 
 ## Output
-`project/milestones/m{{N}}/gap.md` with:
-
-- The phase (prototype or production) and why.
-- Prototype phase: a note that there is no production app and the gap is none.
-- Production phase: one block per `ui` surface — the concrete delta between the
-  prototype and the production app that `build` must close, and any prototype updates
-  made because reality contradicted it.
+`project/milestones/m{{N}}/gap.md` with one block per `ui` surface — the concrete delta
+between the signed-off prototype and the production app that `build` must close,
+including where mock data shape must become the real `docs/DATA.md` shape.
 
 ## On completion
 1. Write the output file(s) above.

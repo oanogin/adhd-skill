@@ -47,7 +47,8 @@ the user to run `{{command_prefix}}adhd surface-overview --milestone {{N}}` firs
 1. Write the output file(s) above.
 2. `node {{scripts_path}}/adhd-state.mjs set milestone-ux done --milestone {{N}}`
 3. `node {{scripts_path}}/adhd-state.mjs session-add milestone-ux`
-4. `node {{scripts_path}}/context-watch.mjs --next tracer` — if it advises a fresh
+4. `node {{scripts_path}}/context-watch.mjs --next design` — if it advises a fresh
    session, run `node {{scripts_path}}/handoff-prompt.mjs` and give the user the prompt.
 5. Drain `project/notes.md`: migrate any durable entry to its canonical home; healthy = empty.
-6. Tell the user the next runnable stage is `tracer` for milestone {{N}}.
+6. The per-surface loop now begins. Tell the user the next runnable stage is `design`
+   for the first surface of milestone {{N}}.

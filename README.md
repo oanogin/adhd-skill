@@ -74,11 +74,15 @@ FRONT-LOAD (once)
   setup → vision → features → milestones → map
 
 PER-MILESTONE LOOP
-  surface-overview → milestone-ux → tracer → replan
-  design          (every surface)
-  gap             (prototype vs production, once per milestone)
-  plan → build    (every surface)
-  review
+  surface-overview → milestone-ux
+  design       (every surface — also builds the prototype surface)
+  prototype    (assemble the clickable app; you click through and sign off)
+
+  prototype-only milestone (infra: none):  → review
+  production-track milestone:
+    tracer → replan → gap
+    plan → build  (every surface — the production app)
+    review
   → advance-milestone → next milestone
 ```
 
@@ -89,30 +93,39 @@ PER-MILESTONE LOOP
 | features | brain-dump every feature — the "spaceship" lives here | `project/features.md` |
 | milestones | group features; Milestone 1 = first valuable product | `project/milestones.md` |
 | map | sitemap of surfaces + domain glossary | `project/map.md`, `docs/DOMAIN.md` |
-| surface-overview | helicopter view of a milestone's surfaces | `m<N>/overview.md` |
+| surface-overview | helicopter view of a milestone's surfaces; sets the track | `m<N>/overview.md` |
 | milestone-ux | cross-surface UX; must-have security & errors | `m<N>/ux.md` |
-| tracer | one thin end-to-end slice — surfaces hard reality early | `m<N>/tracer.md` + code |
-| replan | revise surface plan against tracer findings | updated `overview.md` + `tracer.md` |
-| design | per-surface UX then UI; surface-specific security & errors | `surfaces/<name>.md` |
+| design | per-surface UX then UI; builds the surface into the prototype app | `surfaces/<name>.md` |
+| prototype | assemble the clickable prototype; user clicks through and signs off | clickable app + `m<N>/prototype.md` |
+| tracer | settle the data store; one thin slice through the real backend | `m<N>/tracer.md` + code |
+| replan | revise the plan and reconcile the prototype against tracer findings | updated `overview.md` + `tracer.md` |
 | gap | per-milestone delta between the prototype and the production app | `m<N>/gap.md` |
-| plan | per-surface implementation plan | `plans/<name>.md` |
-| build | implement the surface | code |
+| plan | per-surface implementation plan for the production app | `plans/<name>.md` |
+| build | build the production app, closing the gap | code |
 | review | fresh-session design audit of the milestone | `m<N>/review.md` |
+
+`tracer`, `replan`, `gap`, `plan`, and `build` run only on **production-track**
+milestones. A **prototype-only** milestone (`infra: none`) ends at `prototype → review`.
 
 ## Prototype and production apps
 
 Every project builds two apps that coexist even in single-repo mode:
 
-- the **prototype app** — the product's UX on mock data, the persistent and
-  always-current reference;
+- the **prototype app** — the product's UX on mock data, visual and clickable, the
+  persistent and always-current reference;
 - the **production app** — the real UI on real data and a real backend.
 
-The project runs in **prototype phase** until the first milestone with real `infra`,
-then flips to **production phase** for good. In prototype phase `design → plan → build`
-build the prototype. In production phase `build` targets the production app, and the
-per-milestone `gap` stage measures the delta between prototype and production so the
-following builds close it. When reality contradicts the prototype, the prototype is
-updated first — it stays the reference, and the production UI is moved to match it.
+The clickable prototype is built and signed off **before** any backend or data-store
+decision — `design` builds each `ui` surface into it, then the `prototype` stage wires
+the milestone into one runnable app you open in a browser and validate. Every milestone
+builds it, regardless of `infra`.
+
+Each milestone has a **track**, set from its `infra`. A `infra: none` milestone is
+**prototype-only** — the clickable prototype is its deliverable. A milestone with real
+`infra` is **production-track**: after the prototype is signed off, `tracer` settles the
+data store and proves backend reality, `gap` measures the delta, and `build` builds the
+production app to match the prototype. When reality contradicts the prototype, the
+prototype is updated first — it stays the reference, and the production UI moves to match.
 
 Where the two apps live in the repo is a tech decision, logged in `docs/DECISIONS.md`.
 
@@ -139,7 +152,7 @@ project/
   state.json             workflow progress — never hand-edit
   notes.md               transient scratchpad — healthy when empty
   features.md  milestones.md  map.md
-  milestones/m<N>/        overview, ux, tracer, gap, surfaces/, plans/, review
+  milestones/m<N>/        overview, ux, surfaces/, prototype, tracer, gap, plans/, review
 ```
 
 `project/state.json` is owned by `scripts/adhd-state.mjs`. Never edit it by hand;

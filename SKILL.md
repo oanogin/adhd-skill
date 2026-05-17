@@ -84,10 +84,11 @@ project/
   milestones/m<N>/
     overview.md              Surface overview
     ux.md                    Milestone UX
-    tracer.md                tracer slice notes + replan
-    gap.md                   prototype-vs-production gap analysis
     surfaces/<name>.md       per-surface Design spec
-    plans/<name>.md          per-surface implementation Plan
+    prototype.md             prototype sign-off notes
+    tracer.md                tracer slice notes + replan (production-track)
+    gap.md                   prototype-vs-production gap analysis (production-track)
+    plans/<name>.md          per-surface implementation Plan (production-track)
     review.md                milestone review-pass findings
 ```
 
@@ -102,18 +103,21 @@ project/
 | `map` | front-load | high | `project/map.md`, `docs/DOMAIN.md` | none | [reference/map.md](reference/map.md) |
 | `surface-overview` | per-milestone | medium | `m<N>/overview.md` | none | [reference/surface-overview.md](reference/surface-overview.md) |
 | `milestone-ux` | per-milestone | high | `m<N>/ux.md` | none | [reference/milestone-ux.md](reference/milestone-ux.md) |
-| `tracer` | per-milestone | high | `m<N>/tracer.md` + code | none | [reference/tracer.md](reference/tracer.md) |
-| `replan` | per-milestone | medium | updated `m<N>/overview.md` + `tracer.md` | none | [reference/replan.md](reference/replan.md) |
-| `design` | per-surface | high | `m<N>/surfaces/<name>.md` | brainstorming + impeccable | [reference/design.md](reference/design.md) |
-| `gap` | per-milestone | medium | `m<N>/gap.md` | none | [reference/gap.md](reference/gap.md) |
-| `plan` | per-surface | medium | `m<N>/plans/<name>.md` | writing-plans | [reference/plan.md](reference/plan.md) |
-| `build` | per-surface | medium | code + `state.json` | impeccable craft / executing-plans | [reference/build.md](reference/build.md) |
+| `design` | per-surface | high | `m<N>/surfaces/<name>.md` + prototype surface | brainstorming + impeccable | [reference/design.md](reference/design.md) |
+| `prototype` | per-milestone | medium | clickable prototype app + `m<N>/prototype.md` | impeccable craft | [reference/prototype.md](reference/prototype.md) |
+| `tracer` | per-milestone (production) | high | `m<N>/tracer.md` + code | none | [reference/tracer.md](reference/tracer.md) |
+| `replan` | per-milestone (production) | medium | updated `m<N>/overview.md` + `tracer.md` | none | [reference/replan.md](reference/replan.md) |
+| `gap` | per-milestone (production) | medium | `m<N>/gap.md` | none | [reference/gap.md](reference/gap.md) |
+| `plan` | per-surface (production) | medium | `m<N>/plans/<name>.md` | writing-plans | [reference/plan.md](reference/plan.md) |
+| `build` | per-surface (production) | medium | code + `state.json` | impeccable craft / executing-plans | [reference/build.md](reference/build.md) |
 | `review` | per-milestone | high | `m<N>/review.md` | none | [reference/review.md](reference/review.md) |
 
 Flow: front-load runs once (`setup → vision → features → milestones → map`). Then per
-milestone: `surface-overview → milestone-ux → tracer → replan`, then `design` for every
-surface, then the milestone-wide `gap`, then `plan → build` for every surface, then
-`review`, then the next milestone.
+milestone: `surface-overview → milestone-ux`, then `design` for every surface, then the
+milestone-wide `prototype` (clickable UX checkpoint). A **prototype-only** milestone
+(`infra: none`) then goes straight to `review`. A **production-track** milestone instead
+continues `tracer → replan → gap`, then `plan → build` for every surface, then
+`review`. Then the next milestone.
 
 After a milestone's `review` passes, advance with
 `node {{scripts_path}}/adhd-state.mjs advance-milestone` — it bumps
@@ -140,25 +144,27 @@ in. `map` and `surface-overview` record both with
 
 Every `adhd` project builds two apps that coexist even in `single` mode:
 
-- the **prototype app** — the product's UX on mock data. It is the persistent,
-  always-current reference for UX and for the data shape the UI needs. It is never
-  thrown away.
+- the **prototype app** — the product's UX on mock data, visual and clickable. The
+  `design` stage builds each `ui` surface into it; the `prototype` stage wires the
+  milestone's surfaces into one runnable app the user opens in a browser and validates.
+  It is the persistent, always-current UX reference and is never thrown away.
 - the **production app** — the real UI on real data and a real backend.
 
-A project runs in one of two **phases**, derived from the `infra` field of
-`project/milestones.md` — no separate state flag:
+The clickable prototype is built and signed off **before** any backend, data store, or
+`tracer` decision. It is decoupled from `infra`: every milestone builds it.
 
-- **prototype phase** — no milestone has yet introduced real infra. `design → plan →
-  build` build the prototype app on mock data. The `gap` stage is a trivial pass:
-  there is no production app to compare against.
-- **production phase** — begins at the first milestone whose `infra` is not `none`,
-  and is permanent. From here `build` targets the production app; `design` also builds
-  the prototype surface (mock data) so the prototype stays ahead as the reference; the
-  `gap` stage does the real prototype-vs-production analysis.
+Each milestone has a **track**, set at `surface-overview` from its `infra` field:
 
-When real-backend reality contradicts the prototype, the `gap` stage updates the
-prototype FIRST, then records the gap — the prototype stays the current reference and
-the production UI is moved to match it.
+- **prototype-only** (`infra: none`) — `surface-overview → milestone-ux → design →
+  prototype → review`. The clickable prototype is the deliverable. No `tracer`, no
+  production app, no data model, no database.
+- **production-track** (any real `infra`) — the same up to `prototype`, then continues
+  `tracer → replan → gap → plan → build → review`. `tracer` settles the data store and
+  proves backend reality; `build` builds the production app; `gap` measures the delta
+  the production app must close to match the signed-off prototype.
+
+When real-backend reality contradicts the prototype, `replan` updates the prototype
+FIRST — it stays the current reference, and the production UI is moved to match it.
 
 Where the two apps live in the repo is a tech decision, logged in `docs/DECISIONS.md`
 at the milestone that needs it — `adhd` does not fix the layout.
@@ -215,7 +221,7 @@ These are not stages — they have no gates and no place in the stage flow:
 
 1. **No argument** — run `adhd-state.mjs status`, print it, name the next runnable
    stage. Stop.
-2. **First word is a stage or a management command** — the 14 stages are in the
+2. **First word is a stage or a management command** — the 15 stages are in the
    table above; `workspace` and `adopt` are management commands. Load the matching
    `reference/<name>.md` and follow it exactly. The reference owns the gate check
    (stages), the procedure, and the completion steps.
@@ -287,13 +293,13 @@ These are operational slips, not gate-skipping (gate rationalizations are tabled
 | Treating `project/notes.md` as durable storage. | It is a transient scratchpad. Migrate durable facts to `DECISIONS.md`, `DOMAIN.md`, a surface spec, or `.ruler/`. Healthy `notes.md` is empty. |
 | Invoking `impeccable` for an `api` or `lib` surface. | `impeccable` runs only for `ui` surfaces. `api` → contract design; `lib` → spec only. |
 | Forgetting `advance-milestone` after a milestone's `review` passes. | Run `adhd-state.mjs advance-milestone` — without it `currentMilestone` never bumps and `status` keeps reporting the finished milestone. |
-| In `multi` mode, writing `project/` or `docs/` artifacts into a code repo. | All `adhd` artifacts live in the orchestration repo. Only `tracer` and `build` touch a registered code repo, and only to write code. |
+| In `multi` mode, writing `project/` or `docs/` artifacts into a code repo. | All `adhd` artifacts live in the orchestration repo. Only the code-writing stages (`design`, `prototype`, `tracer`, `build`) touch a registered code repo, and only to write code. |
 | Bolting a mid-project feature idea onto the current milestone. | File it to `features.md` and assign a later milestone. Soft-warn if it would expand the current milestone. |
 
 ## Scripts
 
 ```bash
-node {{scripts_path}}/adhd-state.mjs <init|read|status|next|set|gate|session-add|session-reset|preflight-confirm|advance-milestone|workspace-mode|workspace-add|workspace-remove|workspace-list|surface-meta>
+node {{scripts_path}}/adhd-state.mjs <init|read|status|next|set|gate|session-add|session-reset|preflight-confirm|advance-milestone|workspace-mode|workspace-add|workspace-remove|workspace-list|milestone-track|surface-meta>
 node {{scripts_path}}/context-watch.mjs [--next <stage>]
 node {{scripts_path}}/handoff-prompt.mjs
 ```

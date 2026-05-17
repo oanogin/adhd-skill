@@ -10,6 +10,7 @@ import {
   sessionAdd, sessionReset, FRONTLOAD_STAGES, STAGE_STATUSES,
   confirmPreflight, advanceMilestone,
   setMode, addRepo, removeRepo, listRepos, setSurfaceMeta, SURFACE_KINDS, MODES,
+  setMilestoneTrack,
 } from './adhd-state.mjs';
 
 function tmp() {
@@ -84,11 +85,11 @@ test('gate(milestone-ux) resolves {N} from --milestone', () => {
   assert.equal(gate(cwd, 'milestone-ux', { milestone: 2 }).pass, true);
 });
 
-test('gate(design) needs milestone replan done', () => {
+test('gate(design) needs milestone milestone-ux done', () => {
   const cwd = tmp();
   initState(cwd);
   assert.equal(gate(cwd, 'design', { milestone: 1 }).pass, false);
-  setStageStatus(cwd, { stage: 'replan', status: 'done', milestone: 1 });
+  setStageStatus(cwd, { stage: 'milestone-ux', status: 'done', milestone: 1 });
   assert.equal(gate(cwd, 'design', { milestone: 1 }).pass, true);
 });
 
@@ -110,14 +111,33 @@ test('nextStage walks front-load then milestone then surfaces', () => {
   assert.equal(nextStage(cwd).stage, 'surface-overview');
 });
 
-test('gate(gap) needs every surface designed', () => {
+test('gate(prototype) needs every surface designed', () => {
   const cwd = tmp();
   initState(cwd);
   setStageStatus(cwd, { stage: 'design', status: 'done', milestone: 1, surface: 'login' });
   setStageStatus(cwd, { stage: 'design', status: 'in-progress', milestone: 1, surface: 'home' });
-  assert.equal(gate(cwd, 'gap', { milestone: 1 }).pass, false);
+  assert.equal(gate(cwd, 'prototype', { milestone: 1 }).pass, false);
   setStageStatus(cwd, { stage: 'design', status: 'done', milestone: 1, surface: 'home' });
-  assert.equal(gate(cwd, 'gap', { milestone: 1 }).pass, true);
+  assert.equal(gate(cwd, 'prototype', { milestone: 1 }).pass, true);
+});
+
+test('tracer refuses to run on a prototype-only milestone', () => {
+  const cwd = tmp();
+  initState(cwd);
+  setMilestoneTrack(cwd, { milestone: 1, track: 'prototype' });
+  setStageStatus(cwd, { stage: 'prototype', status: 'done', milestone: 1 });
+  const t = gate(cwd, 'tracer', { milestone: 1 });
+  assert.equal(t.pass, false);
+  assert.ok(t.missing.some((x) => /prototype-only/.test(x)));
+});
+
+test('gate(tracer) needs the prototype done on a production milestone', () => {
+  const cwd = tmp();
+  initState(cwd);
+  setMilestoneTrack(cwd, { milestone: 1, track: 'production' });
+  assert.equal(gate(cwd, 'tracer', { milestone: 1 }).pass, false);
+  setStageStatus(cwd, { stage: 'prototype', status: 'done', milestone: 1 });
+  assert.equal(gate(cwd, 'tracer', { milestone: 1 }).pass, true);
 });
 
 test('gate(plan) needs the surface spec and the milestone gap done', () => {
@@ -129,33 +149,63 @@ test('gate(plan) needs the surface spec and the milestone gap done', () => {
   assert.equal(gate(cwd, 'plan', { milestone: 1, surface: 'login' }).pass, true);
 });
 
-test('nextStage runs every design, then gap, then plan/build', () => {
+test('nextStage on a production milestone: design then prototype then tracer', () => {
   const cwd = tmp();
   initState(cwd);
   for (const s of FRONTLOAD_STAGES) setStageStatus(cwd, { stage: s, status: 'done' });
-  for (const s of ['surface-overview', 'milestone-ux', 'tracer', 'replan']) {
+  setMilestoneTrack(cwd, { milestone: 1, track: 'production' });
+  for (const s of ['surface-overview', 'milestone-ux']) {
     setStageStatus(cwd, { stage: s, status: 'done', milestone: 1 });
   }
   setStageStatus(cwd, { stage: 'design', status: 'in-progress', milestone: 1, surface: 'login' });
-  setStageStatus(cwd, { stage: 'design', status: 'in-progress', milestone: 1, surface: 'home' });
   assert.equal(nextStage(cwd).stage, 'design');
   setStageStatus(cwd, { stage: 'design', status: 'done', milestone: 1, surface: 'login' });
-  setStageStatus(cwd, { stage: 'design', status: 'done', milestone: 1, surface: 'home' });
-  assert.equal(nextStage(cwd).stage, 'gap');
-  setStageStatus(cwd, { stage: 'gap', status: 'done', milestone: 1 });
-  assert.equal(nextStage(cwd).stage, 'plan');
+  assert.equal(nextStage(cwd).stage, 'prototype');
+  setStageStatus(cwd, { stage: 'prototype', status: 'done', milestone: 1 });
+  assert.equal(nextStage(cwd).stage, 'tracer');
 });
 
-test('ensureMilestone backfills stages missing from older state', () => {
+test('nextStage on a prototype-only milestone skips tracer..build, goes to review', () => {
+  const cwd = tmp();
+  initState(cwd);
+  for (const s of FRONTLOAD_STAGES) setStageStatus(cwd, { stage: s, status: 'done' });
+  setMilestoneTrack(cwd, { milestone: 1, track: 'prototype' });
+  for (const s of ['surface-overview', 'milestone-ux']) {
+    setStageStatus(cwd, { stage: s, status: 'done', milestone: 1 });
+  }
+  setStageStatus(cwd, { stage: 'design', status: 'done', milestone: 1, surface: 'login' });
+  assert.equal(nextStage(cwd).stage, 'prototype');
+  setStageStatus(cwd, { stage: 'prototype', status: 'done', milestone: 1 });
+  assert.equal(nextStage(cwd).stage, 'review');
+});
+
+test('review gate on a prototype-only milestone needs only the prototype done', () => {
+  const cwd = tmp();
+  initState(cwd);
+  setMilestoneTrack(cwd, { milestone: 1, track: 'prototype' });
+  setStageStatus(cwd, { stage: 'design', status: 'done', milestone: 1, surface: 'login' });
+  assert.equal(gate(cwd, 'review', { milestone: 1 }).pass, false);
+  setStageStatus(cwd, { stage: 'prototype', status: 'done', milestone: 1 });
+  assert.equal(gate(cwd, 'review', { milestone: 1 }).pass, true);
+});
+
+test('setMilestoneTrack rejects an invalid track', () => {
+  const cwd = tmp();
+  initState(cwd);
+  assert.throws(() => setMilestoneTrack(cwd, { milestone: 1, track: 'bogus' }), /Invalid track/);
+});
+
+test('ensureMilestone backfills stages and track missing from older state', () => {
   const cwd = tmp();
   initState(cwd);
   const s = loadState(cwd);
   s.milestones['1'] = { title: null, stages: { 'surface-overview': { status: 'done' } }, surfaces: {} };
   saveState(cwd, s);
-  setStageStatus(cwd, { stage: 'replan', status: 'done', milestone: 1 });
-  const after = loadState(cwd).milestones['1'].stages;
-  assert.ok(after.gap);
-  assert.equal(after.gap.status, 'blocked');
+  setStageStatus(cwd, { stage: 'milestone-ux', status: 'done', milestone: 1 });
+  const after = loadState(cwd).milestones['1'];
+  assert.ok(after.stages.prototype);
+  assert.equal(after.stages.prototype.status, 'blocked');
+  assert.equal(after.track, null);
 });
 
 test('sessionAdd / sessionReset track stages this session', () => {

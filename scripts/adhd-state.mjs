@@ -7,13 +7,13 @@ export const STATE_VERSION = 1;
 export const STATE_FILE = 'project/state.json';
 
 export const FRONTLOAD_STAGES = ['setup', 'vision', 'features', 'milestones', 'map'];
-export const MILESTONE_STAGES = ['surface-overview', 'milestone-ux', 'tracer', 'replan', 'gap', 'review'];
+export const MILESTONE_STAGES = ['surface-overview', 'milestone-ux', 'prototype', 'tracer', 'replan', 'gap', 'review'];
 export const SURFACE_STAGES = ['design', 'plan', 'build'];
 
 export const STAGE_EFFORT = {
   setup: 'low', vision: 'high', features: 'medium', milestones: 'high', map: 'high',
-  'surface-overview': 'medium', 'milestone-ux': 'high', tracer: 'high', replan: 'medium',
-  gap: 'medium', review: 'high', design: 'high', plan: 'medium', build: 'medium',
+  'surface-overview': 'medium', 'milestone-ux': 'high', prototype: 'medium', tracer: 'high',
+  replan: 'medium', gap: 'medium', review: 'high', design: 'high', plan: 'medium', build: 'medium',
 };
 
 export const EFFORT_WEIGHT = { low: 1, medium: 2, high: 3, 'extra-high': 4 };
@@ -22,6 +22,7 @@ export const STAGE_STATUSES = ['blocked', 'pending', 'in-progress', 'done'];
 
 export const SURFACE_KINDS = ['ui', 'api', 'lib'];
 export const MODES = ['single', 'multi'];
+export const MILESTONE_TRACKS = ['prototype', 'production'];
 
 // Gate predecessors. Tokens: {docHome} {N} {surface}.
 const STAGE_GATES = {
@@ -32,13 +33,14 @@ const STAGE_GATES = {
   map:                { files: ['project/milestones.md'],                           stages: [] },
   'surface-overview': { files: ['project/map.md', '{docHome}/DOMAIN.md'],            stages: [] },
   'milestone-ux':     { files: ['project/milestones/m{N}/overview.md'],             stages: [] },
-  tracer:             { files: ['project/milestones/m{N}/ux.md'],                   stages: [] },
-  replan:             { files: ['project/milestones/m{N}/tracer.md'],               stages: [] },
-  design:             { files: [],                                                  stages: [['milestone', 'replan', 'done']] },
-  gap:                { files: [],                                                  stages: [['allSurfacesDesigned']] },
+  design:             { files: [],                                                  stages: [['milestone', 'milestone-ux', 'done']] },
+  prototype:          { files: [],                                                  stages: [['allSurfacesDesigned']] },
+  tracer:             { files: [],                                                  stages: [['milestone', 'prototype', 'done'], ['productionMilestone']] },
+  replan:             { files: ['project/milestones/m{N}/tracer.md'],               stages: [['productionMilestone']] },
+  gap:                { files: [],                                                  stages: [['milestone', 'replan', 'done'], ['productionMilestone']] },
   plan:               { files: ['project/milestones/m{N}/surfaces/{surface}.md'],   stages: [['milestone', 'gap', 'done']] },
   build:              { files: ['project/milestones/m{N}/plans/{surface}.md'],      stages: [] },
-  review:             { files: [],                                                  stages: [['allSurfacesBuilt']] },
+  review:             { files: [],                                                  stages: [['reviewReady']] },
 };
 
 export function statePath(cwd = process.cwd()) {
@@ -102,6 +104,7 @@ function ensureMilestone(state, n) {
   if (!state.milestones[key]) {
     state.milestones[key] = {
       title: null,
+      track: null,
       stages: Object.fromEntries(
         MILESTONE_STAGES.map((s) => [s, { status: 'blocked', effort: STAGE_EFFORT[s] }]),
       ),
@@ -109,6 +112,7 @@ function ensureMilestone(state, n) {
     };
   }
   const m = state.milestones[key];
+  if (m.track === undefined) m.track = null;
   // Backfill stages added after this milestone's state was first written.
   for (const s of MILESTONE_STAGES) {
     if (!m.stages[s]) m.stages[s] = { status: 'blocked', effort: STAGE_EFFORT[s] };
@@ -188,12 +192,21 @@ export function gate(cwd, stage, { milestone, surface } = {}) {
       for (const name of names) {
         if (surfaces[name].design?.status !== 'done') missing.push(`surface "${name}" not designed`);
       }
-    } else if (cond[0] === 'allSurfacesBuilt') {
-      const surfaces = state?.milestones?.[String(m)]?.surfaces ?? {};
-      const names = Object.keys(surfaces);
-      if (names.length === 0) missing.push(`milestone ${m} has no surfaces defined`);
-      for (const name of names) {
-        if (surfaces[name].build?.status !== 'done') missing.push(`surface "${name}" not built`);
+    } else if (cond[0] === 'productionMilestone') {
+      if (state?.milestones?.[String(m)]?.track === 'prototype') {
+        missing.push(`milestone ${m} is prototype-only — this stage does not apply`);
+      }
+    } else if (cond[0] === 'reviewReady') {
+      const msObj = state?.milestones?.[String(m)];
+      if (msObj?.track === 'prototype') {
+        if (msObj?.stages?.prototype?.status !== 'done') missing.push(`milestone ${m} prototype not done`);
+      } else {
+        const surfaces = msObj?.surfaces ?? {};
+        const names = Object.keys(surfaces);
+        if (names.length === 0) missing.push(`milestone ${m} has no surfaces defined`);
+        for (const name of names) {
+          if (surfaces[name].build?.status !== 'done') missing.push(`surface "${name}" not built`);
+        }
       }
     }
   }
@@ -209,16 +222,21 @@ export function nextStage(cwd = process.cwd()) {
   const m = state.currentMilestone;
   const ms = state.milestones[String(m)];
   if (!ms) return { stage: 'surface-overview', milestone: m, surface: null };
-  for (const s of ['surface-overview', 'milestone-ux', 'tracer', 'replan']) {
+  for (const s of ['surface-overview', 'milestone-ux']) {
     if (ms.stages[s]?.status !== 'done') return { stage: s, milestone: m, surface: null };
   }
   for (const [name, surf] of Object.entries(ms.surfaces)) {
     if (surf.design.status !== 'done') return { stage: 'design', milestone: m, surface: name };
   }
-  if (ms.stages.gap?.status !== 'done') return { stage: 'gap', milestone: m, surface: null };
-  for (const [name, surf] of Object.entries(ms.surfaces)) {
-    for (const s of ['plan', 'build']) {
-      if (surf[s].status !== 'done') return { stage: s, milestone: m, surface: name };
+  if (ms.stages.prototype?.status !== 'done') return { stage: 'prototype', milestone: m, surface: null };
+  if (ms.track !== 'prototype') {
+    for (const s of ['tracer', 'replan', 'gap']) {
+      if (ms.stages[s]?.status !== 'done') return { stage: s, milestone: m, surface: null };
+    }
+    for (const [name, surf] of Object.entries(ms.surfaces)) {
+      for (const s of ['plan', 'build']) {
+        if (surf[s].status !== 'done') return { stage: s, milestone: m, surface: name };
+      }
     }
   }
   if (ms.stages.review?.status !== 'done') return { stage: 'review', milestone: m, surface: null };
@@ -334,6 +352,19 @@ export function setSurfaceMeta(cwd = process.cwd(), { milestone, surface, repo, 
   return state;
 }
 
+export function setMilestoneTrack(cwd = process.cwd(), { milestone, track }) {
+  if (!MILESTONE_TRACKS.includes(track)) {
+    throw new Error(`Invalid track "${track}". Valid: ${MILESTONE_TRACKS.join(', ')}`);
+  }
+  const state = loadState(cwd);
+  if (!state) throw new Error('No state.json — run `adhd setup` first.');
+  const m = milestone ?? state.currentMilestone;
+  ensureMilestone(state, m).track = track;
+  state.currentMilestone = m;
+  saveState(cwd, state);
+  return state;
+}
+
 // ---- CLI ----
 function parseFlags(args) {
   const flags = {};
@@ -431,6 +462,17 @@ function main(argv) {
     case 'workspace-list':
       console.log(JSON.stringify(listRepos(cwd), null, 2));
       break;
+    case 'milestone-track': {
+      const [track] = rest;
+      if (!track) {
+        console.error('Usage: adhd-state.mjs milestone-track <prototype|production> [--milestone N]');
+        process.exitCode = 1;
+        break;
+      }
+      const s = setMilestoneTrack(cwd, { milestone: flags.milestone, track });
+      console.log(`milestone ${s.currentMilestone} track = ${track}`);
+      break;
+    }
     case 'surface-meta': {
       const [surface] = rest;
       if (!surface) {
@@ -450,7 +492,7 @@ function main(argv) {
       break;
     }
     default:
-      console.error('Usage: adhd-state.mjs <init|read|status|next|set|gate|session-add|session-reset|preflight-confirm|advance-milestone|workspace-mode|workspace-add|workspace-remove|workspace-list|surface-meta>');
+      console.error('Usage: adhd-state.mjs <init|read|status|next|set|gate|session-add|session-reset|preflight-confirm|advance-milestone|workspace-mode|workspace-add|workspace-remove|workspace-list|milestone-track|surface-meta>');
       process.exitCode = 1;
   }
 }

@@ -19,10 +19,10 @@ first.
 1. **Execute the plan task-by-task.** Work through the surface plan
    `plans/{{name}}.md` with `superpowers:executing-plans`, completing one task at a
    time. For UI craft within a task, use `impeccable craft` so the implementation
-   matches the design system. The plan's tasks already target the right app for the
-   project's phase — the **prototype app** on mock data in prototype phase, the
-   **production app** (closing this surface's `m{{N}}/gap.md` delta) in production
-   phase. See SKILL.md, "Prototype and production apps".
+   matches the design system. `build` runs only on production-track milestones: it
+   builds the **production app** on real data, closing this surface's `m{{N}}/gap.md`
+   delta against the signed-off prototype. The prototype app is left untouched — it
+   stays the reference. See SKILL.md, "Prototype and production apps".
 
    In `multi` mode, code is written in the surface's registered repo. Read the
    surface's `repo` with
