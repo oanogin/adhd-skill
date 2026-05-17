@@ -27,9 +27,10 @@ measures the delta the production app must close to match it, surface by surface
    short `m{{N}}/gap.md` recording "no `ui` surfaces — no UI gap; `plan`/`build` carry
    the backend work", mark the stage done, and proceed to `plan`. Skip steps 1–3.
 1. **Diff prototype against production, per `ui` surface.** For each `ui` surface in
-   milestone `{{N}}`, compare the **prototype app** against the current **production
-   app** — missing surfaces or states, data-shape differences (mock shape vs the real
-   shape from `docs/DATA.md`), and any behaviour the production app still lacks. At the
+   milestone `{{N}}`, compare the **prototype** at `/p/<path>` against the current
+   **production** surface at `/<path>` — missing surfaces or states, data-shape
+   differences (mock shape vs the real shape from `docs/DATA.md`), and any behaviour the
+   production app still lacks. At the
    first production-track milestone the production app does not exist yet, so the gap is
    the whole prototype so far — the surfaces production must be stood up to reach.
 2. **The prototype is the target, never the other way round.** If something still

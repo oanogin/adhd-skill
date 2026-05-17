@@ -120,6 +120,11 @@ decision — `design` builds each `ui` surface into it, then the `prototype` sta
 the milestone into one runnable app you open in a browser and validate. Every milestone
 builds it, regardless of `infra`.
 
+The prototype is not a separate project: it lives in the **same codebase and framework
+as the production app**, under the **`/p/` route prefix** on a mock-data layer. A
+production surface at `/<path>` has its prototype at `/p/<path>`. `adhd` applies this by
+default; an unusual setup records its alternative in `docs/DECISIONS.md`.
+
 Each milestone has a **track**, set from its `infra`. A `infra: none` milestone is
 **prototype-only** — the clickable prototype is its deliverable. A milestone with real
 `infra` is **production-track**: after the prototype is signed off, `tracer` settles the

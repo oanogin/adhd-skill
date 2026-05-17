@@ -166,8 +166,22 @@ Each milestone has a **track**, set at `surface-overview` from its `infra` field
 When real-backend reality contradicts the prototype, `replan` updates the prototype
 FIRST — it stays the current reference, and the production UI is moved to match it.
 
-Where the two apps live in the repo is a tech decision, logged in `docs/DECISIONS.md`
-at the milestone that needs it — `adhd` does not fix the layout.
+### Where the prototype lives
+
+The prototype app is not a separate project. It lives in the **same codebase and
+framework as the production app**, mounted under the **`/p/` route prefix**, backed by
+a mock-data layer that never calls the real backend. A production surface at
+`/<path>` has its prototype at `/p/<path>`:
+
+- `design` builds each `ui` surface under `/p/`;
+- `build` builds the production surface at its real path;
+- `gap` compares `/p/<path>` against `/<path>`.
+
+This is the default and `adhd` applies it without asking. A project that genuinely
+cannot use it — a non-routed app, or `multi` mode where the prototype and production
+live in different repos — records its alternative in `docs/DECISIONS.md`. Whether the
+`/p/` tree is reachable in the deployed production build is also a project decision
+for `docs/DECISIONS.md`; the tree itself is kept as the living UX reference.
 
 ## Hard gates
 

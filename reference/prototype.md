@@ -26,14 +26,15 @@ into one coherent, runnable app the user can open in a browser and click through
    surface is `api` or `lib`), there is nothing clickable to assemble. Write a short
    `m{{N}}/prototype.md` recording "no `ui` surfaces — no clickable prototype for this
    milestone", mark the stage done, and proceed to `tracer`. Skip steps 1–5.
-1. **Assemble the milestone.** Wire the milestone's designed `ui` surfaces into one
-   runnable prototype app — navigation, routing, and the shared mock state that moves
-   between surfaces — so the whole milestone is clickable end to end. Use
-   `impeccable craft` so the assembly matches the design system. `api` and `lib`
-   surfaces have no prototype; back them with mock implementations where the `ui`
-   needs them.
-2. **Run it.** Start the dev server and give the user the URL. State plainly what to
-   click through — the milestone's surfaces and the journey from `m{{N}}/ux.md`.
+1. **Assemble the milestone.** Wire the milestone's designed `ui` surfaces — built
+   under the `/p/` route prefix by `design` — into one runnable prototype app:
+   navigation, routing, and the shared mock state that moves between surfaces, so the
+   whole milestone is clickable end to end. Use `impeccable craft` so the assembly
+   matches the design system. `api` and `lib` surfaces have no prototype; back them
+   with mock implementations where the `ui` needs them.
+2. **Run it.** Start the dev server and give the user the URL — the milestone's entry
+   point under `/p/`. State plainly what to click through: the milestone's surfaces
+   and the journey from `m{{N}}/ux.md`.
 3. **Get sign-off.** Wait for the user to click through and validate the UX. Capture
    their feedback verbatim. If they want changes, do NOT patch silently: note the
    surface and the change, run `{{command_prefix}}adhd design --milestone {{N}}

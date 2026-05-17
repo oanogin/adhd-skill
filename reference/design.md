@@ -54,10 +54,14 @@ user to run `{{command_prefix}}adhd milestone-ux --milestone {{N}}` first.
    security/error cases into a single coherent spec at `surfaces/{{name}}.md`.
 7. **Build the `ui` surface into the prototype app.** For a `ui` surface, once the spec
    is consolidated, build this surface into the persistent **prototype app** on mock
-   data — hi-fi, matching the design system via `impeccable`. This runs for every
-   milestone, regardless of `infra`. The milestone-wide `prototype` stage then wires
-   every designed surface into one clickable app for the user to validate. `api` and
-   `lib` surfaces have no prototype — their spec is this stage's deliverable.
+   data — hi-fi, matching the design system via `impeccable`. The prototype app lives
+   in the same codebase and framework as the production app, under the **`/p/` route
+   prefix**: build this surface at `/p/<path>`, where `/<path>` is the production
+   surface's real path (see SKILL.md, "Where the prototype lives"). The `/p/` tree uses
+   a mock-data layer and never calls a real backend. This runs for every milestone,
+   regardless of `infra`. The milestone-wide `prototype` stage then wires every designed
+   surface into one clickable app for the user to validate. `api` and `lib` surfaces
+   have no prototype — their spec is this stage's deliverable.
 
 ## Output
 `project/milestones/m{{N}}/surfaces/{{name}}.md` with three sections:
