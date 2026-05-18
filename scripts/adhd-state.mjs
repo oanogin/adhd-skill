@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 export const STATE_VERSION = 1;
 export const STATE_FILE = 'project/state.json';
+export const LOCAL_REPOS_FILE = 'project/repos.local.json';
 
 export const FRONTLOAD_STAGES = ['setup', 'vision', 'features', 'milestones', 'map'];
 export const MILESTONE_STAGES = ['surface-overview', 'milestone-ux', 'prototype', 'tracer', 'replan', 'gap', 'review'];
@@ -337,16 +338,53 @@ function isGitRepo(p) {
   return fs.existsSync(path.join(p, '.git'));
 }
 
-export function addRepo(cwd = process.cwd(), { name, repoPath, kind }) {
+function localReposPath(cwd) {
+  return path.join(cwd, LOCAL_REPOS_FILE);
+}
+
+function loadLocalRepos(cwd) {
+  const p = localReposPath(cwd);
+  if (!fs.existsSync(p)) return {};
+  try {
+    return JSON.parse(fs.readFileSync(p, 'utf-8'));
+  } catch (e) {
+    throw new Error(`${LOCAL_REPOS_FILE} is corrupt or not valid JSON: ${e.message}`);
+  }
+}
+
+function saveLocalRepos(cwd, obj) {
+  const p = localReposPath(cwd);
+  fs.mkdirSync(path.dirname(p), { recursive: true });
+  fs.writeFileSync(p, JSON.stringify(obj, null, 2) + '\n');
+}
+
+export function addRepo(cwd = process.cwd(), { name, kind, remote }) {
   if (!name) throw new Error('Repo name is required.');
   if (!SURFACE_KINDS.includes(kind)) throw new Error(`Invalid kind "${kind}". Valid: ${SURFACE_KINDS.join(', ')}`);
   const state = loadState(cwd);
   if (!state) throw new Error('No state.json — run `adhd setup` first.');
-  if (!fs.existsSync(repoPath)) throw new Error(`Path does not exist: ${repoPath}`);
-  if (!isGitRepo(repoPath)) throw new Error(`Not a git repository: ${repoPath}`);
-  state.repos[name] = { path: path.resolve(repoPath), kind };
+  state.repos[name] = { kind, remote: remote ?? null };
   saveState(cwd, state);
   return state;
+}
+
+export function bindRepo(cwd = process.cwd(), name, repoPath) {
+  const state = loadState(cwd);
+  if (!state) throw new Error('No state.json — run `adhd setup` first.');
+  if (!state.repos[name]) throw new Error(`No registered repo "${name}". Register it with workspace-add first.`);
+  if (!fs.existsSync(repoPath)) throw new Error(`Path does not exist: ${repoPath}`);
+  if (!isGitRepo(repoPath)) throw new Error(`Not a git repository: ${repoPath}`);
+  const local = loadLocalRepos(cwd);
+  local[name] = path.resolve(repoPath);
+  saveLocalRepos(cwd, local);
+  return local;
+}
+
+export function unbindRepo(cwd = process.cwd(), name) {
+  const local = loadLocalRepos(cwd);
+  delete local[name];
+  saveLocalRepos(cwd, local);
+  return local;
 }
 
 export function removeRepo(cwd = process.cwd(), name) {
@@ -354,12 +392,46 @@ export function removeRepo(cwd = process.cwd(), name) {
   if (!state) throw new Error('No state.json — run `adhd setup` first.');
   delete state.repos[name];
   saveState(cwd, state);
+  const local = loadLocalRepos(cwd);
+  if (local[name] !== undefined) {
+    delete local[name];
+    saveLocalRepos(cwd, local);
+  }
   return state;
 }
 
 export function listRepos(cwd = process.cwd()) {
   const state = loadState(cwd);
-  return state?.repos ?? {};
+  const repos = state?.repos ?? {};
+  const local = loadLocalRepos(cwd);
+  const out = {};
+  for (const [name, entry] of Object.entries(repos)) {
+    out[name] = {
+      kind: entry.kind,
+      remote: entry.remote ?? null,
+      path: local[name] ?? null,
+      bound: Boolean(local[name]),
+    };
+  }
+  return out;
+}
+
+export function migrateRepos(cwd = process.cwd()) {
+  const state = loadState(cwd);
+  if (!state) throw new Error('No state.json — run `adhd setup` first.');
+  const local = loadLocalRepos(cwd);
+  let migrated = 0;
+  for (const [name, repo] of Object.entries(state.repos)) {
+    if (repo.path) {
+      local[name] = repo.path;
+      delete repo.path;
+      if (repo.remote === undefined) repo.remote = null;
+      migrated++;
+    }
+  }
+  saveLocalRepos(cwd, local);
+  saveState(cwd, state);
+  return migrated;
 }
 
 export function setSurfaceMeta(cwd = process.cwd(), { milestone, surface, repo, kind }) {

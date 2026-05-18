@@ -12,6 +12,7 @@ import {
   setMode, addRepo, removeRepo, listRepos, setSurfaceMeta, SURFACE_KINDS, MODES,
   setMilestoneTrack,
   addDomain, removeDomain, listDomains,
+  bindRepo, unbindRepo, migrateRepos,
 } from './adhd-state.mjs';
 
 function tmp() {
@@ -333,37 +334,84 @@ test('setMode switches mode and rejects an invalid value', () => {
   assert.throws(() => setMode(cwd, 'bogus'), /Invalid mode/);
 });
 
-test('addRepo registers a repo with absolute path and kind', () => {
+test('addRepo registers a logical repo with kind and optional remote', () => {
+  const cwd = tmp();
+  initState(cwd);
+  addRepo(cwd, { name: 'backend', kind: 'api', remote: 'git@github.com:x/backend.git' });
+  addRepo(cwd, { name: 'admin-ui', kind: 'ui' });
+  const repos = loadState(cwd).repos;
+  assert.equal(repos.backend.kind, 'api');
+  assert.equal(repos.backend.remote, 'git@github.com:x/backend.git');
+  assert.equal(repos['admin-ui'].remote, null);
+  assert.equal(repos.backend.path, undefined);
+});
+
+test('addRepo rejects a bad kind', () => {
+  const cwd = tmp();
+  initState(cwd);
+  assert.throws(() => addRepo(cwd, { name: 'x', kind: 'bogus' }), /Invalid kind/);
+});
+
+test('bindRepo writes a local path; unbindRepo clears it', () => {
+  const cwd = tmp();
+  initState(cwd);
+  addRepo(cwd, { name: 'backend', kind: 'api' });
+  const repo = gitRepo();
+  bindRepo(cwd, 'backend', repo);
+  assert.equal(listRepos(cwd).backend.bound, true);
+  assert.equal(listRepos(cwd).backend.path, path.resolve(repo));
+  unbindRepo(cwd, 'backend');
+  assert.equal(listRepos(cwd).backend.bound, false);
+});
+
+test('bindRepo rejects an unregistered repo, a missing path, and a non-git path', () => {
+  const cwd = tmp();
+  initState(cwd);
+  assert.throws(() => bindRepo(cwd, 'ghost', gitRepo()), /No registered repo/);
+  addRepo(cwd, { name: 'backend', kind: 'api' });
+  assert.throws(() => bindRepo(cwd, 'backend', '/no/such/path'), /does not exist/);
+  assert.throws(() => bindRepo(cwd, 'backend', tmp()), /Not a git repository/);
+});
+
+test('listRepos reports binding status without exposing paths in committed state', () => {
+  const cwd = tmp();
+  initState(cwd);
+  addRepo(cwd, { name: 'backend', kind: 'api' });
+  const before = listRepos(cwd).backend;
+  assert.equal(before.bound, false);
+  assert.equal(before.path, null);
+});
+
+test('local repo bindings are stored outside state.json', () => {
+  const cwd = tmp();
+  initState(cwd);
+  addRepo(cwd, { name: 'backend', kind: 'api' });
+  bindRepo(cwd, 'backend', gitRepo());
+  assert.ok(fs.existsSync(path.join(cwd, 'project/repos.local.json')));
+  assert.equal(loadState(cwd).repos.backend.path, undefined);
+});
+
+test('removeRepo deletes the registry entry and its local binding', () => {
+  const cwd = tmp();
+  initState(cwd);
+  addRepo(cwd, { name: 'backend', kind: 'lib' });
+  bindRepo(cwd, 'backend', gitRepo());
+  removeRepo(cwd, 'backend');
+  assert.deepEqual(loadState(cwd).repos, {});
+  assert.equal(listRepos(cwd).backend, undefined);
+});
+
+test('migrateRepos moves an inline path into the local bindings file', () => {
   const cwd = tmp();
   initState(cwd);
   const repo = gitRepo();
-  addRepo(cwd, { name: 'repo-a', repoPath: repo, kind: 'api' });
-  const repos = loadState(cwd).repos;
-  assert.equal(repos['repo-a'].kind, 'api');
-  assert.equal(repos['repo-a'].path, path.resolve(repo));
-});
-
-test('addRepo rejects a missing path, a non-git path, and a bad kind', () => {
-  const cwd = tmp();
-  initState(cwd);
-  assert.throws(() => addRepo(cwd, { name: 'x', repoPath: '/no/such/path', kind: 'api' }), /does not exist/);
-  assert.throws(() => addRepo(cwd, { name: 'x', repoPath: tmp(), kind: 'api' }), /Not a git repository/);
-  assert.throws(() => addRepo(cwd, { name: 'x', repoPath: gitRepo(), kind: 'bogus' }), /Invalid kind/);
-});
-
-test('removeRepo deletes a registered repo', () => {
-  const cwd = tmp();
-  initState(cwd);
-  addRepo(cwd, { name: 'repo-a', repoPath: gitRepo(), kind: 'lib' });
-  removeRepo(cwd, 'repo-a');
-  assert.deepEqual(loadState(cwd).repos, {});
-});
-
-test('listRepos returns the registry', () => {
-  const cwd = tmp();
-  initState(cwd);
-  addRepo(cwd, { name: 'repo-a', repoPath: gitRepo(), kind: 'ui' });
-  assert.deepEqual(Object.keys(listRepos(cwd)), ['repo-a']);
+  const s = loadState(cwd);
+  s.repos.legacy = { path: repo, kind: 'api' };
+  saveState(cwd, s);
+  const migrated = migrateRepos(cwd);
+  assert.equal(migrated, 1);
+  assert.equal(loadState(cwd).repos.legacy.path, undefined);
+  assert.equal(listRepos(cwd).legacy.path, path.resolve(repo));
 });
 
 test('a new surface has null repo and null kind', () => {
@@ -387,7 +435,7 @@ test('setSurfaceMeta sets repo and kind, and validates kind', () => {
 
 test('setMode / addRepo throw a clear error when no state.json', () => {
   assert.throws(() => setMode(tmp(), 'multi'), /adhd setup/);
-  assert.throws(() => addRepo(tmp(), { name: 'x', repoPath: gitRepo(), kind: 'api' }), /adhd setup/);
+  assert.throws(() => addRepo(tmp(), { name: 'x', kind: 'api' }), /adhd setup/);
 });
 
 test('defaultState has an empty domains registry', () => {
