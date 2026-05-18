@@ -13,6 +13,7 @@ import {
   setMilestoneTrack,
   addDomain, removeDomain, listDomains,
   bindRepo, unbindRepo, migrateRepos,
+  setMilestoneDomains,
 } from './adhd-state.mjs';
 
 function tmp() {
@@ -464,4 +465,28 @@ test('removeDomain deletes a domain; listDomains returns the registry', () => {
 
 test('addDomain throws a clear error when no state.json', () => {
   assert.throws(() => addDomain(tmp(), { name: 'auth' }), /adhd setup/);
+});
+
+test('a new milestone has an empty domains list', () => {
+  const cwd = tmp();
+  initState(cwd);
+  setStageStatus(cwd, { stage: 'surface-overview', status: 'in-progress', milestone: 1 });
+  assert.deepEqual(loadState(cwd).milestones['1'].domains, []);
+});
+
+test('setMilestoneDomains records the participating domains', () => {
+  const cwd = tmp();
+  initState(cwd);
+  setMilestoneDomains(cwd, { milestone: 2, domains: ['auth', 'billing'] });
+  assert.deepEqual(loadState(cwd).milestones['2'].domains, ['auth', 'billing']);
+});
+
+test('ensureMilestone backfills domains on older state', () => {
+  const cwd = tmp();
+  initState(cwd);
+  const s = loadState(cwd);
+  s.milestones['1'] = { title: null, track: null, stages: {}, surfaces: {} };
+  saveState(cwd, s);
+  setMilestoneDomains(cwd, { milestone: 1, domains: ['auth'] });
+  assert.deepEqual(loadState(cwd).milestones['1'].domains, ['auth']);
 });

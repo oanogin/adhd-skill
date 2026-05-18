@@ -107,6 +107,7 @@ function ensureMilestone(state, n) {
     state.milestones[key] = {
       title: null,
       track: null,
+      domains: [],
       stages: Object.fromEntries(
         MILESTONE_STAGES.map((s) => [s, { status: 'blocked', effort: STAGE_EFFORT[s] }]),
       ),
@@ -115,6 +116,7 @@ function ensureMilestone(state, n) {
   }
   const m = state.milestones[key];
   if (m.track === undefined) m.track = null;
+  if (m.domains === undefined) m.domains = [];
   // Backfill stages added after this milestone's state was first written.
   for (const s of MILESTONE_STAGES) {
     if (!m.stages[s]) m.stages[s] = { status: 'blocked', effort: STAGE_EFFORT[s] };
@@ -458,6 +460,16 @@ export function setMilestoneTrack(cwd = process.cwd(), { milestone, track }) {
   if (!state) throw new Error('No state.json — run `adhd setup` first.');
   const m = milestone ?? state.currentMilestone;
   ensureMilestone(state, m).track = track;
+  state.currentMilestone = m;
+  saveState(cwd, state);
+  return state;
+}
+
+export function setMilestoneDomains(cwd = process.cwd(), { milestone, domains }) {
+  const state = loadState(cwd);
+  if (!state) throw new Error('No state.json — run `adhd setup` first.');
+  const m = milestone ?? state.currentMilestone;
+  ensureMilestone(state, m).domains = domains;
   state.currentMilestone = m;
   saveState(cwd, state);
   return state;
