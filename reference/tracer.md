@@ -38,12 +38,16 @@ planned and built. It runs only on production-track milestones.
    ship the surface. Build only enough to make each risk class real; leave the polish,
    the edge cases, and the remaining surfaces for the per-surface stages.
 
-   In `multi` mode the slice's code is written in the relevant registered code
-   repo: read the target surface's `repo`
-   (`node {{scripts_path}}/adhd-state.mjs surface-meta <name> --milestone {{N}}`),
-   resolve its path from `node {{scripts_path}}/adhd-state.mjs workspace-list`, and
-   `cd` into that path to write code. The `tracer.md` notes always stay in the
-   orchestration repo's `project/`. The commit gate applies in the target repo.
+   In `multi` mode, resolve the slice's target location from the target surface's
+   `repo` + `subpath`
+   (`node {{scripts_path}}/adhd-state.mjs surface-meta <name> --milestone {{N}}`), then
+   look up the repo's absolute local path in `project/repos.local.json` (via
+   `node {{scripts_path}}/adhd-state.mjs workspace-list`). If the repo is unbound — no
+   entry, e.g. a fresh clone — HALT and tell the user to run
+   `{{command_prefix}}adhd workspace` to bind it; never guess a path. `cd` into the
+   resolved path (plus `subpath` if set) to write code. The `tracer.md` notes always
+   stay in the orchestration repo's `project/`. The commit gate applies in the target
+   repo.
 4. **Record findings in `m{{N}}/tracer.md`.** Write down what was built, what each risk
    class revealed when it met the real backend, and every surprise — a rule you
    discovered, an assumption that turned out wrong, a decision that was never made and

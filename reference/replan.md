@@ -29,7 +29,7 @@ on production-track milestones.
 3. **Record what changed.** Append a `## Replan decisions` section to `tracer.md`
    listing each change to the plan or the prototype and the tracer finding that drove it.
 4. **Migrate durable rules.** Any durable rule the tracer uncovered belongs in its
-   canonical home, not in the tracer notes: domain rules go to `docs/DOMAIN.md`,
+   canonical home, not in the tracer notes: domain rules go to `docs/GLOSSARY.md`,
    decisions go to `docs/DECISIONS.md`. Move them now so later stages see them.
 
 ## Output
@@ -38,7 +38,7 @@ on production-track milestones.
 - An updated prototype app where the tracer contradicted it.
 - `project/milestones/m{{N}}/tracer.md` — gains a `## Replan decisions` section
   recording each plan or prototype change and the finding behind it.
-- Durable rules uncovered by the tracer migrated into `docs/DOMAIN.md` or
+- Durable rules uncovered by the tracer migrated into `docs/GLOSSARY.md` or
   `docs/DECISIONS.md`.
 
 ## On completion

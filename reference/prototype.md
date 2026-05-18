@@ -32,6 +32,12 @@ into one coherent, runnable app the user can open in a browser and click through
    whole milestone is clickable end to end. Use `impeccable craft` so the assembly
    matches the design system. `api` and `lib` surfaces have no prototype; back them
    with mock implementations where the `ui` needs them.
+
+   In `multi` mode, resolve each `ui` surface's location from its `repo` + `subpath`
+   and look up the repo's absolute local path in `project/repos.local.json` (via
+   `node {{scripts_path}}/adhd-state.mjs workspace-list`). If a needed repo is unbound —
+   no entry, e.g. a fresh clone — HALT and tell the user to run
+   `{{command_prefix}}adhd workspace` to bind it; never guess a path.
 2. **Run it.** Start the dev server and give the user the URL — the milestone's entry
    point under `/p/`. State plainly what to click through: the milestone's surfaces
    and the journey from `m{{N}}/ux.md`.

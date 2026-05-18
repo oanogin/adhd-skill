@@ -28,12 +28,15 @@ milestone or a `docs/DECISIONS.md` entry. `adopt` does not block on it.
    `multi` mode, the code repos must already be registered (run `workspace` first).
 2. **Scan.** Read the existing documentation across the target repo(s) — product
    docs, decision logs, architecture and invariants files, per-module `docs/`,
-   READMEs. In `multi` mode, scan every registered repo at its `repos[*].path`.
+   READMEs. In `multi` mode, scan every registered repo at its bound local path from
+   `project/repos.local.json` (`node {{scripts_path}}/adhd-state.mjs workspace-list`);
+   if a repo is unbound, HALT and tell the user to bind it via
+   `{{command_prefix}}adhd workspace`.
 3. **Draft and confirm, one artifact at a time.** For each front-load artifact
    below, draft the `adhd`-style version from what the scan found and present it to
    the user for review before writing:
    - `docs/PRODUCT.md` — product, users, usage, brand, anti-references, principles.
-   - `docs/DOMAIN.md` — entities, key fields, relationships.
+   - `docs/GLOSSARY.md` — entities, key fields, relationships.
    - `docs/DECISIONS.md` — carry over the existing decision log.
    - `project/features.md` — the feature inventory.
    - `project/milestones.md` — the milestone grouping.

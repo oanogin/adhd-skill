@@ -63,6 +63,15 @@ user to run `{{command_prefix}}adhd milestone-ux --milestone {{N}}` first.
    surface into one clickable app for the user to validate. `api` and `lib` surfaces
    have no prototype — their spec is this stage's deliverable.
 
+   In `multi` mode, resolve the target location from the surface's `repo` + `subpath`.
+   Read them with
+   `node {{scripts_path}}/adhd-state.mjs surface-meta {{name}} --milestone {{N}}`, then
+   look up the repo's absolute local path in `project/repos.local.json` (via
+   `node {{scripts_path}}/adhd-state.mjs workspace-list`). If the repo is unbound — no
+   entry, e.g. a fresh clone — HALT and tell the user to run
+   `{{command_prefix}}adhd workspace` to bind it; never guess a path. Build the surface
+   under the resolved path (plus `subpath` if set).
+
 ## Output
 `project/milestones/m{{N}}/surfaces/{{name}}.md` with three sections:
 

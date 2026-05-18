@@ -24,13 +24,16 @@ first.
    delta against the signed-off prototype. The prototype app is left untouched — it
    stays the reference. See SKILL.md, "Prototype and production apps".
 
-   In `multi` mode, code is written in the surface's registered repo. Read the
-   surface's `repo` with
-   `node {{scripts_path}}/adhd-state.mjs surface-meta {{name}} --milestone {{N}}`,
-   resolve its path from `node {{scripts_path}}/adhd-state.mjs workspace-list`, and
-   `cd` into that path before writing code. Honor that repo's own conventions
-   (`CLAUDE.md`, etc.). The commit gate applies in the target repo — never `git
-   commit` there without the user's explicit "ok". The `build` status is still
+   In `multi` mode, resolve the target location from the surface's `repo` + `subpath`.
+   Read them with
+   `node {{scripts_path}}/adhd-state.mjs surface-meta {{name}} --milestone {{N}}`, then
+   look up the repo's absolute local path in `project/repos.local.json` (via
+   `node {{scripts_path}}/adhd-state.mjs workspace-list`). If the repo is unbound — no
+   entry, e.g. a fresh clone — HALT and tell the user to run
+   `{{command_prefix}}adhd workspace` to bind it; never guess a path. `cd` into the
+   resolved path (plus `subpath` if set) before writing code, and honor that repo's own
+   conventions (`CLAUDE.md`, etc.). The commit gate applies in the target repo — never
+   `git commit` there without the user's explicit "ok". The `build` status is still
    tracked in the orchestration repo's `state.json`.
 2. **Track progress.** Keep the surface's `build` status at `in-progress` while work is
    underway, and set it to `done` only when the whole surface plan is complete — every

@@ -27,9 +27,13 @@ surface built. If it names a missing predecessor, HALT and tell the user to run 
    against the signed-off prototype. Look for cross-surface consistency, visual and
    information hierarchy, the milestone journey holding together end to end, and whether
    the security and error-handling commitments made in `milestone-ux` were delivered.
-3. **Write findings to `m{{N}}/review.md`.** Record each finding as an actionable item:
+3. **Check per-domain coverage (cross-domain milestone).** If the milestone is
+   cross-domain — its `domains` list names more than one domain — verify each
+   participating domain's surfaces were addressed, so nothing in a shared milestone is
+   silently skipped.
+4. **Write findings to `m{{N}}/review.md`.** Record each finding as an actionable item:
    the issue, the surface it affects, a severity, and the fix.
-4. **File and fix defects before closing.** Defects found in review are filed and fixed
+5. **File and fix defects before closing.** Defects found in review are filed and fixed
    before the milestone closes. Do not advance to the next milestone with open critical
    items.
 
