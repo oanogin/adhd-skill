@@ -54,8 +54,11 @@ See `reference/codex-tools.md` and `reference/cursor-tools.md` for tool-name map
 - **`single`** (default) — `project/` lives at the repo root; all work happens in
   this one repo. `setup` always scaffolds in `single` mode; nothing extra to do.
 - **`multi`** — the `project/` tree lives in the repo where `setup` ran (the
-  **orchestration repo**); code repos are registered by absolute local path.
-  Switch to `multi` and register repos with the `workspace` command.
+  **orchestration repo**); code repos are registered by logical name, and their
+  local paths live in a gitignored `project/repos.local.json` (bound per-user).
+  Switch to `multi` and register repos with the `workspace` command. In `multi`
+  mode the product is also split into user-defined **domains** — logical product
+  slices defined during the `map` stage; a milestone may span several domains.
 
 In `multi` mode every `adhd` artifact still lives in the orchestration repo's
 `project/` and `docs/`. Only the `tracer` and `build` stages reach into a
@@ -72,11 +75,12 @@ The Setup stage scaffolds this exact tree in every project. Never deviate.
 docs/
   PRODUCT.md                 Vision output — impeccable reads this
   DESIGN.md                  design system — impeccable reads/writes this
-  DOMAIN.md                  domain glossary (concepts + relationships) — Map output
+  GLOSSARY.md                domain glossary (concepts + relationships) — Map output
   DATA.md                    data model / schema — created lazily when a milestone persists data
   DECISIONS.md               decision log, incl. tech stack (decided just-in-time)
 project/
   state.json                 progress, stage status, effort log, doc-home config
+  repos.local.json           gitignored — per-user repo→path bindings (multi mode)
   notes.md                   transient scratchpad (healthy = empty)
   features.md                Features stage
   milestones.md              Milestones stage
@@ -100,7 +104,7 @@ project/
 | `vision` | front-load | high | `docs/PRODUCT.md` | none | [reference/vision.md](reference/vision.md) |
 | `features` | front-load | medium | `project/features.md` | none | [reference/features.md](reference/features.md) |
 | `milestones` | front-load | high | `project/milestones.md` | none | [reference/milestones.md](reference/milestones.md) |
-| `map` | front-load | high | `project/map.md`, `docs/DOMAIN.md` | none | [reference/map.md](reference/map.md) |
+| `map` | front-load | high | `project/map.md`, `docs/GLOSSARY.md` | none | [reference/map.md](reference/map.md) |
 | `surface-overview` | per-milestone | medium | `m<N>/overview.md` | none | [reference/surface-overview.md](reference/surface-overview.md) |
 | `milestone-ux` | per-milestone | high | `m<N>/ux.md` | none | [reference/milestone-ux.md](reference/milestone-ux.md) |
 | `design` | per-surface | high | `m<N>/surfaces/<name>.md` + prototype surface | brainstorming + impeccable | [reference/design.md](reference/design.md) |
@@ -136,9 +140,12 @@ Every surface has a `kind` — `ui`, `api`, or `lib` — assigned during `map` a
   design (protobuf, OpenAPI, or similar). `impeccable` is not invoked.
 - `lib` — brainstorming for responsibility and public interface, then a spec only.
 
-In `multi` mode each surface is also tagged with the registered `repo` it is built
-in. `map` and `surface-overview` record both with
-`node {{scripts_path}}/adhd-state.mjs surface-meta <name> --milestone {{N}} --repo <repo> --kind <kind>`.
+In `multi` mode each surface is also tagged with one or more `domains` (logical
+slices) and its physical placement — the registered `repo` it is built in and an
+optional `subpath` within that repo. `map` and `surface-overview` record these with
+`node {{scripts_path}}/adhd-state.mjs surface-meta <name> --milestone {{N}} --domain <d1,d2> --kind <kind> [--repo <repo>] [--subpath <path>]`.
+An `api`/`lib` surface defaults its location from its domain's `home`; a shared-UI
+surface gets an explicit `--repo`.
 
 ## Prototype and production apps
 
@@ -233,8 +240,10 @@ These are not stages — they have no gates and no place in the stage flow:
 
 ## Routing
 
-1. **No argument** — run `adhd-state.mjs status`, print it, name the next runnable
-   stage. Stop.
+1. **No argument** — orient, validate, route. Run `adhd-state.mjs status` and
+   `adhd-state.mjs validate`; print both. State where the project sits in the flow
+   and restate user intent in one line. If `validate` reports blockers, name the
+   fix and HALT. Otherwise name the next runnable stage. Stop.
 2. **First word is a stage or a management command** — the 15 stages are in the
    table above; `workspace` and `adopt` are management commands. Load the matching
    `reference/<name>.md` and follow it exactly. The reference owns the gate check
@@ -284,7 +293,7 @@ If `state.json` does not exist, the only runnable stage is `setup`.
   lazily the first time a milestone persists real data.
 - **notes.md discipline** — `project/notes.md` is a transient scratchpad, read first
   every session, healthy when empty. Migrate anything durable to its canonical home
-  (`DECISIONS.md`, `DOMAIN.md`, `DATA.md`, a surface spec, `.ruler/`, `milestones.md`).
+  (`DECISIONS.md`, `GLOSSARY.md`, `DATA.md`, a surface spec, `.ruler/`, `milestones.md`).
 
 ## Sub-skill output routing
 
@@ -304,7 +313,7 @@ These are operational slips, not gate-skipping (gate rationalizations are tabled
 | Hand-editing `project/state.json`. | It is owned by `adhd-state.mjs`. Mutate it only through CLI subcommands — hand edits desync gates and the effort log. |
 | Running a stage from memory, skipping its `reference/<stage>.md`. | Always load the reference file. It owns the gate check, procedure, and completion steps; memory drifts from the current version. |
 | Letting sub-skills write to their default `docs/superpowers/` paths. | Pass the canonical target on every invocation — specs to `project/milestones/m<N>/surfaces/`, plans to `.../plans/`. |
-| Treating `project/notes.md` as durable storage. | It is a transient scratchpad. Migrate durable facts to `DECISIONS.md`, `DOMAIN.md`, a surface spec, or `.ruler/`. Healthy `notes.md` is empty. |
+| Treating `project/notes.md` as durable storage. | It is a transient scratchpad. Migrate durable facts to `DECISIONS.md`, `GLOSSARY.md`, a surface spec, or `.ruler/`. Healthy `notes.md` is empty. |
 | Invoking `impeccable` for an `api` or `lib` surface. | `impeccable` runs only for `ui` surfaces. `api` → contract design; `lib` → spec only. |
 | Forgetting `advance-milestone` after a milestone's `review` passes. | Run `adhd-state.mjs advance-milestone` — without it `currentMilestone` never bumps and `status` keeps reporting the finished milestone. |
 | In `multi` mode, writing `project/` or `docs/` artifacts into a code repo. | All `adhd` artifacts live in the orchestration repo. Only the code-writing stages (`design`, `prototype`, `tracer`, `build`) touch a registered code repo, and only to write code. |
@@ -313,7 +322,7 @@ These are operational slips, not gate-skipping (gate rationalizations are tabled
 ## Scripts
 
 ```bash
-node {{scripts_path}}/adhd-state.mjs <init|read|status|next|set|gate|session-add|session-reset|preflight-confirm|advance-milestone|workspace-mode|workspace-add|workspace-remove|workspace-list|milestone-track|surface-meta>
+node {{scripts_path}}/adhd-state.mjs <init|read|status|next|set|gate|validate|session-add|session-reset|preflight-confirm|advance-milestone|workspace-mode|workspace-add|workspace-remove|workspace-list|repo-bind|repo-unbind|migrate-repos|domain-add|domain-remove|domain-list|milestone-track|milestone-domains|surface-meta>
 node {{scripts_path}}/context-watch.mjs [--next <stage>]
 node {{scripts_path}}/handoff-prompt.mjs
 ```
