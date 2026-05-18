@@ -272,6 +272,61 @@ export function statusReport(cwd = process.cwd()) {
   return lines.join('\n');
 }
 
+export function validate(cwd = process.cwd()) {
+  const blockers = [];
+  const warnings = [];
+  const state = loadState(cwd);
+  if (!state) {
+    return { ok: false, blockers: ['No project/state.json — run `adhd setup` first.'], warnings: [] };
+  }
+  if (!Number.isInteger(state.currentMilestone) || state.currentMilestone < 1) {
+    blockers.push(`currentMilestone is invalid: ${JSON.stringify(state.currentMilestone)}`);
+  }
+  let seenIncomplete = false;
+  for (const s of FRONTLOAD_STAGES) {
+    const st = state.frontload?.[s]?.status;
+    if (st !== 'done') seenIncomplete = true;
+    else if (seenIncomplete) {
+      blockers.push(`front-load stage "${s}" is done but an earlier stage is not — state is incoherent`);
+    }
+  }
+  if (state.mode === 'multi') {
+    const local = loadLocalRepos(cwd);
+    const domains = state.domains ?? {};
+    for (const [name, entry] of Object.entries(state.repos ?? {})) {
+      const p = local[name] ?? entry.path ?? null;
+      if (!p) {
+        blockers.push(`repo "${name}" is registered but not bound to a local path — run \`workspace\` to bind it`);
+      } else if (!fs.existsSync(p)) {
+        blockers.push(`repo "${name}" local path does not exist: ${p}`);
+      } else if (!isGitRepo(p)) {
+        blockers.push(`repo "${name}" local path is not a git repository: ${p}`);
+      }
+    }
+    if (state.frontload?.map?.status === 'done' && Object.keys(domains).length === 0) {
+      blockers.push('map is done but no domains are defined — run `adhd map` to define them');
+    }
+    for (const [key, ms] of Object.entries(state.milestones ?? {})) {
+      for (const d of ms.domains ?? []) {
+        if (!domains[d]) blockers.push(`milestone ${key} references unknown domain "${d}"`);
+      }
+      for (const [sname, surf] of Object.entries(ms.surfaces ?? {})) {
+        for (const d of surf.domains ?? []) {
+          if (!domains[d]) blockers.push(`surface "${sname}" (milestone ${key}) references unknown domain "${d}"`);
+        }
+        if (surf.repo && !(state.repos ?? {})[surf.repo]) {
+          blockers.push(`surface "${sname}" (milestone ${key}) references unknown repo "${surf.repo}"`);
+        }
+      }
+    }
+  }
+  const notesPath = path.join(cwd, 'project/notes.md');
+  if (fs.existsSync(notesPath) && fs.readFileSync(notesPath, 'utf-8').trim() !== '') {
+    warnings.push('project/notes.md is not empty — drain durable entries to their canonical home');
+  }
+  return { ok: blockers.length === 0, blockers, warnings };
+}
+
 export function sessionAdd(cwd, stage) {
   const state = loadState(cwd);
   if (!state) throw new Error('No state.json — run `adhd setup` first.');

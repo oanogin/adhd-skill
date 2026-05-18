@@ -13,7 +13,7 @@ import {
   setMilestoneTrack,
   addDomain, removeDomain, listDomains,
   bindRepo, unbindRepo, migrateRepos,
-  setMilestoneDomains,
+  setMilestoneDomains, validate,
 } from './adhd-state.mjs';
 
 function tmp() {
@@ -512,4 +512,45 @@ test('setSurfaceMeta sets domains and subpath alongside repo and kind', () => {
   assert.equal(surf.subpath, 'pages/admin');
   assert.equal(surf.repo, 'admin-ui');
   assert.equal(surf.kind, 'ui');
+});
+
+test('validate passes on a fresh single-mode project', () => {
+  const cwd = tmp();
+  initState(cwd);
+  const r = validate(cwd);
+  assert.equal(r.ok, true);
+  assert.deepEqual(r.blockers, []);
+});
+
+test('validate blocks when there is no state.json', () => {
+  const r = validate(tmp());
+  assert.equal(r.ok, false);
+  assert.ok(r.blockers.some((b) => /setup/.test(b)));
+});
+
+test('validate flags an unbound repo in multi mode', () => {
+  const cwd = tmp();
+  initState(cwd);
+  setMode(cwd, 'multi');
+  addRepo(cwd, { name: 'backend', kind: 'api' });
+  const r = validate(cwd);
+  assert.equal(r.ok, false);
+  assert.ok(r.blockers.some((b) => /backend/.test(b) && /bound/.test(b)));
+});
+
+test('validate flags a milestone referencing an unknown domain', () => {
+  const cwd = tmp();
+  initState(cwd);
+  setMode(cwd, 'multi');
+  setMilestoneDomains(cwd, { milestone: 1, domains: ['ghost'] });
+  const r = validate(cwd);
+  assert.ok(r.blockers.some((b) => /ghost/.test(b)));
+});
+
+test('validate warns when notes.md is not empty', () => {
+  const cwd = tmp();
+  initState(cwd);
+  touch(cwd, 'project/notes.md');
+  const r = validate(cwd);
+  assert.ok(r.warnings.some((w) => /notes\.md/.test(w)));
 });
