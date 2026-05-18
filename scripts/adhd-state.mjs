@@ -131,12 +131,16 @@ function ensureSurface(state, n, name) {
       SURFACE_STAGES.map((s) => [s, { status: 'blocked', effort: STAGE_EFFORT[s] }]),
     );
     surf.repo = null;
+    surf.subpath = null;
     surf.kind = null;
+    surf.domains = [];
     m.surfaces[name] = surf;
   }
   const surf = m.surfaces[name];
   if (surf.repo === undefined) surf.repo = null;
+  if (surf.subpath === undefined) surf.subpath = null;
   if (surf.kind === undefined) surf.kind = null;
+  if (surf.domains === undefined) surf.domains = [];
   return surf;
 }
 
@@ -436,7 +440,7 @@ export function migrateRepos(cwd = process.cwd()) {
   return migrated;
 }
 
-export function setSurfaceMeta(cwd = process.cwd(), { milestone, surface, repo, kind }) {
+export function setSurfaceMeta(cwd = process.cwd(), { milestone, surface, repo, subpath, kind, domains }) {
   if (kind !== undefined && !SURFACE_KINDS.includes(kind)) {
     throw new Error(`Invalid kind "${kind}". Valid: ${SURFACE_KINDS.join(', ')}`);
   }
@@ -445,7 +449,9 @@ export function setSurfaceMeta(cwd = process.cwd(), { milestone, surface, repo, 
   const m = milestone ?? state.currentMilestone;
   const surf = ensureSurface(state, m, surface ?? state.currentSurface);
   if (repo !== undefined) surf.repo = repo;
+  if (subpath !== undefined) surf.subpath = subpath;
   if (kind !== undefined) surf.kind = kind;
+  if (domains !== undefined) surf.domains = domains;
   state.currentMilestone = m;
   if (surface != null) state.currentSurface = surface;
   saveState(cwd, state);

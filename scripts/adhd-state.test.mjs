@@ -490,3 +490,26 @@ test('ensureMilestone backfills domains on older state', () => {
   setMilestoneDomains(cwd, { milestone: 1, domains: ['auth'] });
   assert.deepEqual(loadState(cwd).milestones['1'].domains, ['auth']);
 });
+
+test('a new surface has empty domains and null subpath', () => {
+  const cwd = tmp();
+  initState(cwd);
+  setStageStatus(cwd, { stage: 'design', status: 'in-progress', milestone: 1, surface: 'home' });
+  const surf = loadState(cwd).milestones['1'].surfaces.home;
+  assert.deepEqual(surf.domains, []);
+  assert.equal(surf.subpath, null);
+});
+
+test('setSurfaceMeta sets domains and subpath alongside repo and kind', () => {
+  const cwd = tmp();
+  initState(cwd);
+  setSurfaceMeta(cwd, {
+    milestone: 1, surface: 'admin',
+    domains: ['auth', 'billing'], repo: 'admin-ui', subpath: 'pages/admin', kind: 'ui',
+  });
+  const surf = loadState(cwd).milestones['1'].surfaces.admin;
+  assert.deepEqual(surf.domains, ['auth', 'billing']);
+  assert.equal(surf.subpath, 'pages/admin');
+  assert.equal(surf.repo, 'admin-ui');
+  assert.equal(surf.kind, 'ui');
+});
