@@ -554,3 +554,20 @@ test('validate warns when notes.md is not empty', () => {
   const r = validate(cwd);
   assert.ok(r.warnings.some((w) => /notes\.md/.test(w)));
 });
+
+test('statusReport lists per-domain milestones in multi mode', () => {
+  const cwd = tmp();
+  initState(cwd);
+  setMode(cwd, 'multi');
+  addDomain(cwd, { name: 'auth', description: 'x' });
+  setMilestoneDomains(cwd, { milestone: 1, domains: ['auth'] });
+  const out = statusReport(cwd);
+  assert.match(out, /Per-domain milestones/);
+  assert.match(out, /auth: M1/);
+});
+
+test('statusReport omits the per-domain section in single mode', () => {
+  const cwd = tmp();
+  initState(cwd);
+  assert.doesNotMatch(statusReport(cwd), /Per-domain milestones/);
+});

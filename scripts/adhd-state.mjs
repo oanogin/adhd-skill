@@ -265,6 +265,20 @@ export function statusReport(cwd = process.cwd()) {
       lines.push(`  surface ${name}:  ` + SURFACE_STAGES.map((s) => `${s} ${ICON[surf[s].status]}`).join('  '));
     }
   }
+  if (state.mode === 'multi') {
+    const domains = state.domains ?? {};
+    const names = Object.keys(domains);
+    if (names.length > 0) {
+      lines.push('');
+      lines.push('Per-domain milestones:');
+      for (const d of names) {
+        const ms = Object.entries(state.milestones ?? {})
+          .filter(([, m]) => (m.domains ?? []).includes(d))
+          .map(([k]) => `M${k}`);
+        lines.push(`  ${d}: ${ms.length ? ms.join(', ') : '(none)'}`);
+      }
+    }
+  }
   const next = nextStage(cwd);
   lines.push('');
   lines.push(`Next runnable stage: ${next.stage}` +
