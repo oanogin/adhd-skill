@@ -560,6 +560,12 @@ function parseFlags(args) {
     else if (args[i] === '--doc-home') flags.docHome = args[++i];
     else if (args[i] === '--repo') flags.repo = args[++i];
     else if (args[i] === '--kind') flags.kind = args[++i];
+    else if (args[i] === '--remote') flags.remote = args[++i];
+    else if (args[i] === '--domain') flags.domain = args[++i];
+    else if (args[i] === '--subpath') flags.subpath = args[++i];
+    else if (args[i] === '--description') flags.description = args[++i];
+    else if (args[i] === '--home-repo') flags.homeRepo = args[++i];
+    else if (args[i] === '--home-subpath') flags.homeSubpath = args[++i];
     else rest.push(args[i]);
   }
   return { flags, rest };
@@ -630,14 +636,71 @@ function main(argv) {
       break;
     }
     case 'workspace-add': {
-      const [name, repoPath, kind] = rest;
-      if (!name || !repoPath || !kind) {
-        console.error('Usage: adhd-state.mjs workspace-add <name> <path> <ui|api|lib>');
+      const [name, kind] = rest;
+      if (!name || !kind) {
+        console.error('Usage: adhd-state.mjs workspace-add <name> <ui|api|lib> [--remote <url>]');
         process.exitCode = 1;
         break;
       }
-      addRepo(cwd, { name, repoPath, kind });
+      addRepo(cwd, { name, kind, remote: flags.remote });
       console.log(`registered repo "${name}"`);
+      break;
+    }
+    case 'repo-bind': {
+      const [name, repoPath] = rest;
+      if (!name || !repoPath) {
+        console.error('Usage: adhd-state.mjs repo-bind <name> <local-path>');
+        process.exitCode = 1;
+        break;
+      }
+      bindRepo(cwd, name, repoPath);
+      console.log(`bound repo "${name}"`);
+      break;
+    }
+    case 'repo-unbind':
+      unbindRepo(cwd, rest[0]);
+      console.log(`unbound repo "${rest[0]}"`);
+      break;
+    case 'migrate-repos': {
+      const n = migrateRepos(cwd);
+      console.log(`migrated ${n} repo path(s) into ${LOCAL_REPOS_FILE}`);
+      break;
+    }
+    case 'domain-add': {
+      const [name] = rest;
+      if (!name) {
+        console.error('Usage: adhd-state.mjs domain-add <name> --description <text> [--home-repo <r>] [--home-subpath <p>]');
+        process.exitCode = 1;
+        break;
+      }
+      addDomain(cwd, { name, description: flags.description, homeRepo: flags.homeRepo, homeSubpath: flags.homeSubpath });
+      console.log(`registered domain "${name}"`);
+      break;
+    }
+    case 'domain-remove':
+      removeDomain(cwd, rest[0]);
+      console.log(`removed domain "${rest[0]}"`);
+      break;
+    case 'domain-list':
+      console.log(JSON.stringify(listDomains(cwd), null, 2));
+      break;
+    case 'milestone-domains': {
+      const [csv] = rest;
+      if (!csv) {
+        console.error('Usage: adhd-state.mjs milestone-domains <d1,d2,...> [--milestone N]');
+        process.exitCode = 1;
+        break;
+      }
+      const s = setMilestoneDomains(cwd, { milestone: flags.milestone, domains: csv.split(',') });
+      console.log(`milestone ${s.currentMilestone} domains = ${csv}`);
+      break;
+    }
+    case 'validate': {
+      const r = validate(cwd);
+      for (const b of r.blockers) console.log(`BLOCKER: ${b}`);
+      for (const w of r.warnings) console.log(`warning: ${w}`);
+      console.log(r.ok ? 'validate: ok' : 'validate: blocked');
+      if (!r.ok) process.exitCode = 1;
       break;
     }
     case 'workspace-remove':
@@ -661,23 +724,34 @@ function main(argv) {
     case 'surface-meta': {
       const [surface] = rest;
       if (!surface) {
-        console.error('Usage: adhd-state.mjs surface-meta <surface> [--milestone N] [--repo name] [--kind ui|api|lib]');
+        console.error('Usage: adhd-state.mjs surface-meta <surface> [--milestone N] [--domain d1,d2] [--repo name] [--subpath path] [--kind ui|api|lib]');
         process.exitCode = 1;
         break;
       }
-      if (flags.repo === undefined && flags.kind === undefined) {
+      const noWrite = flags.repo === undefined && flags.kind === undefined
+        && flags.domain === undefined && flags.subpath === undefined;
+      if (noWrite) {
         const state = loadState(cwd);
         const m = flags.milestone ?? state?.currentMilestone ?? 1;
         const surf = state?.milestones?.[String(m)]?.surfaces?.[surface];
-        console.log(JSON.stringify({ repo: surf?.repo ?? null, kind: surf?.kind ?? null }, null, 2));
+        console.log(JSON.stringify({
+          domains: surf?.domains ?? [],
+          repo: surf?.repo ?? null,
+          subpath: surf?.subpath ?? null,
+          kind: surf?.kind ?? null,
+        }, null, 2));
         break;
       }
-      setSurfaceMeta(cwd, { milestone: flags.milestone, surface, repo: flags.repo, kind: flags.kind });
+      setSurfaceMeta(cwd, {
+        milestone: flags.milestone, surface,
+        repo: flags.repo, subpath: flags.subpath, kind: flags.kind,
+        domains: flags.domain === undefined ? undefined : flags.domain.split(','),
+      });
       console.log(`surface "${surface}" updated`);
       break;
     }
     default:
-      console.error('Usage: adhd-state.mjs <init|read|status|next|set|gate|session-add|session-reset|preflight-confirm|advance-milestone|workspace-mode|workspace-add|workspace-remove|workspace-list|milestone-track|surface-meta>');
+      console.error('Usage: adhd-state.mjs <init|read|status|next|set|gate|validate|session-add|session-reset|preflight-confirm|advance-milestone|workspace-mode|workspace-add|workspace-remove|workspace-list|repo-bind|repo-unbind|migrate-repos|domain-add|domain-remove|domain-list|milestone-track|milestone-domains|surface-meta>');
       process.exitCode = 1;
   }
 }
