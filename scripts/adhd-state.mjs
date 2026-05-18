@@ -56,6 +56,7 @@ export function defaultState() {
     docHome: 'docs',
     mode: 'single',
     repos: {},
+    domains: {},
     createdAt: now,
     updatedAt: now,
     currentMilestone: 1,
@@ -305,6 +306,31 @@ export function setMode(cwd = process.cwd(), mode) {
   state.mode = mode;
   saveState(cwd, state);
   return state;
+}
+
+export function addDomain(cwd = process.cwd(), { name, description, homeRepo, homeSubpath }) {
+  if (!name) throw new Error('Domain name is required.');
+  const state = loadState(cwd);
+  if (!state) throw new Error('No state.json — run `adhd setup` first.');
+  if (!state.domains) state.domains = {};
+  const domain = { description: description ?? null };
+  if (homeRepo) domain.home = { repo: homeRepo, subpath: homeSubpath ?? null };
+  state.domains[name] = domain;
+  saveState(cwd, state);
+  return state;
+}
+
+export function removeDomain(cwd = process.cwd(), name) {
+  const state = loadState(cwd);
+  if (!state) throw new Error('No state.json — run `adhd setup` first.');
+  if (!state.domains) state.domains = {};
+  delete state.domains[name];
+  saveState(cwd, state);
+  return state;
+}
+
+export function listDomains(cwd = process.cwd()) {
+  return loadState(cwd)?.domains ?? {};
 }
 
 function isGitRepo(p) {

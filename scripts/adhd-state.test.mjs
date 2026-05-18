@@ -11,6 +11,7 @@ import {
   confirmPreflight, advanceMilestone,
   setMode, addRepo, removeRepo, listRepos, setSurfaceMeta, SURFACE_KINDS, MODES,
   setMilestoneTrack,
+  addDomain, removeDomain, listDomains,
 } from './adhd-state.mjs';
 
 function tmp() {
@@ -387,4 +388,32 @@ test('setSurfaceMeta sets repo and kind, and validates kind', () => {
 test('setMode / addRepo throw a clear error when no state.json', () => {
   assert.throws(() => setMode(tmp(), 'multi'), /adhd setup/);
   assert.throws(() => addRepo(tmp(), { name: 'x', repoPath: gitRepo(), kind: 'api' }), /adhd setup/);
+});
+
+test('defaultState has an empty domains registry', () => {
+  assert.deepEqual(defaultState().domains, {});
+});
+
+test('addDomain registers a domain with description and optional home', () => {
+  const cwd = tmp();
+  initState(cwd);
+  addDomain(cwd, { name: 'auth', description: 'sign-in and sessions' });
+  addDomain(cwd, { name: 'billing', description: 'invoices', homeRepo: 'backend', homeSubpath: 'services/billing' });
+  const d = loadState(cwd).domains;
+  assert.equal(d.auth.description, 'sign-in and sessions');
+  assert.equal(d.auth.home, undefined);
+  assert.deepEqual(d.billing.home, { repo: 'backend', subpath: 'services/billing' });
+});
+
+test('removeDomain deletes a domain; listDomains returns the registry', () => {
+  const cwd = tmp();
+  initState(cwd);
+  addDomain(cwd, { name: 'auth', description: 'x' });
+  assert.deepEqual(Object.keys(listDomains(cwd)), ['auth']);
+  removeDomain(cwd, 'auth');
+  assert.deepEqual(listDomains(cwd), {});
+});
+
+test('addDomain throws a clear error when no state.json', () => {
+  assert.throws(() => addDomain(tmp(), { name: 'auth' }), /adhd setup/);
 });
