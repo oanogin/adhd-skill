@@ -57,8 +57,11 @@ picks the stage or command that fits, respecting the gates.
 - **`single`** (default) — everything lives in one repo. `setup` scaffolds this;
   nothing extra to do.
 - **`multi`** — the product spans several git repos. `adhd`'s `project/` tree lives
-  in an orchestration repo; code repos are registered by local path. Run
-  `/adhd workspace` to switch to `multi` mode and register repos.
+  in an orchestration repo; code repos are registered by logical name, and local
+  paths live in a gitignored `project/repos.local.json` bound per-user. The product
+  is split into user-defined **domains** — logical slices defined in the `map` stage;
+  a milestone may span several domains. Run `/adhd workspace` to switch to `multi`
+  mode and register repos.
 
 Surfaces carry a `kind` — `ui`, `api`, or `lib`. The `design` stage uses
 `impeccable` only for `ui` surfaces; `api` surfaces get an API-contract design and
@@ -92,7 +95,7 @@ PER-MILESTONE LOOP
 | vision | product, users, usage | `docs/PRODUCT.md` |
 | features | brain-dump every feature — the "spaceship" lives here | `project/features.md` |
 | milestones | group features; Milestone 1 = first valuable product | `project/milestones.md` |
-| map | sitemap of surfaces + domain glossary | `project/map.md`, `docs/DOMAIN.md` |
+| map | sitemap of surfaces + domain glossary | `project/map.md`, `docs/GLOSSARY.md` |
 | surface-overview | helicopter view of a milestone's surfaces; sets the track | `m<N>/overview.md` |
 | milestone-ux | cross-surface UX; must-have security & errors | `m<N>/ux.md` |
 | design | per-surface UX then UI; builds the surface into the prototype app | `surfaces/<name>.md` |
@@ -151,10 +154,11 @@ your explicit "ok".
 ```
 .ruler/                  agent instructions
 docs/
-  PRODUCT.md  DESIGN.md  DOMAIN.md  DECISIONS.md
+  PRODUCT.md  DESIGN.md  GLOSSARY.md  DECISIONS.md
   DATA.md                data model — created lazily, only once a milestone persists data
 project/
   state.json             workflow progress — never hand-edit
+  repos.local.json       gitignored — per-user repo→path bindings (multi mode)
   notes.md               transient scratchpad — healthy when empty
   features.md  milestones.md  map.md
   milestones/m<N>/        overview, ux, surfaces/, prototype, tracer, gap, plans/, review
@@ -176,7 +180,7 @@ use the CLI (`/adhd` drives it for you).
   fully-working UX prototype on mock data — no database, no data model. The data model
   appears in `docs/DATA.md` only once a milestone actually persists data.
 - **notes.md** — a scratchpad read first every session; durable facts get
-  migrated to their real home (`DECISIONS.md`, `DOMAIN.md`, a surface spec).
+  migrated to their real home (`DECISIONS.md`, `GLOSSARY.md`, a surface spec).
 - **Context watch** — `adhd` flags when to start a fresh session and emits a
   ready-to-paste resume prompt.
 
