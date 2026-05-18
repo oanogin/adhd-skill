@@ -1,7 +1,7 @@
 # adhd — Surface Overview
 
 **Effort:** medium
-**Gate:** `project/map.md` and `docs/DOMAIN.md` exist — the Map stage is done.
+**Gate:** `project/map.md` and `docs/GLOSSARY.md` exist — the Map stage is done.
 **Output:** `project/milestones/m{{N}}/overview.md`.
 **Sub-skill:** none.
 
@@ -10,7 +10,7 @@ Run `node {{scripts_path}}/adhd-state.mjs gate surface-overview --milestone {{N}
 If it reports missing items, HALT. Tell the user exactly which predecessor stage to run.
 No skip, no override — this is the skill's central discipline.
 
-If the gate reports `project/map.md` or `docs/DOMAIN.md` is missing, HALT and tell the
+If the gate reports `project/map.md` or `docs/GLOSSARY.md` is missing, HALT and tell the
 user to run `{{command_prefix}}adhd map` first.
 
 ## Procedure
@@ -21,11 +21,12 @@ user to run `{{command_prefix}}adhd map` first.
    in one pass. Detailed layout and interaction are the per-surface Design stage's job,
    not this one.
 
-   Tag each surface with its `kind` (`ui` | `api` | `lib`) and — in `multi` mode —
-   the registered `repo` it will be built in, using
-   `node {{scripts_path}}/adhd-state.mjs surface-meta <name> --milestone {{N}} --kind <kind>`
-   (add `--repo <repo>` in `multi` mode). If `map` already tagged the surface,
-   confirm the tag still fits and correct it if not.
+   Tag each surface with its `kind` (`ui` | `api` | `lib`). In `multi` mode, confirm
+   or refine the surface's `domains` and physical location (`repo` + optional
+   `subpath`) with
+   `node {{scripts_path}}/adhd-state.mjs surface-meta <name> --milestone {{N}} --domain <d1,d2> --kind <kind> [--repo <r>] [--subpath <p>]`.
+   If `map` already tagged the surface, confirm the tags still fit and correct them
+   if not.
 2. **Note cross-surface relationships.** Describe how the milestone's surfaces connect:
    which surface leads to which, the shared state that moves between them, and the
    rough user journey a real user takes through the milestone end to end.

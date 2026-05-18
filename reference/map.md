@@ -2,7 +2,7 @@
 
 **Effort:** high
 **Gate:** `project/milestones.md` exists — the Milestones stage is done.
-**Output:** `project/map.md` and `docs/DOMAIN.md`.
+**Output:** `project/map.md` and `docs/GLOSSARY.md`.
 **Sub-skill:** none.
 
 ## Gate check
@@ -19,27 +19,38 @@ tell the user to run `{{command_prefix}}adhd milestones` first.
    milestone that introduces it. Give each surface a one-line purpose. Do not design
    layouts or interactions here; that is the per-surface Design stage's job.
 
-   For each surface, also record its `kind` (`ui` | `api` | `lib`) and — in `multi`
-   mode — the registered `repo` it will be built in. Persist both with
-   `node {{scripts_path}}/adhd-state.mjs surface-meta <name> --milestone <N> --kind <kind>`
-   (add `--repo <repo>` in `multi` mode). A repo's registered `kind` is a sensible
-   default for surfaces in that repo; the surface's own `kind` is authoritative.
-2. **Sketch the domain glossary.** Identify the core concepts the product is about and
+   For each surface, also record its `kind` (`ui` | `api` | `lib`). In `multi` mode,
+   record the `domains` it belongs to and its physical location (`repo` + optional
+   `subpath`). Persist all of it with
+   `node {{scripts_path}}/adhd-state.mjs surface-meta <name> --milestone <N> --domain <d1,d2> --kind <kind> [--repo <r>] [--subpath <p>]`
+   (`--domain`/`--repo`/`--subpath` apply only in `multi` mode). An `api`/`lib` surface
+   defaults its location from its domain's `home`; a shared-UI surface gets an explicit
+   `--repo`. The surface's own `kind` is authoritative.
+2. **Define domains (`multi` mode only).** With the user, decompose the product into
+   logical domains — each a named slice with a one-line description and an optional
+   `home` (`repo` + `subpath`) for its backend code. Register each with
+   `node {{scripts_path}}/adhd-state.mjs domain-add <name> --description <text> [--home-repo <r>] [--home-subpath <p>]`.
+   Then walk the milestone list and tag each milestone with the domains it touches:
+   `node {{scripts_path}}/adhd-state.mjs milestone-domains <d1,d2,...> --milestone <N>`.
+   In `single` mode skip this step entirely.
+3. **Sketch the domain glossary.** Identify the core concepts the product is about and
    the relationships between them — each concept's name and what it represents in plain
    product terms. This is product vocabulary, NOT a data model: no field types, no
-   persistence, no schema, no database. Write the glossary to `docs/DOMAIN.md`. The data
-   model (`docs/DATA.md`) is a tech artifact created later, only when a milestone
+   persistence, no schema, no database. Write the glossary to `docs/GLOSSARY.md`. The
+   data model (`docs/DATA.md`) is a tech artifact created later, only when a milestone
    actually persists data — never here.
-3. **Write `project/map.md`.** Record the sitemap and overall structure, grouped by
-   milestone. Cross-reference `docs/DOMAIN.md` so the structural map and the domain
+4. **Write `project/map.md`.** Record the sitemap and overall structure, grouped by
+   milestone. Cross-reference `docs/GLOSSARY.md` so the structural map and the domain
    glossary stay linked. Name capabilities, never mechanisms — no stack, framework,
    database, or architecture appears in `map.md`.
 
 ## Output
 - `project/map.md` — a sitemap grouped by milestone. Each milestone heading lists its
   surfaces, and each surface has a one-line purpose. Includes a cross-reference to
-  `docs/DOMAIN.md`.
-- `docs/DOMAIN.md` — the domain glossary: the core product concepts and the
+  `docs/GLOSSARY.md`. In `multi` mode it also has a **Domains** section listing each
+  domain, its description, and its `home`; and each milestone heading notes the domains
+  it touches.
+- `docs/GLOSSARY.md` — the domain glossary: the core product concepts and the
   relationships between them, in plain product terms. No field types, no schema, no
   persistence.
 
