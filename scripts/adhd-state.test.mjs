@@ -85,6 +85,17 @@ test('gate(milestone-ux) resolves {N} from --milestone', () => {
   assert.equal(gate(cwd, 'milestone-ux', { milestone: 2 }).pass, true);
 });
 
+test('gate(surface-overview) needs map.md and docs/GLOSSARY.md', () => {
+  const cwd = tmp();
+  initState(cwd);
+  touch(cwd, 'project/map.md');
+  const before = gate(cwd, 'surface-overview');
+  assert.equal(before.pass, false);
+  assert.ok(before.missing.includes('docs/GLOSSARY.md'));
+  touch(cwd, 'docs/GLOSSARY.md');
+  assert.equal(gate(cwd, 'surface-overview').pass, true);
+});
+
 test('gate(design) needs milestone milestone-ux done', () => {
   const cwd = tmp();
   initState(cwd);

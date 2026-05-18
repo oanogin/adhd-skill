@@ -31,7 +31,7 @@ const STAGE_GATES = {
   features:           { files: ['{docHome}/PRODUCT.md'],                             stages: [] },
   milestones:         { files: ['project/features.md'],                             stages: [] },
   map:                { files: ['project/milestones.md'],                           stages: [] },
-  'surface-overview': { files: ['project/map.md', '{docHome}/DOMAIN.md'],            stages: [] },
+  'surface-overview': { files: ['project/map.md', '{docHome}/GLOSSARY.md'],          stages: [] },
   'milestone-ux':     { files: ['project/milestones/m{N}/overview.md'],             stages: [] },
   design:             { files: [],                                                  stages: [['milestone', 'milestone-ux', 'done']] },
   prototype:          { files: [],                                                  stages: [['allSurfacesDesigned']] },
