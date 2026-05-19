@@ -135,10 +135,24 @@ After a milestone's `finalize`, `advance-milestone` bumps `currentMilestone`, cl
 Then `milestone-brief` forms the next milestone. When `adhd-state.mjs status` reports
 the next stage as `next-milestone`, this is the step it means.
 
-## Surface kinds
+## Surfaces
 
-Every surface has a `kind` — `ui`, `api`, or `lib` — assigned during `map` and
-confirmed at `milestone-brief`. The `design` stage routes by it:
+A **surface** is a distinct place something touches the product. Every surface has a
+`kind`:
+
+- **`ui`** — a screen or workspace a *person* uses. It is the only kind that appears
+  in the clickable prototype.
+- **`api`** — a contract another *system* calls. Not visual; never in the prototype.
+- **`lib`** — a module other *code* imports. Not visual; never in the prototype.
+
+A `ui` surface is **workspace-sized** — a coherent screen or workspace you would demo
+as one unit, not a sub-tab or a single action. Decompose finer detail with **features**
+(the per-domain work units the `features` stage produces), never by splitting one
+workspace into many surfaces. A milestone's prototype is the handful of `ui` surfaces
+it touches, wired together — keep that handful small and coherent.
+
+`kind` is assigned at `map` and confirmed at `milestone-brief`. The `design` stage
+routes by it:
 
 - `ui` — brainstorming for UX, then `impeccable` for UI.
 - `api` — brainstorming for behavior and contract semantics, then API-contract
@@ -374,7 +388,7 @@ These are operational slips, not gate-skipping (gate rationalizations are tabled
 ## Scripts
 
 ```bash
-node {{scripts_path}}/adhd-state.mjs <init|read|status|next|set|gate|validate|audit|migrate|session-add|session-reset|preflight-confirm|advance-milestone|workspace-mode|workspace-add|workspace-remove|workspace-list|repo-bind|repo-unbind|migrate-repos|domain-add|domain-remove|domain-list|milestone-track|milestone-title|milestone-domains|milestone-stories|milestone-remove|surface-meta|prototype-topology|prototype-home|feature-add|feature-dep|feature-remove|feature-list|feature-verify>
+node {{scripts_path}}/adhd-state.mjs <init|read|status|next|set|gate|validate|audit|migrate|session-add|session-reset|preflight-confirm|advance-milestone|workspace-mode|workspace-add|workspace-remove|workspace-list|repo-bind|repo-unbind|migrate-repos|domain-add|domain-remove|domain-list|milestone-track|milestone-title|milestone-domains|milestone-stories|milestone-remove|surface-meta|surface-remove|prototype-topology|prototype-home|feature-add|feature-dep|feature-remove|feature-list|feature-verify>
 node {{scripts_path}}/context-watch.mjs [--next <stage>]
 node {{scripts_path}}/handoff-prompt.mjs
 ```

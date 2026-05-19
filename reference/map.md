@@ -15,10 +15,13 @@ If the gate reports `foundation` is not done, HALT and tell the user to run
 
 ## Procedure
 1. **Structural inventory only.** Map produces a sitemap, not detailed UX and not a
-   roadmap. List every surface the product is expected to have — pages, screens, views,
-   key flows, API contracts, shared libraries — as a flat catalog. Give each surface a
-   one-line purpose and its `kind` (`ui` | `api` | `lib`). Do NOT group surfaces by
-   milestone: there is no milestone plan yet. A milestone selects from this catalog at
+   roadmap. List every surface the product is expected to have — `ui`
+   screens/workspaces, `api` contracts, `lib` modules — as a flat catalog. Give each
+   surface a one-line purpose and its `kind` (`ui` | `api` | `lib`). Keep `ui` surfaces
+   **workspace-sized** — a coherent screen or workspace demoed as one unit, not a
+   sub-tab or a single action; finer detail is decomposed later into `features`, never
+   into more surfaces (see SKILL.md, "Surfaces"). Do NOT group surfaces by milestone:
+   there is no milestone plan yet. A milestone selects from this catalog at
    `milestone-brief` time, and `surface-meta` records the per-milestone tagging then.
 
    A surface's location in the catalog is its **production home** — the real repo it

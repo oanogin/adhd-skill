@@ -26,8 +26,11 @@ the user to run `{{command_prefix}}adhd map` first.
    - `node {{scripts_path}}/adhd-state.mjs milestone-stories <s1,s2,...> --milestone {{N}}`
    - `node {{scripts_path}}/adhd-state.mjs milestone-title "<title>" --milestone {{N}}`
 2. **Identify the surfaces touched.** From `project/map.md`, list the surfaces this
-   milestone's stories add or change. For each, confirm or refine its `kind`, `domains`,
-   and physical placement (see SKILL.md, "Surface kinds") with
+   milestone's stories add or change. Keep `ui` surfaces **workspace-sized** — one
+   coherent workspace you would demo as a unit, not one per screen-area; the milestone's
+   prototype should be a small, coherent handful of `ui` surfaces (see SKILL.md,
+   "Surfaces"). For each, confirm or refine its `kind`, `domains`, and physical
+   placement with
    `node {{scripts_path}}/adhd-state.mjs surface-meta <name> --milestone {{N}} --kind <kind> [--domain <d1,d2>] [--repo <r>] [--subpath <p>]`.
 3. **Set the track.** Decide the milestone's `infra` need, in capability terms only.
    `infra: none` → **prototype-only** (`milestone-brief → design → review → finalize`);

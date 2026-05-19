@@ -10,7 +10,7 @@ import {
   sessionAdd, sessionReset, FRONTLOAD_STAGES, MILESTONE_STAGES, FEATURE_STAGES, STAGE_STATUSES,
   confirmPreflight, advanceMilestone, STATE_VERSION,
   setMode, addRepo, removeRepo, listRepos, setSurfaceMeta, SURFACE_KINDS, MODES,
-  setMilestoneTrack, setMilestoneTitle, setMilestoneStories, removeMilestone,
+  setMilestoneTrack, setMilestoneTitle, setMilestoneStories, removeMilestone, removeSurface,
   addDomain, removeDomain, listDomains,
   bindRepo, unbindRepo, migrateRepos,
   setMilestoneDomains, validate, audit, migrate,
@@ -390,6 +390,17 @@ test('surface-meta records metadata only, no stage status', () => {
   const surf = loadState(cwd).milestones['1'].surfaces.admin;
   assert.deepEqual(surf, { kind: 'ui', domains: ['registry'], repo: 'ui', subpath: 'pages' });
   assert.equal(surf.design, undefined);
+});
+
+test('removeSurface drops a surface from a milestone', () => {
+  const cwd = tmp();
+  initState(cwd);
+  setSurfaceMeta(cwd, { milestone: 1, surface: 'a', kind: 'ui' });
+  setSurfaceMeta(cwd, { milestone: 1, surface: 'b', kind: 'ui' });
+  removeSurface(cwd, { milestone: 1, surface: 'a' });
+  const surfaces = loadState(cwd).milestones['1'].surfaces;
+  assert.equal(surfaces.a, undefined);
+  assert.ok(surfaces.b);
 });
 
 test('milestone title / stories / track persist', () => {

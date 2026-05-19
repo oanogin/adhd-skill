@@ -739,6 +739,16 @@ export function setSurfaceMeta(cwd = process.cwd(), { milestone, surface, repo, 
   return state;
 }
 
+export function removeSurface(cwd = process.cwd(), { milestone, surface }) {
+  const state = loadState(cwd);
+  if (!state) throw new Error('No state.json — run `adhd setup` first.');
+  const m = milestone ?? state.currentMilestone;
+  const ms = state.milestones?.[String(m)];
+  if (ms?.surfaces) delete ms.surfaces[surface];
+  saveState(cwd, state);
+  return state;
+}
+
 export function setMilestoneTrack(cwd = process.cwd(), { milestone, track }) {
   if (!MILESTONE_TRACKS.includes(track)) {
     throw new Error(`Invalid track "${track}". Valid: ${MILESTONE_TRACKS.join(', ')}`);
@@ -1172,6 +1182,17 @@ function main(argv) {
       console.log(`surface "${surface}" updated`);
       break;
     }
+    case 'surface-remove': {
+      const [surface] = rest;
+      if (!surface) {
+        console.error('Usage: adhd-state.mjs surface-remove <name> [--milestone N]');
+        process.exitCode = 1;
+        break;
+      }
+      removeSurface(cwd, { milestone: flags.milestone, surface });
+      console.log(`removed surface "${surface}"`);
+      break;
+    }
     case 'prototype-topology': {
       const [topology] = rest;
       if (!topology) {
@@ -1240,7 +1261,7 @@ function main(argv) {
       break;
     }
     default:
-      console.error('Usage: adhd-state.mjs <init|read|status|next|set|gate|validate|audit|migrate|session-add|session-reset|preflight-confirm|advance-milestone|workspace-mode|workspace-add|workspace-remove|workspace-list|repo-bind|repo-unbind|migrate-repos|domain-add|domain-remove|domain-list|milestone-track|milestone-title|milestone-domains|milestone-stories|milestone-remove|surface-meta|prototype-topology|prototype-home|feature-add|feature-dep|feature-remove|feature-list|feature-verify>');
+      console.error('Usage: adhd-state.mjs <init|read|status|next|set|gate|validate|audit|migrate|session-add|session-reset|preflight-confirm|advance-milestone|workspace-mode|workspace-add|workspace-remove|workspace-list|repo-bind|repo-unbind|migrate-repos|domain-add|domain-remove|domain-list|milestone-track|milestone-title|milestone-domains|milestone-stories|milestone-remove|surface-meta|surface-remove|prototype-topology|prototype-home|feature-add|feature-dep|feature-remove|feature-list|feature-verify>');
       process.exitCode = 1;
   }
 }
