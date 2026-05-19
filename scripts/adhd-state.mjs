@@ -3,18 +3,18 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-export const STATE_VERSION = 1;
+export const STATE_VERSION = 2;
 export const STATE_FILE = 'project/state.json';
 export const LOCAL_REPOS_FILE = 'project/repos.local.json';
 
-export const FRONTLOAD_STAGES = ['setup', 'vision', 'features', 'milestones', 'map'];
-export const MILESTONE_STAGES = ['surface-overview', 'milestone-ux', 'prototype', 'tracer', 'replan', 'gap', 'review'];
-export const SURFACE_STAGES = ['design', 'plan', 'build'];
+export const FRONTLOAD_STAGES = ['setup', 'vision', 'stories', 'foundation', 'map'];
+export const MILESTONE_STAGES = ['milestone-brief', 'design', 'tracer', 'features', 'review', 'finalize'];
+export const FEATURE_STAGES = ['plan', 'build'];
 
 export const STAGE_EFFORT = {
-  setup: 'low', vision: 'high', features: 'medium', milestones: 'high', map: 'high',
-  'surface-overview': 'medium', 'milestone-ux': 'high', prototype: 'medium', tracer: 'high',
-  replan: 'medium', gap: 'medium', review: 'high', design: 'high', plan: 'medium', build: 'medium',
+  setup: 'low', vision: 'high', stories: 'medium', foundation: 'medium', map: 'high',
+  'milestone-brief': 'medium', design: 'high', tracer: 'high', features: 'high',
+  review: 'high', finalize: 'low', plan: 'medium', build: 'medium',
 };
 
 export const EFFORT_WEIGHT = { low: 1, medium: 2, high: 3, 'extra-high': 4 };
@@ -24,24 +24,23 @@ export const STAGE_STATUSES = ['blocked', 'pending', 'in-progress', 'done'];
 export const SURFACE_KINDS = ['ui', 'api', 'lib'];
 export const MODES = ['single', 'multi'];
 export const MILESTONE_TRACKS = ['prototype', 'production'];
+export const PROTOTYPE_TOPOLOGIES = ['colocated', 'standalone'];
 
-// Gate predecessors. Tokens: {docHome} {N} {surface}.
+// Gate predecessors. Tokens: {docHome} {N} {feature}.
 const STAGE_GATES = {
-  setup:              { files: [],                                                  stages: [] },
-  vision:             { files: [],                                                  stages: [['frontload', 'setup', 'done']] },
-  features:           { files: ['{docHome}/PRODUCT.md'],                             stages: [] },
-  milestones:         { files: ['project/features.md'],                             stages: [] },
-  map:                { files: ['project/milestones.md'],                           stages: [] },
-  'surface-overview': { files: ['project/map.md', '{docHome}/GLOSSARY.md'],          stages: [] },
-  'milestone-ux':     { files: ['project/milestones/m{N}/overview.md'],             stages: [] },
-  design:             { files: [],                                                  stages: [['milestone', 'milestone-ux', 'done']] },
-  prototype:          { files: [],                                                  stages: [['allSurfacesDesigned']] },
-  tracer:             { files: [],                                                  stages: [['milestone', 'prototype', 'done'], ['productionMilestone']] },
-  replan:             { files: ['project/milestones/m{N}/tracer.md'],               stages: [['productionMilestone']] },
-  gap:                { files: [],                                                  stages: [['milestone', 'replan', 'done'], ['productionMilestone']] },
-  plan:               { files: ['project/milestones/m{N}/surfaces/{surface}.md'],   stages: [['milestone', 'gap', 'done']] },
-  build:              { files: ['project/milestones/m{N}/plans/{surface}.md'],      stages: [] },
-  review:             { files: [],                                                  stages: [['reviewReady']] },
+  setup:              { files: [],                                                stages: [] },
+  vision:             { files: [],                                                stages: [['frontload', 'setup', 'done']] },
+  stories:            { files: ['{docHome}/PRODUCT.md'],                           stages: [] },
+  foundation:         { files: ['project/stories.md'],                             stages: [] },
+  map:                { files: [],                                                stages: [['frontload', 'foundation', 'done']] },
+  'milestone-brief':  { files: ['project/map.md', '{docHome}/GLOSSARY.md'],        stages: [] },
+  design:             { files: [],                                                stages: [['milestone', 'milestone-brief', 'done']] },
+  tracer:             { files: [],                                                stages: [['milestone', 'design', 'done'], ['productionMilestone']] },
+  features:           { files: [],                                                stages: [['milestone', 'tracer', 'done'], ['productionMilestone']] },
+  plan:               { files: [],                                                stages: [['featureExists'], ['milestone', 'features', 'done']] },
+  build:              { files: ['project/milestones/m{N}/plans/{feature}.md'],     stages: [['featureDepsBuilt']] },
+  review:             { files: [],                                                stages: [['reviewReady']] },
+  finalize:           { files: [],                                                stages: [['milestone', 'review', 'done']] },
 };
 
 export function statePath(cwd = process.cwd()) {
@@ -58,10 +57,12 @@ export function defaultState() {
     mode: 'single',
     repos: {},
     domains: {},
+    prototypeTopology: 'colocated',
+    prototype: { repo: null, subpath: null },
     createdAt: now,
     updatedAt: now,
     currentMilestone: 1,
-    currentSurface: null,
+    currentFeature: null,
     preflight: { skillsConfirmed: false, confirmedAt: null },
     frontload: stageMap(FRONTLOAD_STAGES),
     milestones: {},
@@ -101,6 +102,10 @@ export function initState(cwd = process.cwd(), { docHome = 'docs' } = {}) {
   return state;
 }
 
+function stageMap(stages) {
+  return Object.fromEntries(stages.map((s) => [s, { status: 'blocked', effort: STAGE_EFFORT[s] }]));
+}
+
 function ensureMilestone(state, n) {
   const key = String(n);
   if (!state.milestones[key]) {
@@ -108,16 +113,19 @@ function ensureMilestone(state, n) {
       title: null,
       track: null,
       domains: [],
-      stages: Object.fromEntries(
-        MILESTONE_STAGES.map((s) => [s, { status: 'blocked', effort: STAGE_EFFORT[s] }]),
-      ),
+      stories: [],
+      stages: stageMap(MILESTONE_STAGES),
       surfaces: {},
+      featureGraph: {},
     };
   }
   const m = state.milestones[key];
   if (m.track === undefined) m.track = null;
   if (m.domains === undefined) m.domains = [];
-  // Backfill stages added after this milestone's state was first written.
+  if (m.stories === undefined) m.stories = [];
+  if (m.surfaces === undefined) m.surfaces = {};
+  if (m.featureGraph === undefined) m.featureGraph = {};
+  if (!m.stages) m.stages = {};
   for (const s of MILESTONE_STAGES) {
     if (!m.stages[s]) m.stages[s] = { status: 'blocked', effort: STAGE_EFFORT[s] };
   }
@@ -127,32 +135,48 @@ function ensureMilestone(state, n) {
 function ensureSurface(state, n, name) {
   const m = ensureMilestone(state, n);
   if (!m.surfaces[name]) {
-    const surf = Object.fromEntries(
-      SURFACE_STAGES.map((s) => [s, { status: 'blocked', effort: STAGE_EFFORT[s] }]),
-    );
-    surf.repo = null;
-    surf.subpath = null;
-    surf.kind = null;
-    surf.domains = [];
-    m.surfaces[name] = surf;
+    m.surfaces[name] = { kind: null, domains: [], repo: null, subpath: null };
   }
   const surf = m.surfaces[name];
-  if (surf.repo === undefined) surf.repo = null;
-  if (surf.subpath === undefined) surf.subpath = null;
   if (surf.kind === undefined) surf.kind = null;
   if (surf.domains === undefined) surf.domains = [];
+  if (surf.repo === undefined) surf.repo = null;
+  if (surf.subpath === undefined) surf.subpath = null;
   return surf;
 }
 
-export function setStageStatus(cwd, { stage, status, milestone, surface }) {
+function ensureFeature(state, n, id) {
+  const m = ensureMilestone(state, n);
+  if (!m.featureGraph[id]) {
+    m.featureGraph[id] = {
+      story: null,
+      domain: null,
+      repo: null,
+      surface: null,
+      dependsOn: [],
+      plan: { status: 'blocked', effort: STAGE_EFFORT.plan },
+      build: { status: 'blocked', effort: STAGE_EFFORT.build },
+      verified: false,
+    };
+  }
+  const f = m.featureGraph[id];
+  if (f.dependsOn === undefined) f.dependsOn = [];
+  if (!f.plan) f.plan = { status: 'blocked', effort: STAGE_EFFORT.plan };
+  if (!f.build) f.build = { status: 'blocked', effort: STAGE_EFFORT.build };
+  if (f.verified === undefined) f.verified = false;
+  return f;
+}
+
+export function setStageStatus(cwd, { stage, status, milestone, surface, feature }) {
   const state = loadState(cwd);
   if (!state) throw new Error('No state.json — run `adhd setup` first.');
   const m = milestone ?? state.currentMilestone;
+  const feat = feature ?? state.currentFeature;
   let entry;
   if (FRONTLOAD_STAGES.includes(stage)) {
     entry = state.frontload[stage];
-  } else if (SURFACE_STAGES.includes(stage)) {
-    entry = ensureSurface(state, m, surface ?? state.currentSurface)[stage];
+  } else if (FEATURE_STAGES.includes(stage)) {
+    entry = ensureFeature(state, m, feat)[stage];
   } else if (MILESTONE_STAGES.includes(stage)) {
     entry = ensureMilestone(state, m).stages[stage];
   } else {
@@ -164,56 +188,64 @@ export function setStageStatus(cwd, { stage, status, milestone, surface }) {
     state.effortLog.push({
       stage,
       milestone: FRONTLOAD_STAGES.includes(stage) ? null : m,
-      surface: SURFACE_STAGES.includes(stage) ? (surface ?? state.currentSurface) : null,
+      feature: FEATURE_STAGES.includes(stage) ? feat : null,
       at: entry.completedAt,
     });
   }
   if (milestone != null) state.currentMilestone = m;
-  if (surface != null) state.currentSurface = surface;
+  if (feature != null) state.currentFeature = feature;
   saveState(cwd, state);
   return state;
 }
 
-export function gate(cwd, stage, { milestone, surface } = {}) {
+function depsBuilt(graph, f) {
+  return (f.dependsOn ?? []).every((d) => graph[d]?.build?.status === 'done');
+}
+
+export function gate(cwd, stage, { milestone, feature } = {}) {
   const def = STAGE_GATES[stage];
   if (!def) return { pass: false, missing: [`unknown stage: ${stage}`] };
   const state = loadState(cwd);
   const docHome = state?.docHome ?? 'docs';
   const m = milestone ?? state?.currentMilestone ?? 1;
-  const s = surface ?? state?.currentSurface ?? '';
+  const fkey = feature ?? state?.currentFeature ?? '';
+  const ms = state?.milestones?.[String(m)];
   const missing = [];
   for (const tmpl of def.files) {
-    const rel = tmpl.replace('{docHome}', docHome).replace('{N}', m).replace('{surface}', s);
+    const rel = tmpl.replace('{docHome}', docHome).replace('{N}', m).replace('{feature}', fkey);
     if (!fs.existsSync(path.join(cwd, rel))) missing.push(rel);
   }
   for (const cond of def.stages) {
     if (cond[0] === 'frontload') {
       if (state?.frontload?.[cond[1]]?.status !== cond[2]) missing.push(`front-load stage "${cond[1]}" not ${cond[2]}`);
     } else if (cond[0] === 'milestone') {
-      if (state?.milestones?.[String(m)]?.stages?.[cond[1]]?.status !== cond[2]) {
+      if (ms?.stages?.[cond[1]]?.status !== cond[2]) {
         missing.push(`milestone ${m} stage "${cond[1]}" not ${cond[2]}`);
       }
-    } else if (cond[0] === 'allSurfacesDesigned') {
-      const surfaces = state?.milestones?.[String(m)]?.surfaces ?? {};
-      const names = Object.keys(surfaces);
-      if (names.length === 0) missing.push(`milestone ${m} has no surfaces defined`);
-      for (const name of names) {
-        if (surfaces[name].design?.status !== 'done') missing.push(`surface "${name}" not designed`);
-      }
     } else if (cond[0] === 'productionMilestone') {
-      if (state?.milestones?.[String(m)]?.track === 'prototype') {
+      if (ms?.track === 'prototype') {
         missing.push(`milestone ${m} is prototype-only — this stage does not apply`);
       }
+    } else if (cond[0] === 'featureExists') {
+      if (!ms?.featureGraph?.[fkey]) missing.push(`milestone ${m} has no feature "${fkey}" — run \`adhd features\` first`);
+    } else if (cond[0] === 'featureDepsBuilt') {
+      const f = ms?.featureGraph?.[fkey];
+      if (!f) {
+        missing.push(`milestone ${m} has no feature "${fkey}"`);
+      } else if (!depsBuilt(ms.featureGraph, f)) {
+        const blockers = (f.dependsOn ?? []).filter((d) => ms.featureGraph[d]?.build?.status !== 'done');
+        missing.push(`feature "${fkey}" depends on unbuilt feature(s): ${blockers.join(', ')}`);
+      }
     } else if (cond[0] === 'reviewReady') {
-      const msObj = state?.milestones?.[String(m)];
-      if (msObj?.track === 'prototype') {
-        if (msObj?.stages?.prototype?.status !== 'done') missing.push(`milestone ${m} prototype not done`);
+      if (!ms) {
+        missing.push(`milestone ${m} not started`);
+      } else if (ms.track === 'prototype') {
+        if (ms.stages?.design?.status !== 'done') missing.push(`milestone ${m} design not done`);
       } else {
-        const surfaces = msObj?.surfaces ?? {};
-        const names = Object.keys(surfaces);
-        if (names.length === 0) missing.push(`milestone ${m} has no surfaces defined`);
-        for (const name of names) {
-          if (surfaces[name].build?.status !== 'done') missing.push(`surface "${name}" not built`);
+        if (ms.stages?.features?.status !== 'done') missing.push(`milestone ${m} features not done`);
+        for (const [id, f] of Object.entries(ms.featureGraph ?? {})) {
+          if (f.build?.status !== 'done') missing.push(`feature "${id}" not built`);
+          else if (!f.verified) missing.push(`feature "${id}" built but not verified`);
         }
       }
     }
@@ -223,32 +255,37 @@ export function gate(cwd, stage, { milestone, surface } = {}) {
 
 export function nextStage(cwd = process.cwd()) {
   const state = loadState(cwd);
-  if (!state) return { stage: 'setup', milestone: null, surface: null };
+  if (!state) return { stage: 'setup', milestone: null, feature: null };
   for (const s of FRONTLOAD_STAGES) {
-    if (state.frontload[s].status !== 'done') return { stage: s, milestone: null, surface: null };
+    if (state.frontload[s].status !== 'done') return { stage: s, milestone: null, feature: null };
   }
   const m = state.currentMilestone;
   const ms = state.milestones[String(m)];
-  if (!ms) return { stage: 'surface-overview', milestone: m, surface: null };
-  for (const s of ['surface-overview', 'milestone-ux']) {
-    if (ms.stages[s]?.status !== 'done') return { stage: s, milestone: m, surface: null };
+  if (!ms) return { stage: 'milestone-brief', milestone: m, feature: null };
+  for (const s of ['milestone-brief', 'design']) {
+    if (ms.stages[s]?.status !== 'done') return { stage: s, milestone: m, feature: null };
   }
-  for (const [name, surf] of Object.entries(ms.surfaces)) {
-    if (surf.design.status !== 'done') return { stage: 'design', milestone: m, surface: name };
-  }
-  if (ms.stages.prototype?.status !== 'done') return { stage: 'prototype', milestone: m, surface: null };
   if (ms.track !== 'prototype') {
-    for (const s of ['tracer', 'replan', 'gap']) {
-      if (ms.stages[s]?.status !== 'done') return { stage: s, milestone: m, surface: null };
+    for (const s of ['tracer', 'features']) {
+      if (ms.stages[s]?.status !== 'done') return { stage: s, milestone: m, feature: null };
     }
-    for (const [name, surf] of Object.entries(ms.surfaces)) {
-      for (const s of ['plan', 'build']) {
-        if (surf[s].status !== 'done') return { stage: s, milestone: m, surface: name };
+    const graph = ms.featureGraph ?? {};
+    for (const [id, f] of Object.entries(graph)) {
+      if (f.plan.status !== 'done') return { stage: 'plan', milestone: m, feature: id };
+    }
+    let pendingBuild = null;
+    for (const [id, f] of Object.entries(graph)) {
+      if (f.build.status !== 'done') {
+        if (depsBuilt(graph, f)) return { stage: 'build', milestone: m, feature: id };
+        if (!pendingBuild) pendingBuild = id;
       }
     }
+    if (pendingBuild) return { stage: 'build', milestone: m, feature: pendingBuild };
   }
-  if (ms.stages.review?.status !== 'done') return { stage: 'review', milestone: m, surface: null };
-  return { stage: 'next-milestone', milestone: m + 1, surface: null };
+  for (const s of ['review', 'finalize']) {
+    if (ms.stages[s]?.status !== 'done') return { stage: s, milestone: m, feature: null };
+  }
+  return { stage: 'next-milestone', milestone: m + 1, feature: null };
 }
 
 const ICON = { done: '✓', 'in-progress': '◐', pending: '○', blocked: '·' };
@@ -257,12 +294,17 @@ export function statusReport(cwd = process.cwd()) {
   const state = loadState(cwd);
   if (!state) return 'No project/state.json. Run `{{command_prefix}}adhd setup` to begin.';
   const lines = [];
-  lines.push('Front-load:  ' + FRONTLOAD_STAGES.map((s) => `${s} ${ICON[state.frontload[s].status]}`).join('  '));
+  if ((state.version ?? 1) < STATE_VERSION) {
+    lines.push(`! state.json is v${state.version ?? 1} — run \`adhd-state.mjs migrate\` to upgrade.`);
+    lines.push('');
+  }
+  lines.push('Front-load:  ' + FRONTLOAD_STAGES.map((s) => `${s} ${ICON[state.frontload[s]?.status]}`).join('  '));
   for (const [key, ms] of Object.entries(state.milestones)) {
     lines.push(`Milestone ${key}${ms.title ? ` — ${ms.title}` : ''}:`);
     lines.push('  ' + MILESTONE_STAGES.map((s) => `${s} ${ICON[ms.stages[s]?.status]}`).join('  '));
-    for (const [name, surf] of Object.entries(ms.surfaces)) {
-      lines.push(`  surface ${name}:  ` + SURFACE_STAGES.map((s) => `${s} ${ICON[surf[s].status]}`).join('  '));
+    for (const [id, f] of Object.entries(ms.featureGraph ?? {})) {
+      const v = f.verified ? ' verified' : '';
+      lines.push(`  feature ${id}:  ` + FEATURE_STAGES.map((s) => `${s} ${ICON[f[s]?.status]}`).join('  ') + v);
     }
   }
   if (state.mode === 'multi') {
@@ -282,8 +324,35 @@ export function statusReport(cwd = process.cwd()) {
   const next = nextStage(cwd);
   lines.push('');
   lines.push(`Next runnable stage: ${next.stage}` +
-    (next.milestone ? ` (milestone ${next.milestone}` + (next.surface ? `, surface ${next.surface})` : ')') : ''));
+    (next.milestone ? ` (milestone ${next.milestone}` + (next.feature ? `, feature ${next.feature})` : ')') : ''));
   return lines.join('\n');
+}
+
+function findCycle(graph) {
+  const WHITE = 0, GRAY = 1, BLACK = 2;
+  const color = {};
+  const stack = [];
+  for (const id of Object.keys(graph)) color[id] = WHITE;
+  let cycle = null;
+  function dfs(id) {
+    color[id] = GRAY;
+    stack.push(id);
+    for (const dep of graph[id]?.dependsOn ?? []) {
+      if (!(dep in color)) continue; // unknown dep — reported separately
+      if (color[dep] === GRAY) {
+        cycle = stack.slice(stack.indexOf(dep)).concat(dep);
+        return true;
+      }
+      if (color[dep] === WHITE && dfs(dep)) return true;
+    }
+    stack.pop();
+    color[id] = BLACK;
+    return false;
+  }
+  for (const id of Object.keys(graph)) {
+    if (color[id] === WHITE && dfs(id)) break;
+  }
+  return cycle;
 }
 
 export function validate(cwd = process.cwd()) {
@@ -292,6 +361,9 @@ export function validate(cwd = process.cwd()) {
   const state = loadState(cwd);
   if (!state) {
     return { ok: false, blockers: ['No project/state.json — run `adhd setup` first.'], warnings: [] };
+  }
+  if ((state.version ?? 1) < STATE_VERSION) {
+    blockers.push(`state.json is v${state.version ?? 1} — run \`adhd-state.mjs migrate\` to upgrade to v${STATE_VERSION}`);
   }
   if (!Number.isInteger(state.currentMilestone) || state.currentMilestone < 1) {
     blockers.push(`currentMilestone is invalid: ${JSON.stringify(state.currentMilestone)}`);
@@ -334,11 +406,141 @@ export function validate(cwd = process.cwd()) {
       }
     }
   }
+  if ((state.prototypeTopology ?? 'colocated') === 'standalone') {
+    const proto = state.prototype ?? {};
+    if (state.frontload?.map?.status === 'done' && !proto.subpath && !proto.repo) {
+      blockers.push('prototype topology is "standalone" but no prototype home is set — run `adhd workspace` to set it');
+    }
+    if (proto.repo && state.mode === 'multi' && !(state.repos ?? {})[proto.repo]) {
+      blockers.push(`prototype home references unknown repo "${proto.repo}" — register it with \`workspace\``);
+    }
+  }
+  for (const [key, ms] of Object.entries(state.milestones ?? {})) {
+    const graph = ms.featureGraph ?? {};
+    for (const [id, f] of Object.entries(graph)) {
+      for (const d of f.dependsOn ?? []) {
+        if (!graph[d]) blockers.push(`milestone ${key} feature "${id}" depends on unknown feature "${d}"`);
+        if (d === id) blockers.push(`milestone ${key} feature "${id}" depends on itself`);
+      }
+    }
+    const cyc = findCycle(graph);
+    if (cyc) blockers.push(`milestone ${key}: feature dependency cycle: ${cyc.join(' → ')}`);
+  }
   const notesPath = path.join(cwd, 'project/notes.md');
   if (fs.existsSync(notesPath) && fs.readFileSync(notesPath, 'utf-8').trim() !== '') {
     warnings.push('project/notes.md is not empty — drain durable entries to their canonical home');
   }
   return { ok: blockers.length === 0, blockers, warnings };
+}
+
+// ---- content audit ----
+function parseStoriesTable(cwd) {
+  const p = path.join(cwd, 'project/stories.md');
+  if (!fs.existsSync(p)) return null;
+  const rows = [];
+  for (const line of fs.readFileSync(p, 'utf-8').split('\n')) {
+    const t = line.trim();
+    if (!t.startsWith('|')) continue;
+    const cells = t.split('|').slice(1, -1).map((c) => c.trim());
+    if (cells.length === 0) continue;
+    if (/^:?-+:?$/.test(cells[0])) continue;          // separator row
+    if (cells[0].toLowerCase() === 'id') continue;     // header row
+    rows.push(cells);
+  }
+  return rows;
+}
+
+const MECHANISM_KEYWORDS = [
+  'postgres', 'postgresql', 'mysql', 'sqlite', 'mongodb', 'redis', 'kafka',
+  'react', 'vue', 'svelte', 'angular', 'next.js', 'nextjs',
+  'kubernetes', 'docker', 'graphql', 'grpc', 'rest api',
+];
+
+function scanMechanismLeak(cwd, docHome) {
+  const warnings = [];
+  const files = [`${docHome}/PRODUCT.md`, 'project/stories.md', 'project/map.md'];
+  for (const rel of files) {
+    const p = path.join(cwd, rel);
+    if (!fs.existsSync(p)) continue;
+    const lower = fs.readFileSync(p, 'utf-8').toLowerCase();
+    for (const kw of MECHANISM_KEYWORDS) {
+      if (lower.includes(kw)) {
+        warnings.push(`${rel}: mentions "${kw}" — product-scope docs should name capabilities, not mechanisms (move to docs/DECISIONS.md)`);
+      }
+    }
+  }
+  return warnings;
+}
+
+export function audit(cwd = process.cwd()) {
+  const findings = [];
+  const warnings = [];
+  const state = loadState(cwd);
+  if (!state) return { ok: false, findings: ['No project/state.json — run `adhd setup` first.'], warnings: [] };
+  const docHome = state.docHome ?? 'docs';
+
+  const rows = parseStoriesTable(cwd);
+  const storyIds = new Set();
+  if (rows === null) {
+    if (state.frontload?.stories?.status === 'done') {
+      findings.push('project/stories.md not found but the stories stage is done');
+    }
+  } else {
+    for (const r of rows) {
+      const id = r[0];
+      if (!id) { findings.push('stories.md: a row has an empty ID'); continue; }
+      if (storyIds.has(id)) findings.push(`stories.md: duplicate story ID "${id}"`);
+      storyIds.add(id);
+    }
+    for (const r of rows) {
+      const deps = (r[3] ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+      for (const d of deps) {
+        if (!storyIds.has(d)) findings.push(`stories.md: story "${r[0]}" depends on unknown story ID "${d}"`);
+      }
+    }
+  }
+
+  for (const [key, ms] of Object.entries(state.milestones ?? {})) {
+    if (state.frontload?.map?.status === 'done' && (ms.stories ?? []).length === 0
+        && ms.stages?.['milestone-brief']?.status === 'done') {
+      findings.push(`milestone ${key}: milestone-brief is done but no stories are assigned`);
+    }
+    for (const s of ms.stories ?? []) {
+      if (storyIds.size && !storyIds.has(s)) findings.push(`milestone ${key}: story "${s}" is not in stories.md`);
+    }
+    const graph = ms.featureGraph ?? {};
+    const fids = new Set(Object.keys(graph));
+    for (const [fid, f] of Object.entries(graph)) {
+      if (f.story && storyIds.size && !storyIds.has(f.story)) {
+        findings.push(`milestone ${key} feature "${fid}": unknown story "${f.story}"`);
+      }
+      if (f.story && (ms.stories ?? []).length && !(ms.stories ?? []).includes(f.story)) {
+        findings.push(`milestone ${key} feature "${fid}": story "${f.story}" is not assigned to this milestone`);
+      }
+      if (f.domain && !(state.domains ?? {})[f.domain]) {
+        findings.push(`milestone ${key} feature "${fid}": unknown domain "${f.domain}"`);
+      }
+      if (f.repo && !(state.repos ?? {})[f.repo]) {
+        findings.push(`milestone ${key} feature "${fid}": unknown repo "${f.repo}"`);
+      }
+      if (f.surface && !(ms.surfaces ?? {})[f.surface]) {
+        findings.push(`milestone ${key} feature "${fid}": unknown surface "${f.surface}"`);
+      }
+      for (const d of f.dependsOn ?? []) {
+        if (d === fid) findings.push(`milestone ${key} feature "${fid}": depends on itself`);
+        else if (!fids.has(d)) findings.push(`milestone ${key} feature "${fid}": depends on unknown feature "${d}"`);
+      }
+    }
+    const cyc = findCycle(graph);
+    if (cyc) findings.push(`milestone ${key}: feature dependency cycle: ${cyc.join(' → ')}`);
+  }
+
+  warnings.push(...scanMechanismLeak(cwd, docHome));
+  const notesPath = path.join(cwd, 'project/notes.md');
+  if (fs.existsSync(notesPath) && fs.readFileSync(notesPath, 'utf-8').trim() !== '') {
+    warnings.push('project/notes.md is not empty — drain durable entries to their canonical home');
+  }
+  return { ok: findings.length === 0, findings, warnings };
 }
 
 export function sessionAdd(cwd, stage) {
@@ -369,7 +571,7 @@ export function advanceMilestone(cwd = process.cwd()) {
   const state = loadState(cwd);
   if (!state) throw new Error('No state.json — run `adhd setup` first.');
   state.currentMilestone = state.currentMilestone + 1;
-  state.currentSurface = null;
+  state.currentFeature = null;
   state.session = { startedAt: new Date().toISOString(), stagesRun: [] };
   saveState(cwd, state);
   return state;
@@ -516,13 +718,12 @@ export function setSurfaceMeta(cwd = process.cwd(), { milestone, surface, repo, 
   const state = loadState(cwd);
   if (!state) throw new Error('No state.json — run `adhd setup` first.');
   const m = milestone ?? state.currentMilestone;
-  const surf = ensureSurface(state, m, surface ?? state.currentSurface);
+  const surf = ensureSurface(state, m, surface);
   if (repo !== undefined) surf.repo = repo;
   if (subpath !== undefined) surf.subpath = subpath;
   if (kind !== undefined) surf.kind = kind;
   if (domains !== undefined) surf.domains = domains;
   state.currentMilestone = m;
-  if (surface != null) state.currentSurface = surface;
   saveState(cwd, state);
   return state;
 }
@@ -550,6 +751,144 @@ export function setMilestoneDomains(cwd = process.cwd(), { milestone, domains })
   return state;
 }
 
+export function setMilestoneTitle(cwd = process.cwd(), { milestone, title }) {
+  const state = loadState(cwd);
+  if (!state) throw new Error('No state.json — run `adhd setup` first.');
+  const m = milestone ?? state.currentMilestone;
+  ensureMilestone(state, m).title = title ?? null;
+  state.currentMilestone = m;
+  saveState(cwd, state);
+  return state;
+}
+
+export function setMilestoneStories(cwd = process.cwd(), { milestone, stories }) {
+  const state = loadState(cwd);
+  if (!state) throw new Error('No state.json — run `adhd setup` first.');
+  const m = milestone ?? state.currentMilestone;
+  ensureMilestone(state, m).stories = stories;
+  state.currentMilestone = m;
+  saveState(cwd, state);
+  return state;
+}
+
+export function setPrototypeTopology(cwd = process.cwd(), topology) {
+  if (!PROTOTYPE_TOPOLOGIES.includes(topology)) {
+    throw new Error(`Invalid topology "${topology}". Valid: ${PROTOTYPE_TOPOLOGIES.join(', ')}`);
+  }
+  const state = loadState(cwd);
+  if (!state) throw new Error('No state.json — run `adhd setup` first.');
+  state.prototypeTopology = topology;
+  saveState(cwd, state);
+  return state;
+}
+
+export function setPrototypeHome(cwd = process.cwd(), { repo, subpath }) {
+  const state = loadState(cwd);
+  if (!state) throw new Error('No state.json — run `adhd setup` first.');
+  state.prototype = { repo: repo ?? null, subpath: subpath ?? null };
+  saveState(cwd, state);
+  return state;
+}
+
+export function addFeature(cwd = process.cwd(), { milestone, id, story, domain, repo, surface, dependsOn }) {
+  if (!id) throw new Error('Feature id is required.');
+  const state = loadState(cwd);
+  if (!state) throw new Error('No state.json — run `adhd setup` first.');
+  const m = milestone ?? state.currentMilestone;
+  const f = ensureFeature(state, m, id);
+  if (story !== undefined) f.story = story;
+  if (domain !== undefined) f.domain = domain;
+  if (repo !== undefined) f.repo = repo;
+  if (surface !== undefined) f.surface = surface;
+  if (dependsOn !== undefined) f.dependsOn = dependsOn;
+  state.currentMilestone = m;
+  saveState(cwd, state);
+  return state;
+}
+
+export function setFeatureDeps(cwd = process.cwd(), { milestone, id, dependsOn }) {
+  const state = loadState(cwd);
+  if (!state) throw new Error('No state.json — run `adhd setup` first.');
+  const m = milestone ?? state.currentMilestone;
+  ensureFeature(state, m, id).dependsOn = dependsOn ?? [];
+  state.currentMilestone = m;
+  saveState(cwd, state);
+  return state;
+}
+
+export function removeFeature(cwd = process.cwd(), { milestone, id }) {
+  const state = loadState(cwd);
+  if (!state) throw new Error('No state.json — run `adhd setup` first.');
+  const m = milestone ?? state.currentMilestone;
+  const ms = ensureMilestone(state, m);
+  delete ms.featureGraph[id];
+  saveState(cwd, state);
+  return state;
+}
+
+export function listFeatures(cwd = process.cwd(), milestone) {
+  const state = loadState(cwd);
+  if (!state) return {};
+  const m = milestone ?? state.currentMilestone;
+  return state.milestones?.[String(m)]?.featureGraph ?? {};
+}
+
+export function verifyFeature(cwd = process.cwd(), { milestone, id }) {
+  const state = loadState(cwd);
+  if (!state) throw new Error('No state.json — run `adhd setup` first.');
+  const m = milestone ?? state.currentMilestone;
+  ensureFeature(state, m, id).verified = true;
+  state.currentMilestone = m;
+  saveState(cwd, state);
+  return state;
+}
+
+export function migrate(cwd = process.cwd()) {
+  const state = loadState(cwd);
+  if (!state) throw new Error('No state.json — run `adhd setup` first.');
+  if ((state.version ?? 1) >= STATE_VERSION) return { migrated: false, version: state.version ?? STATE_VERSION };
+  const fl = state.frontload ?? {};
+  if (fl.features && !fl.stories) fl.stories = fl.features;
+  const newFl = {};
+  for (const s of FRONTLOAD_STAGES) {
+    if (s === 'foundation' && !fl.foundation) {
+      newFl.foundation = { status: fl.map?.status === 'done' ? 'done' : 'blocked', effort: STAGE_EFFORT.foundation };
+    } else {
+      newFl[s] = fl[s] ?? { status: 'blocked', effort: STAGE_EFFORT[s] };
+    }
+  }
+  state.frontload = newFl;
+  for (const ms of Object.values(state.milestones ?? {})) {
+    const old = ms.stages ?? {};
+    const briefDone = old['surface-overview']?.status === 'done' && old['milestone-ux']?.status === 'done';
+    const newStages = stageMap(MILESTONE_STAGES);
+    if (briefDone) newStages['milestone-brief'].status = 'done';
+    if (old.prototype?.status === 'done') newStages.design.status = 'done';
+    if (old.tracer?.status) newStages.tracer.status = old.tracer.status;
+    if (old.review?.status) newStages.review.status = old.review.status;
+    ms.stages = newStages;
+    ms.stories = ms.stories ?? [];
+    ms.featureGraph = ms.featureGraph ?? {};
+    ms.track = ms.track ?? null;
+    ms.domains = ms.domains ?? [];
+    for (const [sn, surf] of Object.entries(ms.surfaces ?? {})) {
+      ms.surfaces[sn] = {
+        kind: surf.kind ?? null,
+        domains: surf.domains ?? [],
+        repo: surf.repo ?? null,
+        subpath: surf.subpath ?? null,
+      };
+    }
+  }
+  delete state.currentSurface;
+  if (state.currentFeature === undefined) state.currentFeature = null;
+  if (state.prototypeTopology === undefined) state.prototypeTopology = 'colocated';
+  if (state.prototype === undefined) state.prototype = { repo: null, subpath: null };
+  state.version = STATE_VERSION;
+  saveState(cwd, state);
+  return { migrated: true, version: STATE_VERSION };
+}
+
 // ---- CLI ----
 function parseFlags(args) {
   const flags = {};
@@ -557,11 +896,14 @@ function parseFlags(args) {
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--milestone') flags.milestone = Number(args[++i]);
     else if (args[i] === '--surface') flags.surface = args[++i];
+    else if (args[i] === '--feature') flags.feature = args[++i];
+    else if (args[i] === '--story') flags.story = args[++i];
     else if (args[i] === '--doc-home') flags.docHome = args[++i];
     else if (args[i] === '--repo') flags.repo = args[++i];
     else if (args[i] === '--kind') flags.kind = args[++i];
     else if (args[i] === '--remote') flags.remote = args[++i];
     else if (args[i] === '--domain') flags.domain = args[++i];
+    else if (args[i] === '--depends') flags.depends = args[++i];
     else if (args[i] === '--subpath') flags.subpath = args[++i];
     else if (args[i] === '--description') flags.description = args[++i];
     else if (args[i] === '--home-repo') flags.homeRepo = args[++i];
@@ -569,6 +911,10 @@ function parseFlags(args) {
     else rest.push(args[i]);
   }
   return { flags, rest };
+}
+
+function csv(v) {
+  return v === undefined ? undefined : v.split(',').map((s) => s.trim()).filter(Boolean);
 }
 
 function main(argv) {
@@ -592,7 +938,7 @@ function main(argv) {
     case 'set': {
       const [stage, status] = rest;
       if (!stage || !status) {
-        console.error('Usage: adhd-state.mjs set <stage> <status> [--milestone N] [--surface name]');
+        console.error('Usage: adhd-state.mjs set <stage> <status> [--milestone N] [--feature name]');
         process.exitCode = 1;
         break;
       }
@@ -601,7 +947,7 @@ function main(argv) {
         process.exitCode = 1;
         break;
       }
-      setStageStatus(cwd, { stage, status, milestone: flags.milestone, surface: flags.surface });
+      setStageStatus(cwd, { stage, status, milestone: flags.milestone, feature: flags.feature });
       console.log(`set ${stage} = ${status}`);
       break;
     }
@@ -627,6 +973,11 @@ function main(argv) {
     case 'advance-milestone': {
       const s = advanceMilestone(cwd);
       console.log(`advanced to milestone ${s.currentMilestone}`);
+      break;
+    }
+    case 'migrate': {
+      const r = migrate(cwd);
+      console.log(r.migrated ? `migrated state.json to v${r.version}` : `already v${r.version} — nothing to do`);
       break;
     }
     case 'workspace-mode': {
@@ -685,14 +1036,25 @@ function main(argv) {
       console.log(JSON.stringify(listDomains(cwd), null, 2));
       break;
     case 'milestone-domains': {
-      const [csv] = rest;
-      if (!csv) {
+      const [v] = rest;
+      if (!v) {
         console.error('Usage: adhd-state.mjs milestone-domains <d1,d2,...> [--milestone N]');
         process.exitCode = 1;
         break;
       }
-      const s = setMilestoneDomains(cwd, { milestone: flags.milestone, domains: csv.split(',') });
-      console.log(`milestone ${s.currentMilestone} domains = ${csv}`);
+      const s = setMilestoneDomains(cwd, { milestone: flags.milestone, domains: csv(v) });
+      console.log(`milestone ${s.currentMilestone} domains = ${v}`);
+      break;
+    }
+    case 'milestone-stories': {
+      const [v] = rest;
+      if (!v) {
+        console.error('Usage: adhd-state.mjs milestone-stories <s1,s2,...> [--milestone N]');
+        process.exitCode = 1;
+        break;
+      }
+      const s = setMilestoneStories(cwd, { milestone: flags.milestone, stories: csv(v) });
+      console.log(`milestone ${s.currentMilestone} stories = ${v}`);
       break;
     }
     case 'validate': {
@@ -700,6 +1062,14 @@ function main(argv) {
       for (const b of r.blockers) console.log(`BLOCKER: ${b}`);
       for (const w of r.warnings) console.log(`warning: ${w}`);
       console.log(r.ok ? 'validate: ok' : 'validate: blocked');
+      if (!r.ok) process.exitCode = 1;
+      break;
+    }
+    case 'audit': {
+      const r = audit(cwd);
+      for (const f of r.findings) console.log(`FINDING: ${f}`);
+      for (const w of r.warnings) console.log(`warning: ${w}`);
+      console.log(r.ok ? 'audit: clean' : 'audit: issues found');
       if (!r.ok) process.exitCode = 1;
       break;
     }
@@ -719,6 +1089,17 @@ function main(argv) {
       }
       const s = setMilestoneTrack(cwd, { milestone: flags.milestone, track });
       console.log(`milestone ${s.currentMilestone} track = ${track}`);
+      break;
+    }
+    case 'milestone-title': {
+      const title = rest.join(' ');
+      if (!title) {
+        console.error('Usage: adhd-state.mjs milestone-title <title> [--milestone N]');
+        process.exitCode = 1;
+        break;
+      }
+      const s = setMilestoneTitle(cwd, { milestone: flags.milestone, title });
+      console.log(`milestone ${s.currentMilestone} title = ${title}`);
       break;
     }
     case 'surface-meta': {
@@ -745,13 +1126,80 @@ function main(argv) {
       setSurfaceMeta(cwd, {
         milestone: flags.milestone, surface,
         repo: flags.repo, subpath: flags.subpath, kind: flags.kind,
-        domains: flags.domain === undefined ? undefined : flags.domain.split(','),
+        domains: csv(flags.domain),
       });
       console.log(`surface "${surface}" updated`);
       break;
     }
+    case 'prototype-topology': {
+      const [topology] = rest;
+      if (!topology) {
+        console.error('Usage: adhd-state.mjs prototype-topology <colocated|standalone>');
+        process.exitCode = 1;
+        break;
+      }
+      setPrototypeTopology(cwd, topology);
+      console.log(`prototype topology = ${topology}`);
+      break;
+    }
+    case 'prototype-home': {
+      const s = setPrototypeHome(cwd, { repo: flags.repo, subpath: flags.subpath });
+      console.log(`prototype home = repo:${s.prototype.repo ?? '(orchestration)'} subpath:${s.prototype.subpath ?? '(root)'}`);
+      break;
+    }
+    case 'feature-add': {
+      const [id] = rest;
+      if (!id) {
+        console.error('Usage: adhd-state.mjs feature-add <id> [--milestone N] --story <s> --domain <d> --repo <r> [--surface <name>] [--depends f1,f2]');
+        process.exitCode = 1;
+        break;
+      }
+      addFeature(cwd, {
+        milestone: flags.milestone, id,
+        story: flags.story, domain: flags.domain, repo: flags.repo,
+        surface: flags.surface, dependsOn: csv(flags.depends),
+      });
+      console.log(`feature "${id}" added`);
+      break;
+    }
+    case 'feature-dep': {
+      const [id] = rest;
+      if (!id) {
+        console.error('Usage: adhd-state.mjs feature-dep <id> --depends f1,f2 [--milestone N]');
+        process.exitCode = 1;
+        break;
+      }
+      setFeatureDeps(cwd, { milestone: flags.milestone, id, dependsOn: csv(flags.depends) ?? [] });
+      console.log(`feature "${id}" dependsOn = ${flags.depends ?? '(none)'}`);
+      break;
+    }
+    case 'feature-remove': {
+      const [id] = rest;
+      if (!id) {
+        console.error('Usage: adhd-state.mjs feature-remove <id> [--milestone N]');
+        process.exitCode = 1;
+        break;
+      }
+      removeFeature(cwd, { milestone: flags.milestone, id });
+      console.log(`feature "${id}" removed`);
+      break;
+    }
+    case 'feature-list':
+      console.log(JSON.stringify(listFeatures(cwd, flags.milestone), null, 2));
+      break;
+    case 'feature-verify': {
+      const [id] = rest;
+      if (!id) {
+        console.error('Usage: adhd-state.mjs feature-verify <id> [--milestone N]');
+        process.exitCode = 1;
+        break;
+      }
+      verifyFeature(cwd, { milestone: flags.milestone, id });
+      console.log(`feature "${id}" marked verified`);
+      break;
+    }
     default:
-      console.error('Usage: adhd-state.mjs <init|read|status|next|set|gate|validate|session-add|session-reset|preflight-confirm|advance-milestone|workspace-mode|workspace-add|workspace-remove|workspace-list|repo-bind|repo-unbind|migrate-repos|domain-add|domain-remove|domain-list|milestone-track|milestone-domains|surface-meta>');
+      console.error('Usage: adhd-state.mjs <init|read|status|next|set|gate|validate|audit|migrate|session-add|session-reset|preflight-confirm|advance-milestone|workspace-mode|workspace-add|workspace-remove|workspace-list|repo-bind|repo-unbind|migrate-repos|domain-add|domain-remove|domain-list|milestone-track|milestone-title|milestone-domains|milestone-stories|surface-meta|prototype-topology|prototype-home|feature-add|feature-dep|feature-remove|feature-list|feature-verify>');
       process.exitCode = 1;
   }
 }

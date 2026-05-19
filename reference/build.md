@@ -1,66 +1,65 @@
 # adhd — Build
 
-**Effort:** medium — the plan notes it is effectively per-task; effort scales with the
-number of tasks in the surface plan.
-**Gate:** `project/milestones/m{{N}}/plans/{{name}}.md` exists — the Plan stage is done.
-**Output:** working code for the surface, plus an updated `state.json`.
+**Effort:** medium — effort scales with the number of tasks in the feature plan.
+**Gate:** `project/milestones/m{{N}}/plans/{{feature}}.md` exists (Plan done) AND every
+feature this one depends on is already built.
+**Output:** working code for the feature, plus an updated `state.json`.
 **Sub-skill:** `impeccable craft`, `superpowers:executing-plans`.
 
+`build` runs per feature, on production-track milestones, walking the feature DAG. A
+feature cannot build before the features it depends on — that is how backend work lands
+before the frontend that wires it.
+
 ## Gate check
-Run `node {{scripts_path}}/adhd-state.mjs gate build --milestone {{N}} --surface {{name}}`.
+Run `node {{scripts_path}}/adhd-state.mjs gate build --milestone {{N}} --feature {{feature}}`.
 If it reports missing items, HALT. Tell the user exactly which predecessor stage to run.
 No skip, no override — this is the skill's central discipline.
 
-If the gate reports `project/milestones/m{{N}}/plans/{{name}}.md` is missing, HALT and
-tell the user to run `{{command_prefix}}adhd plan --milestone {{N}} --surface {{name}}`
-first.
+If the gate reports the plan file is missing, HALT and tell the user to run
+`{{command_prefix}}adhd plan --milestone {{N}} --feature {{feature}}` first. If it
+reports unbuilt dependency features, HALT and tell the user to build those first — the
+DAG order is not optional.
 
 ## Procedure
-1. **Execute the plan task-by-task.** Work through the surface plan
-   `plans/{{name}}.md` with `superpowers:executing-plans`, completing one task at a
-   time. For UI craft within a task, use `impeccable craft` so the implementation
-   matches the design system. `build` runs only on production-track milestones: it
-   builds the **production app** on real data, closing this surface's `m{{N}}/gap.md`
-   delta against the signed-off prototype. The prototype app is left untouched — it
-   stays the reference. See SKILL.md, "Prototype and production apps".
+1. **Execute the plan task-by-task.** Work through `plans/{{feature}}.md` with
+   `superpowers:executing-plans`, one task at a time. For UI craft within a task use
+   `impeccable craft` so the implementation matches the design system. Keep the
+   feature's `build` status at `in-progress` while underway.
 
-   In `multi` mode, resolve the target location from the surface's `repo` + `subpath`.
-   Read them with
-   `node {{scripts_path}}/adhd-state.mjs surface-meta {{name}} --milestone {{N}}`, then
-   look up the repo's absolute local path in `project/repos.local.json` (via
-   `node {{scripts_path}}/adhd-state.mjs workspace-list`). If the repo is unbound — no
-   entry, e.g. a fresh clone — HALT and tell the user to run
-   `{{command_prefix}}adhd workspace` to bind it; never guess a path. `cd` into the
-   resolved path (plus `subpath` if set) before writing code, and honor that repo's own
-   conventions (`CLAUDE.md`, etc.). The commit gate applies in the target repo — never
-   `git commit` there without the user's explicit "ok". The `build` status is still
+   Build in the feature's own `repo`. Read it with
+   `node {{scripts_path}}/adhd-state.mjs feature-list --milestone {{N}}`, resolve the
+   repo's absolute local path via `node {{scripts_path}}/adhd-state.mjs workspace-list`,
+   and `cd` into it (plus the surface `subpath` if relevant) before writing code. Honor
+   that repo's own conventions (`CLAUDE.md`, etc.). If the repo is unbound, HALT and
+   tell the user to run `{{command_prefix}}adhd workspace`. The `build` status is
    tracked in the orchestration repo's `state.json`.
-2. **Track progress.** Keep the surface's `build` status at `in-progress` while work is
-   underway, and set it to `done` only when the whole surface plan is complete — every
-   task finished. Do not mark the surface done partway through.
-3. **Respect the commit gate.** NEVER run `git commit` without the user's explicit
-   "ok" or "lgtm". Present the work, wait for that confirmation, then commit.
-4. **Park new feature ideas.** If a new feature idea surfaces mid-build, do not silently
-   grow scope. File it to `project/features.md` and assign it a milestone. If the idea
-   would expand the current milestone, warn the user explicitly before continuing.
+2. **Verify before done.** When the whole plan is complete, run the feature's
+   verification — the repo's tests, build, and type checks — and confirm it passes. Do
+   not claim done on assertion alone; run the commands and read the output. Record the
+   pass: `node {{scripts_path}}/adhd-state.mjs feature-verify {{feature}} --milestone {{N}}`.
+   The `review` gate requires every feature verified — unverified code cannot reach review.
+3. **Respect the commit gate.** NEVER `git commit` without the user's explicit "ok" /
+   "lgtm" — in the target repo as much as the orchestration repo. Present the work,
+   wait for confirmation, then commit.
+4. **Park new ideas.** A new story idea raised mid-build is filed to `project/stories.md`
+   (re-run `stories`), never bolted onto the running milestone.
 
 ## Output
-- Working code for the surface — the surface plan `plans/{{name}}.md` executed to
-  completion, task by task.
-- An updated `state.json` reflecting the surface's `build` progress (`in-progress`
-  while working, `done` once the whole surface plan is complete).
+- working, verified code for the feature — the plan `plans/{{feature}}.md` executed to
+  completion.
+- `state.json` updated: the feature's `build` status `done` and `verified` true once
+  the whole plan is complete and verification has passed.
 
 ## On completion
 1. Write the output file(s) above.
-2. `node {{scripts_path}}/adhd-state.mjs set build done --milestone {{N}} --surface {{name}}`
-   The conductor may also set `build` to `in-progress` partway through the surface:
-   `node {{scripts_path}}/adhd-state.mjs set build in-progress --milestone {{N}} --surface {{name}}`.
-   Only mark `done` when the entire surface plan is complete.
-3. `node {{scripts_path}}/adhd-state.mjs session-add build`
-4. `node {{scripts_path}}/context-watch.mjs --next <stage>` — pass the actual next
-   stage: `--next plan` when another surface still needs planning/building, or
-   `--next review` when this was the last surface. If it advises a fresh session, run
-   `node {{scripts_path}}/handoff-prompt.mjs` and give the user the prompt.
-5. Drain `project/notes.md`: migrate any durable entry to its canonical home; healthy = empty.
-6. Tell the user the next runnable stage: `plan` for the next surface of the
-   milestone, or `review` once all surfaces in the milestone are built.
+2. `node {{scripts_path}}/adhd-state.mjs set build done --milestone {{N}} --feature {{feature}}`
+   (use `set build in-progress` partway through; only `done` when the plan is complete).
+3. `node {{scripts_path}}/adhd-state.mjs feature-verify {{feature}} --milestone {{N}}`
+4. `node {{scripts_path}}/adhd-state.mjs session-add build`
+5. `node {{scripts_path}}/context-watch.mjs --next <stage>` — `--next plan` or
+   `--next build` when more features remain, `--next review` when this was the last. If
+   it advises a fresh session, run `node {{scripts_path}}/handoff-prompt.mjs` and give
+   the user the prompt.
+6. Drain `project/notes.md`: migrate any durable entry to its canonical home; healthy = empty.
+7. Tell the user the next runnable stage — `node {{scripts_path}}/adhd-state.mjs next`
+   names it: the next feature's `plan`/`build`, or `review` once all features are built.

@@ -22,9 +22,9 @@ test('fresh session has zero score and does not advise', () => {
 test('three high-effort stages cross the threshold', () => {
   const cwd = tmp();
   initState(cwd);
-  sessionAdd(cwd, 'vision');     // high = 3
-  sessionAdd(cwd, 'milestones'); // high = 3
-  sessionAdd(cwd, 'map');        // high = 3  -> 9 >= 8
+  sessionAdd(cwd, 'vision'); // high = 3
+  sessionAdd(cwd, 'design'); // high = 3
+  sessionAdd(cwd, 'map');    // high = 3  -> 9 >= 8
   const p = pressure(cwd);
   assert.equal(p.score, 9);
   assert.equal(p.advise, true);
@@ -33,17 +33,17 @@ test('three high-effort stages cross the threshold', () => {
 test('--next pre-emptively advises when the next stage would cross', () => {
   const cwd = tmp();
   initState(cwd);
-  sessionAdd(cwd, 'vision');   // 3
-  sessionAdd(cwd, 'features'); // 2  -> 5
-  const p = pressure(cwd, { next: 'milestone-ux' }); // high = 3 -> 8
+  sessionAdd(cwd, 'vision');  // 3
+  sessionAdd(cwd, 'stories'); // 2  -> 5
+  const p = pressure(cwd, { next: 'design' }); // high = 3 -> 8
   assert.equal(p.advise, true);
-  assert.match(p.reason, /milestone-ux/);
+  assert.match(p.reason, /design/);
 });
 
 test('below threshold does not advise', () => {
   const cwd = tmp();
   initState(cwd);
-  sessionAdd(cwd, 'setup');    // 1
-  sessionAdd(cwd, 'features'); // 2  -> 3
+  sessionAdd(cwd, 'setup');   // 1
+  sessionAdd(cwd, 'stories'); // 2  -> 3
   assert.equal(pressure(cwd).advise, false);
 });

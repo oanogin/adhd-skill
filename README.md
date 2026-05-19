@@ -37,15 +37,15 @@ Run inside the project you are building (not in this skill's repo):
 
 - `/adhd` — report progress and name the next runnable stage.
 - `/adhd <stage>` — run that stage.
-- `/adhd <stage> <milestone|surface>` — run a stage for a specific target.
+- `/adhd <stage> <milestone|feature>` — run a stage for a specific target.
 
 Start a new project with `/adhd setup`.
 
 Two management commands sit outside the stage flow:
 
-- `/adhd workspace` — switch to `multi` mode and register code repos.
+- `/adhd workspace` — switch to `multi` mode, register code repos, set prototype topology.
 - `/adhd adopt` — bring an existing, already-built project under `adhd` (drafts the
-  front-load docs from the project's existing documentation).
+  groundwork docs from the project's existing documentation).
 
 You can also describe a task in plain words — `/adhd <free text>` — and `adhd`
 picks the stage or command that fits, respecting the gates.
@@ -69,46 +69,46 @@ Surfaces carry a `kind` — `ui`, `api`, or `lib`. The `design` stage uses
 
 ## The flow
 
-Front-load runs once. The per-milestone loop then repeats; the per-surface loop
-repeats inside each milestone.
+Groundwork establishes the product and its structure (mostly once — `stories` stays
+re-runnable as a living backlog). There is no pre-planned roadmap: a milestone is
+formed just-in-time at `milestone-brief` by choosing stories. The per-milestone loop
+then repeats; the per-feature loop repeats inside a production-track milestone.
 
 ```
-FRONT-LOAD (once)
-  setup → vision → features → milestones → map
+GROUNDWORK
+  setup → vision → stories → foundation → map
 
 PER-MILESTONE LOOP
-  surface-overview → milestone-ux
-  design       (every surface — also builds the prototype surface)
-  prototype    (assemble the clickable app; you click through and sign off)
+  milestone-brief   (choose stories from the backlog; set the track)
+  design            (every surface UX+UI + the wired clickable prototype + sign-off)
 
-  prototype-only milestone (infra: none):  → review
+  prototype-only milestone (infra: none):  → review → finalize
   production-track milestone:
-    tracer → replan → gap
-    plan → build  (every surface — the production app)
+    tracer → features
+    plan → build  (every feature — DAG order, the production app)
     review
-  → advance-milestone → next milestone
+  → finalize → advance-milestone → next milestone
 ```
 
 | Stage | Does | Output |
 |---|---|---|
 | setup | scaffold layout, init `state.json` | folder tree |
 | vision | product, users, usage | `docs/PRODUCT.md` |
-| features | brain-dump every feature — the "spaceship" lives here | `project/features.md` |
-| milestones | group features; Milestone 1 = first valuable product | `project/milestones.md` |
-| map | sitemap of surfaces + domain glossary | `project/map.md`, `docs/GLOSSARY.md` |
-| surface-overview | helicopter view of a milestone's surfaces; sets the track | `m<N>/overview.md` |
-| milestone-ux | cross-surface UX; must-have security & errors | `m<N>/ux.md` |
-| design | per-surface UX then UI; builds the surface into the prototype app | `surfaces/<name>.md` |
-| prototype | assemble the clickable prototype; user clicks through and signs off | clickable app + `m<N>/prototype.md` |
+| stories | brain-dump every story — the living "spaceship" backlog | `project/stories.md` |
+| foundation | the firm tech baseline — no full arch | `docs/DECISIONS.md` |
+| map | surface catalog + domains + deployables + glossary | `project/map.md`, `docs/GLOSSARY.md` |
+| milestone-brief | choose stories, confirm surfaces, set track, lock security/errors | `m<N>/brief.md` |
+| design | every surface UX+UI + the wired clickable prototype + sign-off | `m<N>/surfaces/*`, `m<N>/design.md` |
 | tracer | settle the data store; one thin slice through the real backend | `m<N>/tracer.md` + code |
-| replan | revise the plan and reconcile the prototype against tracer findings | updated `overview.md` + `tracer.md` |
-| gap | per-milestone delta between the prototype and the production app | `m<N>/gap.md` |
-| plan | per-surface implementation plan for the production app | `plans/<name>.md` |
-| build | build the production app, closing the gap | code |
-| review | fresh-session design audit of the milestone | `m<N>/review.md` |
+| features | decompose chosen stories into the per-domain feature DAG | `m<N>/features.md` |
+| plan | per-feature implementation plan for the production app | `m<N>/plans/<feature>.md` |
+| build | build the feature (DAG order), verify it | code |
+| review | fresh-session audit of the milestone | `m<N>/review.md` |
+| finalize | clean up docs, write the milestone summary | `m<N>/summary.md` |
 
-`tracer`, `replan`, `gap`, `plan`, and `build` run only on **production-track**
-milestones. A **prototype-only** milestone (`infra: none`) ends at `prototype → review`.
+`tracer`, `features`, `plan`, and `build` run only on **production-track**
+milestones. A **prototype-only** milestone (`infra: none`) goes
+`design → review → finalize`.
 
 ## Prototype and production apps
 
@@ -119,21 +119,25 @@ Every project builds two apps that coexist even in single-repo mode:
 - the **production app** — the real UI on real data and a real backend.
 
 The clickable prototype is built and signed off **before** any backend or data-store
-decision — `design` builds each `ui` surface into it, then the `prototype` stage wires
-the milestone into one runnable app you open in a browser and validate. Every milestone
-builds it, regardless of `infra`.
+decision — the `design` stage builds each `ui` surface into it and wires the milestone
+into one runnable app you open in a browser and validate. Every milestone builds it,
+regardless of `infra`.
 
-The prototype is not a separate project: it lives in the **same codebase and framework
-as the production app**, under the **`/p/` route prefix** on a mock-data layer. A
-production surface at `/<path>` has its prototype at `/p/<path>`. `adhd` applies this by
-default; an unusual setup records its alternative in `docs/DECISIONS.md`.
+Where the prototype lives is the project's **`prototypeTopology`**. By default it is
+`colocated` — the prototype shares the **production app's codebase and framework**,
+under the **`/p/` route prefix** on a mock-data layer, so a production surface at
+`/<path>` has its prototype at `/p/<path>`. A project whose prototype is a **standalone
+app** — its own repo, possibly its own framework, separate from production — runs
+`standalone` topology instead: the prototype app's home is set once via the `workspace`
+command, and each `ui` surface's own `repo` is its separate production home.
 
 Each milestone has a **track**, set from its `infra`. A `infra: none` milestone is
 **prototype-only** — the clickable prototype is its deliverable. A milestone with real
 `infra` is **production-track**: after the prototype is signed off, `tracer` settles the
-data store and proves backend reality, `gap` measures the delta, and `build` builds the
-production app to match the prototype. When reality contradicts the prototype, the
-prototype is updated first — it stays the reference, and the production UI moves to match.
+data store and proves backend reality, `features` decomposes the work into a dependency
+DAG, and `build` builds the production app to match the prototype. When reality
+contradicts the prototype, the prototype is updated first — it stays the reference, and
+the production app moves to match.
 
 Where the two apps live in the repo is a tech decision, logged in `docs/DECISIONS.md`.
 
@@ -157,11 +161,12 @@ docs/
   PRODUCT.md  DESIGN.md  GLOSSARY.md  DECISIONS.md
   DATA.md                data model — created lazily, only once a milestone persists data
 project/
-  state.json             workflow progress — never hand-edit
+  state.json             workflow progress + feature DAG — never hand-edit
   repos.local.json       gitignored — per-user repo→path bindings (multi mode)
   notes.md               transient scratchpad — healthy when empty
-  features.md  milestones.md  map.md
-  milestones/m<N>/        overview, ux, surfaces/, prototype, tracer, gap, plans/, review
+  stories.md             the living story backlog
+  map.md                 surface catalog + domains + deployables
+  milestones/m<N>/        brief, surfaces/, design, tracer, features, plans/, review, summary
 ```
 
 `project/state.json` is owned by `scripts/adhd-state.mjs`. Never edit it by hand;
@@ -170,15 +175,19 @@ use the CLI (`/adhd` drives it for you).
 ## Rules worth knowing
 
 - **Commit gate** — `adhd` never runs `git commit` without your explicit "ok".
-- **Milestone discipline** — a new feature idea raised mid-project is filed to
-  `features.md` and parked in a later milestone, not bolted onto the current one.
-- **Product before tech** — the scope stages (`vision`, `features`, `milestones`,
-  `map`) describe *what the product does* in capability terms — never a stack,
-  framework, database, or architecture. Tech decisions live in `docs/DECISIONS.md`.
-- **Tech, just-in-time** — each stack decision is made by the milestone that first
-  needs it, not up front. A milestone can declare `infra: none` and ship as a
-  fully-working UX prototype on mock data — no database, no data model. The data model
-  appears in `docs/DATA.md` only once a milestone actually persists data.
+- **Milestone discipline** — a new story idea raised mid-project is filed to
+  `stories.md` (the living backlog), to be picked up by a future `milestone-brief` —
+  not bolted onto the milestone in flight.
+- **Product before tech** — the scope stages (`vision`, `stories`, `map`) describe
+  *what the product does* in capability terms — never a stack, framework, database, or
+  architecture. The firm tech baseline lives in `docs/DECISIONS.md` (`foundation`).
+- **Tech, just-in-time** — `foundation` records only the firm, known-from-the-start
+  baseline; every other stack decision is made by the milestone that first needs it. A
+  milestone can declare `infra: none` and ship as a fully-working UX prototype on mock
+  data — no database, no data model. The data model appears in `docs/DATA.md` only once
+  a milestone actually persists data.
+- **Single source of truth** — `adhd audit` checks the `.md` artifacts for drift,
+  orphans, and misplaced info.
 - **notes.md** — a scratchpad read first every session; durable facts get
   migrated to their real home (`DECISIONS.md`, `GLOSSARY.md`, a surface spec).
 - **Context watch** — `adhd` flags when to start a fresh session and emits a

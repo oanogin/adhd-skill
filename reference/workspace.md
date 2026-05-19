@@ -34,9 +34,23 @@
    in step 3; remove one with
    `node {{scripts_path}}/adhd-state.mjs workspace-remove <name>` (this also clears
    its local binding). To change a repo, remove and re-add it.
-7. **Orchestration repo.** The `project/` tree and `state.json` stay in the repo
+7. **Prototype topology.** A project whose prototype app is **not** co-located with
+   production under a `/p/` route — e.g. the prototype is a standalone app, or it lives
+   in a different repo from the production UI — runs `standalone` topology. Confirm with
+   the user, then:
+   - `node {{scripts_path}}/adhd-state.mjs prototype-topology standalone`
+   - `node {{scripts_path}}/adhd-state.mjs prototype-home --repo <name> --subpath <path>`
+     — the one project-wide location of the prototype app. `--repo` names a registered
+     repo; omit it to mean the orchestration repo. `--subpath` is the path within it.
+
+   The default is `colocated` (prototype under `/p/` in the production app's codebase);
+   leave it unset for that. The prototype home is global — one prototype app for the
+   whole project — so it is set here, not per surface. See SKILL.md, "Prototype
+   topology".
+8. **Orchestration repo.** The `project/` tree and `state.json` stay in the repo
    where `setup` ran. That orchestration repo may itself be one of the registered
-   code repos, or a dedicated docs-only repo — either is fine.
+   code repos, or a dedicated docs-only repo — either is fine. The orchestration repo
+   may also host the standalone prototype app (`prototype-home` with no `--repo`).
 
 ## On completion
 

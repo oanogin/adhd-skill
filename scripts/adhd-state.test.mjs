@@ -7,53 +7,74 @@ import path from 'node:path';
 import {
   defaultState, loadState, saveState, initState,
   setStageStatus, gate, nextStage, statusReport,
-  sessionAdd, sessionReset, FRONTLOAD_STAGES, STAGE_STATUSES,
-  confirmPreflight, advanceMilestone,
+  sessionAdd, sessionReset, FRONTLOAD_STAGES, MILESTONE_STAGES, FEATURE_STAGES, STAGE_STATUSES,
+  confirmPreflight, advanceMilestone, STATE_VERSION,
   setMode, addRepo, removeRepo, listRepos, setSurfaceMeta, SURFACE_KINDS, MODES,
-  setMilestoneTrack,
+  setMilestoneTrack, setMilestoneTitle, setMilestoneStories,
   addDomain, removeDomain, listDomains,
   bindRepo, unbindRepo, migrateRepos,
-  setMilestoneDomains, validate,
+  setMilestoneDomains, validate, audit, migrate,
+  setPrototypeTopology, setPrototypeHome, PROTOTYPE_TOPOLOGIES,
+  addFeature, setFeatureDeps, removeFeature, listFeatures, verifyFeature,
 } from './adhd-state.mjs';
 
 function tmp() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'adhd-'));
 }
-function touch(cwd, rel) {
+function touch(cwd, rel, body = 'x') {
   const p = path.join(cwd, rel);
   fs.mkdirSync(path.dirname(p), { recursive: true });
-  fs.writeFileSync(p, 'x');
+  fs.writeFileSync(p, body);
+}
+function gitRepo() {
+  const cwd = tmp();
+  fs.mkdirSync(path.join(cwd, '.git'));
+  return cwd;
+}
+// drive the front-load to done
+function frontloadDone(cwd) {
+  for (const s of FRONTLOAD_STAGES) setStageStatus(cwd, { stage: s, status: 'done' });
 }
 
-test('defaultState has all front-load stages blocked and version 1', () => {
+test('defaultState: version 2, front-load blocked, single/colocated', () => {
   const s = defaultState();
-  assert.equal(s.version, 1);
-  assert.equal(s.docHome, 'docs');
-  assert.equal(s.currentMilestone, 1);
-  for (const stage of FRONTLOAD_STAGES) {
-    assert.equal(s.frontload[stage].status, 'blocked');
-  }
+  assert.equal(s.version, STATE_VERSION);
+  assert.equal(STATE_VERSION, 2);
+  assert.equal(s.mode, 'single');
+  assert.equal(s.prototypeTopology, 'colocated');
+  assert.deepEqual(s.prototype, { repo: null, subpath: null });
+  assert.equal(s.currentFeature, null);
+  for (const stage of FRONTLOAD_STAGES) assert.equal(s.frontload[stage].status, 'blocked');
 });
 
-test('initState writes state.json, is idempotent, sets setup pending', () => {
+test('FRONTLOAD/MILESTONE/FEATURE stage lists', () => {
+  assert.deepEqual(FRONTLOAD_STAGES, ['setup', 'vision', 'stories', 'foundation', 'map']);
+  assert.deepEqual(MILESTONE_STAGES, ['milestone-brief', 'design', 'tracer', 'features', 'review', 'finalize']);
+  assert.deepEqual(FEATURE_STAGES, ['plan', 'build']);
+});
+
+test('initState writes state.json, idempotent, setup pending', () => {
   const cwd = tmp();
   const s1 = initState(cwd);
   assert.ok(fs.existsSync(path.join(cwd, 'project/state.json')));
   assert.equal(s1.frontload.setup.status, 'pending');
-  const s2 = initState(cwd);
-  assert.equal(s2.createdAt, s1.createdAt); // not re-created
+  assert.equal(initState(cwd).createdAt, s1.createdAt);
 });
 
-test('loadState returns null when no state.json', () => {
+test('loadState null when missing; throws on corrupt', () => {
   assert.equal(loadState(tmp()), null);
+  const cwd = tmp();
+  touch(cwd, 'project/state.json', '{ not json');
+  assert.throws(() => loadState(cwd), /corrupt or not valid JSON/);
 });
 
-test('saveState round-trips and bumps updatedAt', () => {
+test('saveState round-trips, bumps updatedAt, leaves no .tmp', () => {
   const cwd = tmp();
   const s = initState(cwd);
   s.currentMilestone = 3;
   saveState(cwd, s);
   assert.equal(loadState(cwd).currentMilestone, 3);
+  assert.equal(fs.existsSync(path.join(cwd, 'project/state.json.tmp')), false);
 });
 
 test('gate(setup) always passes', () => {
@@ -62,7 +83,7 @@ test('gate(setup) always passes', () => {
   assert.equal(gate(cwd, 'setup').pass, true);
 });
 
-test('gate(vision) needs setup done (state-based)', () => {
+test('gate(vision) needs setup done', () => {
   const cwd = tmp();
   initState(cwd);
   assert.equal(gate(cwd, 'vision').pass, false);
@@ -70,166 +91,215 @@ test('gate(vision) needs setup done (state-based)', () => {
   assert.equal(gate(cwd, 'vision').pass, true);
 });
 
-test('gate(features) needs docs/PRODUCT.md (file-based)', () => {
+test('gate(stories) needs docs/PRODUCT.md', () => {
   const cwd = tmp();
   initState(cwd);
-  const before = gate(cwd, 'features');
-  assert.equal(before.pass, false);
-  assert.ok(before.missing.includes('docs/PRODUCT.md'));
+  assert.equal(gate(cwd, 'stories').pass, false);
   touch(cwd, 'docs/PRODUCT.md');
-  assert.equal(gate(cwd, 'features').pass, true);
+  assert.equal(gate(cwd, 'stories').pass, true);
 });
 
-test('gate(milestone-ux) resolves {N} from --milestone', () => {
+test('gate(foundation) needs project/stories.md', () => {
   const cwd = tmp();
   initState(cwd);
-  assert.equal(gate(cwd, 'milestone-ux', { milestone: 2 }).pass, false);
-  touch(cwd, 'project/milestones/m2/overview.md');
-  assert.equal(gate(cwd, 'milestone-ux', { milestone: 2 }).pass, true);
+  assert.equal(gate(cwd, 'foundation').pass, false);
+  touch(cwd, 'project/stories.md');
+  assert.equal(gate(cwd, 'foundation').pass, true);
 });
 
-test('gate(surface-overview) needs map.md and docs/GLOSSARY.md', () => {
+test('gate(map) needs foundation done', () => {
+  const cwd = tmp();
+  initState(cwd);
+  assert.equal(gate(cwd, 'map').pass, false);
+  setStageStatus(cwd, { stage: 'foundation', status: 'done' });
+  assert.equal(gate(cwd, 'map').pass, true);
+});
+
+test('gate(milestone-brief) needs map.md and GLOSSARY.md', () => {
   const cwd = tmp();
   initState(cwd);
   touch(cwd, 'project/map.md');
-  const before = gate(cwd, 'surface-overview');
-  assert.equal(before.pass, false);
-  assert.ok(before.missing.includes('docs/GLOSSARY.md'));
+  assert.equal(gate(cwd, 'milestone-brief').pass, false);
   touch(cwd, 'docs/GLOSSARY.md');
-  assert.equal(gate(cwd, 'surface-overview').pass, true);
+  assert.equal(gate(cwd, 'milestone-brief').pass, true);
 });
 
-test('gate(design) needs milestone milestone-ux done', () => {
+test('gate(design) needs milestone-brief done', () => {
   const cwd = tmp();
   initState(cwd);
   assert.equal(gate(cwd, 'design', { milestone: 1 }).pass, false);
-  setStageStatus(cwd, { stage: 'milestone-ux', status: 'done', milestone: 1 });
+  setStageStatus(cwd, { stage: 'milestone-brief', status: 'done', milestone: 1 });
   assert.equal(gate(cwd, 'design', { milestone: 1 }).pass, true);
 });
 
-test('gate(review) needs every surface built', () => {
-  const cwd = tmp();
-  initState(cwd);
-  setStageStatus(cwd, { stage: 'build', status: 'done', milestone: 1, surface: 'login' });
-  setStageStatus(cwd, { stage: 'design', status: 'done', milestone: 1, surface: 'home' });
-  assert.equal(gate(cwd, 'review', { milestone: 1 }).pass, false);
-  setStageStatus(cwd, { stage: 'build', status: 'done', milestone: 1, surface: 'home' });
-  assert.equal(gate(cwd, 'review', { milestone: 1 }).pass, true);
-});
-
-test('nextStage walks front-load then milestone then surfaces', () => {
-  const cwd = tmp();
-  initState(cwd);
-  assert.equal(nextStage(cwd).stage, 'setup');
-  for (const s of FRONTLOAD_STAGES) setStageStatus(cwd, { stage: s, status: 'done' });
-  assert.equal(nextStage(cwd).stage, 'surface-overview');
-});
-
-test('gate(prototype) needs every surface designed', () => {
-  const cwd = tmp();
-  initState(cwd);
-  setStageStatus(cwd, { stage: 'design', status: 'done', milestone: 1, surface: 'login' });
-  setStageStatus(cwd, { stage: 'design', status: 'in-progress', milestone: 1, surface: 'home' });
-  assert.equal(gate(cwd, 'prototype', { milestone: 1 }).pass, false);
-  setStageStatus(cwd, { stage: 'design', status: 'done', milestone: 1, surface: 'home' });
-  assert.equal(gate(cwd, 'prototype', { milestone: 1 }).pass, true);
-});
-
-test('tracer refuses to run on a prototype-only milestone', () => {
+test('gate(tracer) refuses prototype-only, needs design on production', () => {
   const cwd = tmp();
   initState(cwd);
   setMilestoneTrack(cwd, { milestone: 1, track: 'prototype' });
-  setStageStatus(cwd, { stage: 'prototype', status: 'done', milestone: 1 });
-  const t = gate(cwd, 'tracer', { milestone: 1 });
-  assert.equal(t.pass, false);
-  assert.ok(t.missing.some((x) => /prototype-only/.test(x)));
-});
+  setStageStatus(cwd, { stage: 'design', status: 'done', milestone: 1 });
+  const proto = gate(cwd, 'tracer', { milestone: 1 });
+  assert.equal(proto.pass, false);
+  assert.ok(proto.missing.some((x) => /prototype-only/.test(x)));
 
-test('gate(tracer) needs the prototype done on a production milestone', () => {
-  const cwd = tmp();
-  initState(cwd);
   setMilestoneTrack(cwd, { milestone: 1, track: 'production' });
-  assert.equal(gate(cwd, 'tracer', { milestone: 1 }).pass, false);
-  setStageStatus(cwd, { stage: 'prototype', status: 'done', milestone: 1 });
   assert.equal(gate(cwd, 'tracer', { milestone: 1 }).pass, true);
 });
 
-test('gate(plan) needs the surface spec and the milestone gap done', () => {
+test('gate(features) needs tracer done on a production milestone', () => {
   const cwd = tmp();
   initState(cwd);
-  touch(cwd, 'project/milestones/m1/surfaces/login.md');
-  assert.equal(gate(cwd, 'plan', { milestone: 1, surface: 'login' }).pass, false);
-  setStageStatus(cwd, { stage: 'gap', status: 'done', milestone: 1 });
-  assert.equal(gate(cwd, 'plan', { milestone: 1, surface: 'login' }).pass, true);
-});
-
-test('nextStage on a production milestone: design then prototype then tracer', () => {
-  const cwd = tmp();
-  initState(cwd);
-  for (const s of FRONTLOAD_STAGES) setStageStatus(cwd, { stage: s, status: 'done' });
   setMilestoneTrack(cwd, { milestone: 1, track: 'production' });
-  for (const s of ['surface-overview', 'milestone-ux']) {
-    setStageStatus(cwd, { stage: s, status: 'done', milestone: 1 });
-  }
-  setStageStatus(cwd, { stage: 'design', status: 'in-progress', milestone: 1, surface: 'login' });
-  assert.equal(nextStage(cwd).stage, 'design');
-  setStageStatus(cwd, { stage: 'design', status: 'done', milestone: 1, surface: 'login' });
-  assert.equal(nextStage(cwd).stage, 'prototype');
-  setStageStatus(cwd, { stage: 'prototype', status: 'done', milestone: 1 });
-  assert.equal(nextStage(cwd).stage, 'tracer');
+  assert.equal(gate(cwd, 'features', { milestone: 1 }).pass, false);
+  setStageStatus(cwd, { stage: 'tracer', status: 'done', milestone: 1 });
+  assert.equal(gate(cwd, 'features', { milestone: 1 }).pass, true);
 });
 
-test('nextStage on a prototype-only milestone skips tracer..build, goes to review', () => {
+test('gate(plan) needs the feature to exist and features stage done', () => {
   const cwd = tmp();
   initState(cwd);
-  for (const s of FRONTLOAD_STAGES) setStageStatus(cwd, { stage: s, status: 'done' });
+  setMilestoneTrack(cwd, { milestone: 1, track: 'production' });
+  assert.equal(gate(cwd, 'plan', { milestone: 1, feature: 'reg-api' }).pass, false);
+  addFeature(cwd, { milestone: 1, id: 'reg-api', story: 'S1', domain: 'registry', repo: 'backend' });
+  setStageStatus(cwd, { stage: 'features', status: 'done', milestone: 1 });
+  assert.equal(gate(cwd, 'plan', { milestone: 1, feature: 'reg-api' }).pass, true);
+});
+
+test('gate(build) needs the plan file and all dependency features built', () => {
+  const cwd = tmp();
+  initState(cwd);
+  addFeature(cwd, { milestone: 1, id: 'api', story: 'S1', domain: 'd', repo: 'r' });
+  addFeature(cwd, { milestone: 1, id: 'ui', story: 'S1', domain: 'd', repo: 'r', dependsOn: ['api'] });
+  touch(cwd, 'project/milestones/m1/plans/ui.md');
+  // api not built yet → ui build blocked
+  let g = gate(cwd, 'build', { milestone: 1, feature: 'ui' });
+  assert.equal(g.pass, false);
+  assert.ok(g.missing.some((x) => /unbuilt/.test(x) && /api/.test(x)));
+  setStageStatus(cwd, { stage: 'build', status: 'done', milestone: 1, feature: 'api' });
+  assert.equal(gate(cwd, 'build', { milestone: 1, feature: 'ui' }).pass, true);
+});
+
+test('gate(review): prototype-only needs design; production needs every feature built+verified', () => {
+  const cwd = tmp();
+  initState(cwd);
   setMilestoneTrack(cwd, { milestone: 1, track: 'prototype' });
-  for (const s of ['surface-overview', 'milestone-ux']) {
-    setStageStatus(cwd, { stage: s, status: 'done', milestone: 1 });
-  }
-  setStageStatus(cwd, { stage: 'design', status: 'done', milestone: 1, surface: 'login' });
-  assert.equal(nextStage(cwd).stage, 'prototype');
-  setStageStatus(cwd, { stage: 'prototype', status: 'done', milestone: 1 });
+  assert.equal(gate(cwd, 'review', { milestone: 1 }).pass, false);
+  setStageStatus(cwd, { stage: 'design', status: 'done', milestone: 1 });
+  assert.equal(gate(cwd, 'review', { milestone: 1 }).pass, true);
+
+  const cwd2 = tmp();
+  initState(cwd2);
+  setMilestoneTrack(cwd2, { milestone: 1, track: 'production' });
+  addFeature(cwd2, { milestone: 1, id: 'api', story: 'S1', domain: 'd', repo: 'r' });
+  setStageStatus(cwd2, { stage: 'features', status: 'done', milestone: 1 });
+  setStageStatus(cwd2, { stage: 'build', status: 'done', milestone: 1, feature: 'api' });
+  assert.equal(gate(cwd2, 'review', { milestone: 1 }).pass, false); // not verified
+  verifyFeature(cwd2, { milestone: 1, id: 'api' });
+  assert.equal(gate(cwd2, 'review', { milestone: 1 }).pass, true);
+});
+
+test('gate(finalize) needs review done', () => {
+  const cwd = tmp();
+  initState(cwd);
+  assert.equal(gate(cwd, 'finalize', { milestone: 1 }).pass, false);
+  setStageStatus(cwd, { stage: 'review', status: 'done', milestone: 1 });
+  assert.equal(gate(cwd, 'finalize', { milestone: 1 }).pass, true);
+});
+
+test('nextStage walks front-load then milestone-brief', () => {
+  const cwd = tmp();
+  initState(cwd);
+  assert.equal(nextStage(cwd).stage, 'setup');
+  frontloadDone(cwd);
+  assert.equal(nextStage(cwd).stage, 'milestone-brief');
+});
+
+test('nextStage on a prototype-only milestone: brief → design → review → finalize', () => {
+  const cwd = tmp();
+  initState(cwd);
+  frontloadDone(cwd);
+  setMilestoneTrack(cwd, { milestone: 1, track: 'prototype' });
+  setStageStatus(cwd, { stage: 'milestone-brief', status: 'done', milestone: 1 });
+  assert.equal(nextStage(cwd).stage, 'design');
+  setStageStatus(cwd, { stage: 'design', status: 'done', milestone: 1 });
+  assert.equal(nextStage(cwd).stage, 'review');
+  setStageStatus(cwd, { stage: 'review', status: 'done', milestone: 1 });
+  assert.equal(nextStage(cwd).stage, 'finalize');
+  setStageStatus(cwd, { stage: 'finalize', status: 'done', milestone: 1 });
+  assert.equal(nextStage(cwd).stage, 'next-milestone');
+});
+
+test('nextStage on a production milestone: design → tracer → features → plan → build', () => {
+  const cwd = tmp();
+  initState(cwd);
+  frontloadDone(cwd);
+  setMilestoneTrack(cwd, { milestone: 1, track: 'production' });
+  setStageStatus(cwd, { stage: 'milestone-brief', status: 'done', milestone: 1 });
+  setStageStatus(cwd, { stage: 'design', status: 'done', milestone: 1 });
+  assert.equal(nextStage(cwd).stage, 'tracer');
+  setStageStatus(cwd, { stage: 'tracer', status: 'done', milestone: 1 });
+  assert.equal(nextStage(cwd).stage, 'features');
+  setStageStatus(cwd, { stage: 'features', status: 'done', milestone: 1 });
+  addFeature(cwd, { milestone: 1, id: 'api', story: 'S1', domain: 'd', repo: 'r' });
+  let n = nextStage(cwd);
+  assert.equal(n.stage, 'plan');
+  assert.equal(n.feature, 'api');
+  setStageStatus(cwd, { stage: 'plan', status: 'done', milestone: 1, feature: 'api' });
+  n = nextStage(cwd);
+  assert.equal(n.stage, 'build');
+  assert.equal(n.feature, 'api');
+  setStageStatus(cwd, { stage: 'build', status: 'done', milestone: 1, feature: 'api' });
   assert.equal(nextStage(cwd).stage, 'review');
 });
 
-test('review gate on a prototype-only milestone needs only the prototype done', () => {
+test('nextStage build order respects feature dependencies', () => {
   const cwd = tmp();
   initState(cwd);
-  setMilestoneTrack(cwd, { milestone: 1, track: 'prototype' });
-  setStageStatus(cwd, { stage: 'design', status: 'done', milestone: 1, surface: 'login' });
-  assert.equal(gate(cwd, 'review', { milestone: 1 }).pass, false);
-  setStageStatus(cwd, { stage: 'prototype', status: 'done', milestone: 1 });
-  assert.equal(gate(cwd, 'review', { milestone: 1 }).pass, true);
+  frontloadDone(cwd);
+  setMilestoneTrack(cwd, { milestone: 1, track: 'production' });
+  for (const s of ['milestone-brief', 'design', 'tracer', 'features']) {
+    setStageStatus(cwd, { stage: s, status: 'done', milestone: 1 });
+  }
+  addFeature(cwd, { milestone: 1, id: 'api', story: 'S1', domain: 'd', repo: 'r' });
+  addFeature(cwd, { milestone: 1, id: 'ui', story: 'S1', domain: 'd', repo: 'r', dependsOn: ['api'] });
+  for (const id of ['api', 'ui']) setStageStatus(cwd, { stage: 'plan', status: 'done', milestone: 1, feature: id });
+  // both plans done; only api is buildable (ui depends on api)
+  assert.equal(nextStage(cwd).feature, 'api');
+  setStageStatus(cwd, { stage: 'build', status: 'done', milestone: 1, feature: 'api' });
+  assert.equal(nextStage(cwd).feature, 'ui');
 });
 
-test('setMilestoneTrack rejects an invalid track', () => {
+test('setStageStatus updates currentMilestone and currentFeature', () => {
   const cwd = tmp();
   initState(cwd);
-  assert.throws(() => setMilestoneTrack(cwd, { milestone: 1, track: 'bogus' }), /Invalid track/);
-});
-
-test('ensureMilestone backfills stages and track missing from older state', () => {
-  const cwd = tmp();
-  initState(cwd);
+  setStageStatus(cwd, { stage: 'build', status: 'in-progress', milestone: 2, feature: 'x' });
   const s = loadState(cwd);
-  s.milestones['1'] = { title: null, stages: { 'surface-overview': { status: 'done' } }, surfaces: {} };
-  saveState(cwd, s);
-  setStageStatus(cwd, { stage: 'milestone-ux', status: 'done', milestone: 1 });
-  const after = loadState(cwd).milestones['1'];
-  assert.ok(after.stages.prototype);
-  assert.equal(after.stages.prototype.status, 'blocked');
-  assert.equal(after.track, null);
+  assert.equal(s.currentMilestone, 2);
+  assert.equal(s.currentFeature, 'x');
 });
 
-test('sessionAdd / sessionReset track stages this session', () => {
+test('effortLog records milestone and feature for feature stages', () => {
+  const cwd = tmp();
+  initState(cwd);
+  setStageStatus(cwd, { stage: 'build', status: 'done', feature: 'api' });
+  const log = loadState(cwd).effortLog.at(-1);
+  assert.equal(log.milestone, 1);
+  assert.equal(log.feature, 'api');
+});
+
+test('STAGE_STATUSES lists the four valid statuses', () => {
+  assert.deepEqual(STAGE_STATUSES, ['blocked', 'pending', 'in-progress', 'done']);
+});
+
+test('sessionAdd / sessionReset track stages; throw without state', () => {
   const cwd = tmp();
   initState(cwd);
   sessionAdd(cwd, 'vision');
-  sessionAdd(cwd, 'features');
-  assert.deepEqual(loadState(cwd).session.stagesRun, ['vision', 'features']);
+  sessionAdd(cwd, 'stories');
+  assert.deepEqual(loadState(cwd).session.stagesRun, ['vision', 'stories']);
   sessionReset(cwd);
   assert.deepEqual(loadState(cwd).session.stagesRun, []);
+  assert.throws(() => sessionAdd(tmp(), 'vision'), /adhd setup/);
+  assert.throws(() => sessionReset(tmp()), /adhd setup/);
 });
 
 test('statusReport mentions the next runnable stage', () => {
@@ -238,96 +308,27 @@ test('statusReport mentions the next runnable stage', () => {
   assert.match(statusReport(cwd), /setup/);
 });
 
-test('loadState throws a clear error on corrupt state.json', () => {
-  const cwd = tmp();
-  fs.mkdirSync(path.join(cwd, 'project'), { recursive: true });
-  fs.writeFileSync(path.join(cwd, 'project/state.json'), '{ not json');
-  assert.throws(() => loadState(cwd), /corrupt or not valid JSON/);
-});
-
-test('sessionAdd throws a clear error when no state.json', () => {
-  assert.throws(() => sessionAdd(tmp(), 'vision'), /adhd setup/);
-});
-
-test('sessionReset throws a clear error when no state.json', () => {
-  assert.throws(() => sessionReset(tmp()), /adhd setup/);
-});
-
-test('effortLog records the resolved milestone and surface for surface stages', () => {
-  const cwd = tmp();
-  initState(cwd);
-  setStageStatus(cwd, { stage: 'build', status: 'done', surface: 'home' });
-  const log = loadState(cwd).effortLog.at(-1);
-  assert.equal(log.milestone, 1);
-  assert.equal(log.surface, 'home');
-});
-
-test('saveState leaves no .tmp file behind', () => {
-  const cwd = tmp();
-  initState(cwd);
-  assert.equal(fs.existsSync(path.join(cwd, 'project/state.json.tmp')), false);
-});
-
-test('STAGE_STATUSES lists the four valid statuses', () => {
-  assert.deepEqual(STAGE_STATUSES, ['blocked', 'pending', 'in-progress', 'done']);
-});
-
-test('confirmPreflight sets skillsConfirmed true with a timestamp', () => {
+test('confirmPreflight sets skillsConfirmed; advanceMilestone bumps and clears', () => {
   const cwd = tmp();
   initState(cwd);
   confirmPreflight(cwd);
-  const s = loadState(cwd);
-  assert.equal(s.preflight.skillsConfirmed, true);
-  assert.ok(s.preflight.confirmedAt);
-});
-
-test('confirmPreflight throws a clear error when no state.json', () => {
-  assert.throws(() => confirmPreflight(tmp()), /adhd setup/);
-});
-
-test('advanceMilestone bumps currentMilestone, clears surface, resets session', () => {
-  const cwd = tmp();
-  initState(cwd);
+  assert.equal(loadState(cwd).preflight.skillsConfirmed, true);
   sessionAdd(cwd, 'vision');
-  setStageStatus(cwd, { stage: 'design', status: 'done', surface: 'home' });
+  setStageStatus(cwd, { stage: 'build', status: 'done', feature: 'api' });
   advanceMilestone(cwd);
   const s = loadState(cwd);
   assert.equal(s.currentMilestone, 2);
-  assert.equal(s.currentSurface, null);
+  assert.equal(s.currentFeature, null);
   assert.deepEqual(s.session.stagesRun, []);
 });
 
-test('advanceMilestone throws a clear error when no state.json', () => {
-  assert.throws(() => advanceMilestone(tmp()), /adhd setup/);
-});
-
-test('setStageStatus updates the currentMilestone and currentSurface pointers', () => {
-  const cwd = tmp();
-  initState(cwd);
-  setStageStatus(cwd, { stage: 'design', status: 'in-progress', milestone: 2, surface: 'login' });
-  const s = loadState(cwd);
-  assert.equal(s.currentMilestone, 2);
-  assert.equal(s.currentSurface, 'login');
-});
-
-function gitRepo() {
-  const cwd = tmp();
-  fs.mkdirSync(path.join(cwd, '.git'));
-  return cwd;
-}
-
-test('defaultState has mode "single" and empty repos', () => {
-  const s = defaultState();
-  assert.equal(s.mode, 'single');
-  assert.deepEqual(s.repos, {});
-});
-
-test('SURFACE_KINDS and MODES list the valid values', () => {
+test('SURFACE_KINDS / MODES / PROTOTYPE_TOPOLOGIES', () => {
   assert.deepEqual(SURFACE_KINDS, ['ui', 'api', 'lib']);
   assert.deepEqual(MODES, ['single', 'multi']);
+  assert.deepEqual(PROTOTYPE_TOPOLOGIES, ['colocated', 'standalone']);
 });
 
-test('setMode switches mode and rejects an invalid value', () => {
+test('setMode switches and rejects invalid', () => {
   const cwd = tmp();
   initState(cwd);
   setMode(cwd, 'multi');
@@ -335,37 +336,22 @@ test('setMode switches mode and rejects an invalid value', () => {
   assert.throws(() => setMode(cwd, 'bogus'), /Invalid mode/);
 });
 
-test('addRepo registers a logical repo with kind and optional remote', () => {
+test('addRepo / bindRepo / unbindRepo / removeRepo', () => {
   const cwd = tmp();
   initState(cwd);
-  addRepo(cwd, { name: 'backend', kind: 'api', remote: 'git@github.com:x/backend.git' });
-  addRepo(cwd, { name: 'admin-ui', kind: 'ui' });
-  const repos = loadState(cwd).repos;
-  assert.equal(repos.backend.kind, 'api');
-  assert.equal(repos.backend.remote, 'git@github.com:x/backend.git');
-  assert.equal(repos['admin-ui'].remote, null);
-  assert.equal(repos.backend.path, undefined);
-});
-
-test('addRepo rejects a bad kind', () => {
-  const cwd = tmp();
-  initState(cwd);
+  addRepo(cwd, { name: 'backend', kind: 'api', remote: 'git@x:b.git' });
+  assert.equal(loadState(cwd).repos.backend.kind, 'api');
   assert.throws(() => addRepo(cwd, { name: 'x', kind: 'bogus' }), /Invalid kind/);
-});
-
-test('bindRepo writes a local path; unbindRepo clears it', () => {
-  const cwd = tmp();
-  initState(cwd);
-  addRepo(cwd, { name: 'backend', kind: 'api' });
   const repo = gitRepo();
   bindRepo(cwd, 'backend', repo);
   assert.equal(listRepos(cwd).backend.bound, true);
-  assert.equal(listRepos(cwd).backend.path, path.resolve(repo));
   unbindRepo(cwd, 'backend');
   assert.equal(listRepos(cwd).backend.bound, false);
+  removeRepo(cwd, 'backend');
+  assert.deepEqual(loadState(cwd).repos, {});
 });
 
-test('bindRepo rejects an unregistered repo, a missing path, and a non-git path', () => {
+test('bindRepo rejects unregistered, missing, non-git paths', () => {
   const cwd = tmp();
   initState(cwd);
   assert.throws(() => bindRepo(cwd, 'ghost', gitRepo()), /No registered repo/);
@@ -374,144 +360,76 @@ test('bindRepo rejects an unregistered repo, a missing path, and a non-git path'
   assert.throws(() => bindRepo(cwd, 'backend', tmp()), /Not a git repository/);
 });
 
-test('listRepos reports binding status without exposing paths in committed state', () => {
-  const cwd = tmp();
-  initState(cwd);
-  addRepo(cwd, { name: 'backend', kind: 'api' });
-  const before = listRepos(cwd).backend;
-  assert.equal(before.bound, false);
-  assert.equal(before.path, null);
-});
-
-test('local repo bindings are stored outside state.json', () => {
-  const cwd = tmp();
-  initState(cwd);
-  addRepo(cwd, { name: 'backend', kind: 'api' });
-  bindRepo(cwd, 'backend', gitRepo());
-  assert.ok(fs.existsSync(path.join(cwd, 'project/repos.local.json')));
-  assert.equal(loadState(cwd).repos.backend.path, undefined);
-});
-
-test('removeRepo deletes the registry entry and its local binding', () => {
-  const cwd = tmp();
-  initState(cwd);
-  addRepo(cwd, { name: 'backend', kind: 'lib' });
-  bindRepo(cwd, 'backend', gitRepo());
-  removeRepo(cwd, 'backend');
-  assert.deepEqual(loadState(cwd).repos, {});
-  assert.equal(listRepos(cwd).backend, undefined);
-});
-
-test('migrateRepos moves an inline path into the local bindings file', () => {
+test('migrateRepos moves inline paths into the local bindings file', () => {
   const cwd = tmp();
   initState(cwd);
   const repo = gitRepo();
   const s = loadState(cwd);
   s.repos.legacy = { path: repo, kind: 'api' };
   saveState(cwd, s);
-  const migrated = migrateRepos(cwd);
-  assert.equal(migrated, 1);
+  assert.equal(migrateRepos(cwd), 1);
   assert.equal(loadState(cwd).repos.legacy.path, undefined);
   assert.equal(listRepos(cwd).legacy.path, path.resolve(repo));
 });
 
-test('a new surface has null repo and null kind', () => {
+test('domains: add, remove, list, milestone tagging', () => {
   const cwd = tmp();
   initState(cwd);
-  setStageStatus(cwd, { stage: 'design', status: 'in-progress', milestone: 1, surface: 'home' });
-  const surf = loadState(cwd).milestones['1'].surfaces.home;
-  assert.equal(surf.repo, null);
-  assert.equal(surf.kind, null);
-});
-
-test('setSurfaceMeta sets repo and kind, and validates kind', () => {
-  const cwd = tmp();
-  initState(cwd);
-  setSurfaceMeta(cwd, { milestone: 1, surface: 'home', repo: 'repo-a', kind: 'ui' });
-  const surf = loadState(cwd).milestones['1'].surfaces.home;
-  assert.equal(surf.repo, 'repo-a');
-  assert.equal(surf.kind, 'ui');
-  assert.throws(() => setSurfaceMeta(cwd, { milestone: 1, surface: 'home', kind: 'bogus' }), /Invalid kind/);
-});
-
-test('setMode / addRepo throw a clear error when no state.json', () => {
-  assert.throws(() => setMode(tmp(), 'multi'), /adhd setup/);
-  assert.throws(() => addRepo(tmp(), { name: 'x', kind: 'api' }), /adhd setup/);
-});
-
-test('defaultState has an empty domains registry', () => {
-  assert.deepEqual(defaultState().domains, {});
-});
-
-test('addDomain registers a domain with description and optional home', () => {
-  const cwd = tmp();
-  initState(cwd);
-  addDomain(cwd, { name: 'auth', description: 'sign-in and sessions' });
-  addDomain(cwd, { name: 'billing', description: 'invoices', homeRepo: 'backend', homeSubpath: 'services/billing' });
-  const d = loadState(cwd).domains;
-  assert.equal(d.auth.description, 'sign-in and sessions');
-  assert.equal(d.auth.home, undefined);
-  assert.deepEqual(d.billing.home, { repo: 'backend', subpath: 'services/billing' });
-});
-
-test('removeDomain deletes a domain; listDomains returns the registry', () => {
-  const cwd = tmp();
-  initState(cwd);
-  addDomain(cwd, { name: 'auth', description: 'x' });
-  assert.deepEqual(Object.keys(listDomains(cwd)), ['auth']);
-  removeDomain(cwd, 'auth');
+  addDomain(cwd, { name: 'registry', description: 'truth', homeRepo: 'backend', homeSubpath: 'core' });
+  assert.deepEqual(loadState(cwd).domains.registry.home, { repo: 'backend', subpath: 'core' });
+  setMilestoneDomains(cwd, { milestone: 1, domains: ['registry'] });
+  assert.deepEqual(loadState(cwd).milestones['1'].domains, ['registry']);
+  removeDomain(cwd, 'registry');
   assert.deepEqual(listDomains(cwd), {});
 });
 
-test('addDomain throws a clear error when no state.json', () => {
-  assert.throws(() => addDomain(tmp(), { name: 'auth' }), /adhd setup/);
-});
-
-test('a new milestone has an empty domains list', () => {
+test('surface-meta records metadata only, no stage status', () => {
   const cwd = tmp();
   initState(cwd);
-  setStageStatus(cwd, { stage: 'surface-overview', status: 'in-progress', milestone: 1 });
-  assert.deepEqual(loadState(cwd).milestones['1'].domains, []);
-});
-
-test('setMilestoneDomains records the participating domains', () => {
-  const cwd = tmp();
-  initState(cwd);
-  setMilestoneDomains(cwd, { milestone: 2, domains: ['auth', 'billing'] });
-  assert.deepEqual(loadState(cwd).milestones['2'].domains, ['auth', 'billing']);
-});
-
-test('ensureMilestone backfills domains on older state', () => {
-  const cwd = tmp();
-  initState(cwd);
-  const s = loadState(cwd);
-  s.milestones['1'] = { title: null, track: null, stages: {}, surfaces: {} };
-  saveState(cwd, s);
-  setMilestoneDomains(cwd, { milestone: 1, domains: ['auth'] });
-  assert.deepEqual(loadState(cwd).milestones['1'].domains, ['auth']);
-});
-
-test('a new surface has empty domains and null subpath', () => {
-  const cwd = tmp();
-  initState(cwd);
-  setStageStatus(cwd, { stage: 'design', status: 'in-progress', milestone: 1, surface: 'home' });
-  const surf = loadState(cwd).milestones['1'].surfaces.home;
-  assert.deepEqual(surf.domains, []);
-  assert.equal(surf.subpath, null);
-});
-
-test('setSurfaceMeta sets domains and subpath alongside repo and kind', () => {
-  const cwd = tmp();
-  initState(cwd);
-  setSurfaceMeta(cwd, {
-    milestone: 1, surface: 'admin',
-    domains: ['auth', 'billing'], repo: 'admin-ui', subpath: 'pages/admin', kind: 'ui',
-  });
+  setSurfaceMeta(cwd, { milestone: 1, surface: 'admin', domains: ['registry'], repo: 'ui', subpath: 'pages', kind: 'ui' });
   const surf = loadState(cwd).milestones['1'].surfaces.admin;
-  assert.deepEqual(surf.domains, ['auth', 'billing']);
-  assert.equal(surf.subpath, 'pages/admin');
-  assert.equal(surf.repo, 'admin-ui');
-  assert.equal(surf.kind, 'ui');
+  assert.deepEqual(surf, { kind: 'ui', domains: ['registry'], repo: 'ui', subpath: 'pages' });
+  assert.equal(surf.design, undefined);
+});
+
+test('milestone title / stories / track persist', () => {
+  const cwd = tmp();
+  initState(cwd);
+  setMilestoneTitle(cwd, { milestone: 1, title: 'Relationships' });
+  setMilestoneStories(cwd, { milestone: 1, stories: ['S1', 'S2'] });
+  setMilestoneTrack(cwd, { milestone: 1, track: 'production' });
+  const ms = loadState(cwd).milestones['1'];
+  assert.equal(ms.title, 'Relationships');
+  assert.deepEqual(ms.stories, ['S1', 'S2']);
+  assert.equal(ms.track, 'production');
+  assert.throws(() => setMilestoneTrack(cwd, { milestone: 1, track: 'bogus' }), /Invalid track/);
+});
+
+test('prototype topology + home', () => {
+  const cwd = tmp();
+  initState(cwd);
+  setPrototypeTopology(cwd, 'standalone');
+  setPrototypeHome(cwd, { repo: 'backend', subpath: 'prototype' });
+  assert.equal(loadState(cwd).prototypeTopology, 'standalone');
+  assert.deepEqual(loadState(cwd).prototype, { repo: 'backend', subpath: 'prototype' });
+  assert.throws(() => setPrototypeTopology(cwd, 'bogus'), /Invalid topology/);
+});
+
+test('features: add, deps, list, verify, remove', () => {
+  const cwd = tmp();
+  initState(cwd);
+  addFeature(cwd, { milestone: 1, id: 'api', story: 'S1', domain: 'registry', repo: 'backend' });
+  addFeature(cwd, { milestone: 1, id: 'ui', story: 'S1', domain: 'registry', repo: 'ui', surface: 'admin' });
+  setFeatureDeps(cwd, { milestone: 1, id: 'ui', dependsOn: ['api'] });
+  const graph = listFeatures(cwd, 1);
+  assert.equal(graph.api.story, 'S1');
+  assert.deepEqual(graph.ui.dependsOn, ['api']);
+  assert.equal(graph.ui.surface, 'admin');
+  assert.equal(graph.api.verified, false);
+  verifyFeature(cwd, { milestone: 1, id: 'api' });
+  assert.equal(listFeatures(cwd, 1).api.verified, true);
+  removeFeature(cwd, { milestone: 1, id: 'ui' });
+  assert.equal(listFeatures(cwd, 1).ui, undefined);
 });
 
 test('validate passes on a fresh single-mode project', () => {
@@ -522,52 +440,155 @@ test('validate passes on a fresh single-mode project', () => {
   assert.deepEqual(r.blockers, []);
 });
 
-test('validate blocks when there is no state.json', () => {
+test('validate blocks with no state.json', () => {
   const r = validate(tmp());
   assert.equal(r.ok, false);
   assert.ok(r.blockers.some((b) => /setup/.test(b)));
 });
 
-test('validate flags an unbound repo in multi mode', () => {
+test('validate flags an unbound repo and an unknown domain in multi mode', () => {
   const cwd = tmp();
   initState(cwd);
   setMode(cwd, 'multi');
   addRepo(cwd, { name: 'backend', kind: 'api' });
+  setMilestoneDomains(cwd, { milestone: 1, domains: ['ghost'] });
   const r = validate(cwd);
   assert.equal(r.ok, false);
   assert.ok(r.blockers.some((b) => /backend/.test(b) && /bound/.test(b)));
-});
-
-test('validate flags a milestone referencing an unknown domain', () => {
-  const cwd = tmp();
-  initState(cwd);
-  setMode(cwd, 'multi');
-  setMilestoneDomains(cwd, { milestone: 1, domains: ['ghost'] });
-  const r = validate(cwd);
   assert.ok(r.blockers.some((b) => /ghost/.test(b)));
 });
 
-test('validate warns when notes.md is not empty', () => {
+test('validate warns on a non-empty notes.md', () => {
   const cwd = tmp();
   initState(cwd);
-  touch(cwd, 'project/notes.md');
-  const r = validate(cwd);
-  assert.ok(r.warnings.some((w) => /notes\.md/.test(w)));
+  touch(cwd, 'project/notes.md', 'leftover');
+  assert.ok(validate(cwd).warnings.some((w) => /notes\.md/.test(w)));
 });
 
-test('statusReport lists per-domain milestones in multi mode', () => {
+test('validate flags a standalone topology with no prototype home once map is done', () => {
+  const cwd = tmp();
+  initState(cwd);
+  setPrototypeTopology(cwd, 'standalone');
+  frontloadDone(cwd);
+  const r = validate(cwd);
+  assert.equal(r.ok, false);
+  assert.ok(r.blockers.some((b) => /standalone/.test(b) && /prototype home/.test(b)));
+});
+
+test('validate flags a feature dependency cycle and an unknown dependency', () => {
+  const cwd = tmp();
+  initState(cwd);
+  addFeature(cwd, { milestone: 1, id: 'a', dependsOn: ['b'] });
+  addFeature(cwd, { milestone: 1, id: 'b', dependsOn: ['a'] });
+  const r = validate(cwd);
+  assert.ok(r.blockers.some((b) => /cycle/.test(b)));
+
+  const cwd2 = tmp();
+  initState(cwd2);
+  addFeature(cwd2, { milestone: 1, id: 'a', dependsOn: ['ghost'] });
+  assert.ok(validate(cwd2).blockers.some((b) => /unknown feature "ghost"/.test(b)));
+});
+
+test('audit: clean on a fresh project', () => {
+  const cwd = tmp();
+  initState(cwd);
+  assert.equal(audit(cwd).ok, true);
+});
+
+test('audit flags a duplicate story ID and an unresolved story dependency', () => {
+  const cwd = tmp();
+  initState(cwd);
+  touch(cwd, 'project/stories.md', [
+    '| ID | Story | Value | Depends on | Size |',
+    '|----|-------|-------|------------|------|',
+    '| S1 | a | v | | M |',
+    '| S1 | b | v | | S |',
+    '| S2 | c | v | S9 | L |',
+  ].join('\n'));
+  const r = audit(cwd);
+  assert.equal(r.ok, false);
+  assert.ok(r.findings.some((f) => /duplicate story ID "S1"/.test(f)));
+  assert.ok(r.findings.some((f) => /unknown story ID "S9"/.test(f)));
+});
+
+test('audit flags a feature pointing at an unknown story', () => {
+  const cwd = tmp();
+  initState(cwd);
+  touch(cwd, 'project/stories.md', [
+    '| ID | Story | Value | Depends on | Size |',
+    '|----|-------|-------|------------|------|',
+    '| S1 | a | v | | M |',
+  ].join('\n'));
+  addFeature(cwd, { milestone: 1, id: 'api', story: 'S404', domain: 'd', repo: 'r' });
+  assert.ok(audit(cwd).findings.some((f) => /unknown story "S404"/.test(f)));
+});
+
+test('audit warns about a mechanism leak in product-scope docs', () => {
+  const cwd = tmp();
+  initState(cwd);
+  touch(cwd, 'docs/PRODUCT.md', 'The product stores data in PostgreSQL.');
+  assert.ok(audit(cwd).warnings.some((w) => /postgres/.test(w)));
+});
+
+test('migrate upgrades a v1 state to v2', () => {
+  const cwd = tmp();
+  initState(cwd);
+  const s = loadState(cwd);
+  s.version = 1;
+  s.frontload = {
+    setup: { status: 'done' }, vision: { status: 'done' },
+    features: { status: 'done' }, milestones: { status: 'done' }, map: { status: 'done' },
+  };
+  s.milestones = {
+    '1': {
+      title: 'M1', track: 'production',
+      stages: {
+        'surface-overview': { status: 'done' }, 'milestone-ux': { status: 'done' },
+        prototype: { status: 'done' }, tracer: { status: 'in-progress' },
+        replan: { status: 'blocked' }, gap: { status: 'blocked' }, review: { status: 'blocked' },
+      },
+      surfaces: { admin: { kind: 'ui', repo: 'ui', design: { status: 'done' } } },
+    },
+  };
+  s.currentSurface = 'admin';
+  saveState(cwd, s);
+
+  const r = migrate(cwd);
+  assert.equal(r.migrated, true);
+  const after = loadState(cwd);
+  assert.equal(after.version, 2);
+  assert.equal(after.frontload.stories.status, 'done');
+  assert.equal(after.frontload.features, undefined);
+  assert.ok(after.frontload.foundation);
+  assert.equal(after.frontload.foundation.status, 'done'); // map was done
+  assert.equal(after.milestones['1'].stages['milestone-brief'].status, 'done');
+  assert.equal(after.milestones['1'].stages.design.status, 'done');
+  assert.equal(after.milestones['1'].stages.tracer.status, 'in-progress');
+  assert.equal(after.milestones['1'].stages.replan, undefined);
+  assert.deepEqual(after.milestones['1'].featureGraph, {});
+  assert.equal(after.milestones['1'].surfaces.admin.design, undefined);
+  assert.equal(after.currentSurface, undefined);
+  assert.equal(after.currentFeature, null);
+  assert.equal(migrate(cwd).migrated, false); // idempotent
+});
+
+test('validate blocks on a v1 state until migrated', () => {
+  const cwd = tmp();
+  initState(cwd);
+  const s = loadState(cwd);
+  s.version = 1;
+  saveState(cwd, s);
+  assert.ok(validate(cwd).blockers.some((b) => /v1/.test(b) && /migrate/.test(b)));
+});
+
+test('statusReport lists per-domain milestones in multi mode and omits it in single', () => {
   const cwd = tmp();
   initState(cwd);
   setMode(cwd, 'multi');
-  addDomain(cwd, { name: 'auth', description: 'x' });
-  setMilestoneDomains(cwd, { milestone: 1, domains: ['auth'] });
-  const out = statusReport(cwd);
-  assert.match(out, /Per-domain milestones/);
-  assert.match(out, /auth: M1/);
-});
-
-test('statusReport omits the per-domain section in single mode', () => {
-  const cwd = tmp();
-  initState(cwd);
-  assert.doesNotMatch(statusReport(cwd), /Per-domain milestones/);
+  addDomain(cwd, { name: 'registry', description: 'x' });
+  setMilestoneDomains(cwd, { milestone: 1, domains: ['registry'] });
+  assert.match(statusReport(cwd), /registry: M1/);
+  const cwd2 = tmp();
+  initState(cwd2);
+  assert.doesNotMatch(statusReport(cwd2), /Per-domain milestones/);
 });

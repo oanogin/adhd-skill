@@ -11,8 +11,8 @@ export function handoffPrompt(cwd = process.cwd()) {
   const next = nextStage(cwd);
   const where = next.stage +
     (next.milestone ? ` — milestone ${next.milestone}` : '') +
-    (next.surface ? ` — surface ${next.surface}` : '');
-  const runArg = next.stage === 'next-milestone' ? 'surface-overview' : next.stage;
+    (next.feature ? ` — feature ${next.feature}` : '');
+  const runArg = next.stage === 'next-milestone' ? 'milestone-brief' : next.stage;
   return [
     'Resume the `adhd` conductor.',
     '',

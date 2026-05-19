@@ -49,10 +49,13 @@ Setup produces the canonical layout defined in `SKILL.md`:
 `project/state.json` is owned exclusively by `adhd-state.mjs`. Never hand-edit it —
 all reads and writes go through the script's subcommands.
 
-`setup` always scaffolds in `single` mode — `state.json` is created with
-`mode: "single"` and an empty `repos` registry. For a multi-repo product, run the
-`workspace` command after `setup` to switch to `multi` mode and register code
-repos; for an existing project, run `adopt` instead of the front-load stages.
+`setup` always scaffolds in `single` mode with `colocated` prototype topology —
+`state.json` is created with `mode: "single"`, an empty `repos` registry, and
+`prototypeTopology: "colocated"`. For a multi-repo product, or one whose prototype app
+is standalone (its own app or a separate repo from production), run the `workspace`
+command after `setup` to switch to `multi` mode, register code repos, and set the
+prototype topology; for an existing project, run `adopt` instead of the front-load
+stages.
 
 ## On completion
 1. Write the output file(s) above.

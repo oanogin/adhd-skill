@@ -48,7 +48,7 @@ If the gate reports `setup` is missing, HALT and tell the user to run
 1. Write the output file(s) above.
 2. `node {{scripts_path}}/adhd-state.mjs set vision done`
 3. `node {{scripts_path}}/adhd-state.mjs session-add vision`
-4. `node {{scripts_path}}/context-watch.mjs --next features` — if it advises a fresh
+4. `node {{scripts_path}}/context-watch.mjs --next stories` — if it advises a fresh
    session, run `node {{scripts_path}}/handoff-prompt.mjs` and give the user the prompt.
 5. Drain `project/notes.md`: migrate any durable entry to its canonical home; healthy = empty.
-6. Tell the user the next runnable stage is `features`.
+6. Tell the user the next runnable stage is `stories`.

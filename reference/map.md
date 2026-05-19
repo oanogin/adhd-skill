@@ -1,7 +1,7 @@
 # adhd — Map
 
 **Effort:** high
-**Gate:** `project/milestones.md` exists — the Milestones stage is done.
+**Gate:** the `foundation` stage is done.
 **Output:** `project/map.md` and `docs/GLOSSARY.md`.
 **Sub-skill:** none.
 
@@ -10,57 +10,50 @@ Run `node {{scripts_path}}/adhd-state.mjs gate map`.
 If it reports missing items, HALT. Tell the user exactly which predecessor stage to run.
 No skip, no override — this is the skill's central discipline.
 
-If the gate reports `milestones` (or `project/milestones.md`) is missing, HALT and
-tell the user to run `{{command_prefix}}adhd milestones` first.
+If the gate reports `foundation` is not done, HALT and tell the user to run
+`{{command_prefix}}adhd foundation` first.
 
 ## Procedure
-1. **Structural inventory only.** Map produces a sitemap, not detailed UX. List every
-   surface across all milestones — pages, screens, views, key flows — grouped by the
-   milestone that introduces it. Give each surface a one-line purpose. Do not design
-   layouts or interactions here; that is the per-surface Design stage's job.
-
-   For each surface, also record its `kind` (`ui` | `api` | `lib`). In `multi` mode,
-   record the `domains` it belongs to and its physical location (`repo` + optional
-   `subpath`). Persist all of it with
-   `node {{scripts_path}}/adhd-state.mjs surface-meta <name> --milestone <N> --domain <d1,d2> --kind <kind> [--repo <r>] [--subpath <p>]`
-   (`--domain`/`--repo`/`--subpath` apply only in `multi` mode). An `api`/`lib` surface
-   defaults its location from its domain's `home`; a shared-UI surface gets an explicit
-   `--repo`. The surface's own `kind` is authoritative.
+1. **Structural inventory only.** Map produces a sitemap, not detailed UX and not a
+   roadmap. List every surface the product is expected to have — pages, screens, views,
+   key flows, API contracts, shared libraries — as a flat catalog. Give each surface a
+   one-line purpose and its `kind` (`ui` | `api` | `lib`). Do NOT group surfaces by
+   milestone: there is no milestone plan yet. A milestone selects from this catalog at
+   `milestone-brief` time, and `surface-meta` records the per-milestone tagging then.
 2. **Define domains (`multi` mode only).** With the user, decompose the product into
    logical domains — each a named slice with a one-line description and an optional
    `home` (`repo` + `subpath`) for its backend code. Register each with
    `node {{scripts_path}}/adhd-state.mjs domain-add <name> --description <text> [--home-repo <r>] [--home-subpath <p>]`.
-   Then walk the milestone list and tag each milestone with the domains it touches:
-   `node {{scripts_path}}/adhd-state.mjs milestone-domains <d1,d2,...> --milestone <N>`.
-   In `single` mode skip this step entirely.
-3. **Sketch the domain glossary.** Identify the core concepts the product is about and
-   the relationships between them — each concept's name and what it represents in plain
+   In `single` mode skip this step.
+3. **List deployables.** Record the runnable/deployable units the product ships —
+   backend services, frontend apps, the prototype app — and which domains each carries.
+   This is a structural map, not a deployment spec.
+4. **Sketch the domain glossary.** Identify the core product concepts and the
+   relationships between them — each concept's name and what it represents in plain
    product terms. This is product vocabulary, NOT a data model: no field types, no
-   persistence, no schema, no database. Write the glossary to `docs/GLOSSARY.md`. The
-   data model (`docs/DATA.md`) is a tech artifact created later, only when a milestone
-   actually persists data — never here.
-4. **Write `project/map.md`.** Record the sitemap and overall structure, grouped by
-   milestone. Cross-reference `docs/GLOSSARY.md` so the structural map and the domain
-   glossary stay linked. Name capabilities, never mechanisms — no stack, framework,
-   database, or architecture appears in `map.md`.
+   persistence, no schema. Write it to `docs/GLOSSARY.md`. The data model
+   (`docs/DATA.md`) is a tech artifact authored later, only when a milestone persists
+   data.
+5. **Write `project/map.md`.** Record the surface catalog, the domains, and the
+   deployables. Cross-reference `docs/GLOSSARY.md`. Name capabilities, never mechanisms —
+   no stack, framework, database, or architecture in `map.md` (those live in
+   `docs/DECISIONS.md`).
 
 ## Output
-- `project/map.md` — a sitemap grouped by milestone. Each milestone heading lists its
-  surfaces, and each surface has a one-line purpose. Includes a cross-reference to
-  `docs/GLOSSARY.md`. In `multi` mode it also has a **Domains** section listing each
-  domain, its description, and its `home`; and each milestone heading notes the domains
-  it touches.
-- `docs/GLOSSARY.md` — the domain glossary: the core product concepts and the
-  relationships between them, in plain product terms. No field types, no schema, no
-  persistence.
+- `project/map.md` — a flat surface catalog (each surface: name, one-line purpose,
+  `kind`); in `multi` mode also a **Domains** section (name, description, `home`) and a
+  **Deployables** section (each deployable and the domains it carries). Cross-references
+  `docs/GLOSSARY.md`. A `ui` surface's `repo` is its **production** home; the prototype
+  app's home is the project-wide `state.json.prototype` pointer (set via `workspace`).
+- `docs/GLOSSARY.md` — the domain glossary: core product concepts and their
+  relationships, in plain product terms. No field types, no schema, no persistence.
 
 ## On completion
 1. Write the output file(s) above.
 2. `node {{scripts_path}}/adhd-state.mjs set map done`
 3. `node {{scripts_path}}/adhd-state.mjs session-add map`
-4. `node {{scripts_path}}/context-watch.mjs --next surface-overview` — if it advises a
-   fresh session, run `node {{scripts_path}}/handoff-prompt.mjs` and give the user the
-   prompt.
+4. `node {{scripts_path}}/context-watch.mjs --next milestone-brief` — if it advises a
+   fresh session, run `node {{scripts_path}}/handoff-prompt.mjs` and give the user the prompt.
 5. Drain `project/notes.md`: migrate any durable entry to its canonical home; healthy = empty.
-6. The front-load loop is now complete. Tell the user the next runnable stage is
-   `surface-overview` for milestone 1.
+6. The groundwork is complete. Tell the user the next runnable stage is
+   `milestone-brief` for milestone 1.
