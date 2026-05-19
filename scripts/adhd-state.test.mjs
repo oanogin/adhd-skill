@@ -10,7 +10,7 @@ import {
   sessionAdd, sessionReset, FRONTLOAD_STAGES, MILESTONE_STAGES, FEATURE_STAGES, STAGE_STATUSES,
   confirmPreflight, advanceMilestone, STATE_VERSION,
   setMode, addRepo, removeRepo, listRepos, setSurfaceMeta, SURFACE_KINDS, MODES,
-  setMilestoneTrack, setMilestoneTitle, setMilestoneStories,
+  setMilestoneTrack, setMilestoneTitle, setMilestoneStories, removeMilestone,
   addDomain, removeDomain, listDomains,
   bindRepo, unbindRepo, migrateRepos,
   setMilestoneDomains, validate, audit, migrate,
@@ -403,6 +403,26 @@ test('milestone title / stories / track persist', () => {
   assert.deepEqual(ms.stories, ['S1', 'S2']);
   assert.equal(ms.track, 'production');
   assert.throws(() => setMilestoneTrack(cwd, { milestone: 1, track: 'bogus' }), /Invalid track/);
+});
+
+test('removeMilestone deletes a clean future milestone, guards current and worked ones', () => {
+  const cwd = tmp();
+  initState(cwd);
+  setMilestoneDomains(cwd, { milestone: 2, domains: [] }); // creates an empty M2
+  const s = loadState(cwd); s.currentMilestone = 1; saveState(cwd, s);
+  removeMilestone(cwd, 2);
+  assert.equal(loadState(cwd).milestones['2'], undefined);
+  // the current milestone is guarded
+  setMilestoneDomains(cwd, { milestone: 1, domains: [] });
+  const s1 = loadState(cwd); s1.currentMilestone = 1; saveState(cwd, s1);
+  assert.throws(() => removeMilestone(cwd, 1), /current milestone/);
+  // a milestone with completed work is guarded
+  const s2 = loadState(cwd);
+  s2.milestones['4'] = { stages: { 'milestone-brief': { status: 'done' } }, featureGraph: {} };
+  saveState(cwd, s2);
+  assert.throws(() => removeMilestone(cwd, 4), /completed work/);
+  // an unknown milestone errors
+  assert.throws(() => removeMilestone(cwd, 9), /No milestone/);
 });
 
 test('prototype topology + home', () => {

@@ -265,8 +265,9 @@ These are not stages — they have no gates and no place in the stage flow:
   loop. See [reference/adopt.md](reference/adopt.md).
 
 The CLI also exposes `migrate` (upgrade a `version: 1` `state.json` to the current
-schema) and `audit` (a content check across the `.md` artifacts — see Cross-cutting
-rules).
+schema), `audit` (a content check across the `.md` artifacts — see Cross-cutting
+rules), and `milestone-remove <N>` (delete a milestone that has no completed work and
+is not the current one — for clearing a speculatively-created milestone).
 
 ## Routing
 
@@ -363,7 +364,7 @@ These are operational slips, not gate-skipping (gate rationalizations are tabled
 ## Scripts
 
 ```bash
-node {{scripts_path}}/adhd-state.mjs <init|read|status|next|set|gate|validate|audit|migrate|session-add|session-reset|preflight-confirm|advance-milestone|workspace-mode|workspace-add|workspace-remove|workspace-list|repo-bind|repo-unbind|migrate-repos|domain-add|domain-remove|domain-list|milestone-track|milestone-title|milestone-domains|milestone-stories|surface-meta|prototype-topology|prototype-home|feature-add|feature-dep|feature-remove|feature-list|feature-verify>
+node {{scripts_path}}/adhd-state.mjs <init|read|status|next|set|gate|validate|audit|migrate|session-add|session-reset|preflight-confirm|advance-milestone|workspace-mode|workspace-add|workspace-remove|workspace-list|repo-bind|repo-unbind|migrate-repos|domain-add|domain-remove|domain-list|milestone-track|milestone-title|milestone-domains|milestone-stories|milestone-remove|surface-meta|prototype-topology|prototype-home|feature-add|feature-dep|feature-remove|feature-list|feature-verify>
 node {{scripts_path}}/context-watch.mjs [--next <stage>]
 node {{scripts_path}}/handoff-prompt.mjs
 ```

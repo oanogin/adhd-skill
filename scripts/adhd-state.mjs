@@ -771,6 +771,25 @@ export function setMilestoneStories(cwd = process.cwd(), { milestone, stories })
   return state;
 }
 
+export function removeMilestone(cwd = process.cwd(), id) {
+  const state = loadState(cwd);
+  if (!state) throw new Error('No state.json — run `adhd setup` first.');
+  const key = String(id);
+  const ms = state.milestones?.[key];
+  if (!ms) throw new Error(`No milestone ${key}.`);
+  if (Number(key) === state.currentMilestone) {
+    throw new Error(`Milestone ${key} is the current milestone — cannot remove it.`);
+  }
+  const hasWork = Object.values(ms.stages ?? {}).some((s) => s.status === 'done')
+    || Object.keys(ms.featureGraph ?? {}).length > 0;
+  if (hasWork) {
+    throw new Error(`Milestone ${key} has completed work — refusing to remove. Edit state.json by hand if this is truly intended.`);
+  }
+  delete state.milestones[key];
+  saveState(cwd, state);
+  return state;
+}
+
 export function setPrototypeTopology(cwd = process.cwd(), topology) {
   if (!PROTOTYPE_TOPOLOGIES.includes(topology)) {
     throw new Error(`Invalid topology "${topology}". Valid: ${PROTOTYPE_TOPOLOGIES.join(', ')}`);
@@ -1091,6 +1110,17 @@ function main(argv) {
       console.log(`milestone ${s.currentMilestone} track = ${track}`);
       break;
     }
+    case 'milestone-remove': {
+      const [id] = rest;
+      if (!id) {
+        console.error('Usage: adhd-state.mjs milestone-remove <N>');
+        process.exitCode = 1;
+        break;
+      }
+      removeMilestone(cwd, Number(id));
+      console.log(`removed milestone ${id}`);
+      break;
+    }
     case 'milestone-title': {
       const title = rest.join(' ');
       if (!title) {
@@ -1199,7 +1229,7 @@ function main(argv) {
       break;
     }
     default:
-      console.error('Usage: adhd-state.mjs <init|read|status|next|set|gate|validate|audit|migrate|session-add|session-reset|preflight-confirm|advance-milestone|workspace-mode|workspace-add|workspace-remove|workspace-list|repo-bind|repo-unbind|migrate-repos|domain-add|domain-remove|domain-list|milestone-track|milestone-title|milestone-domains|milestone-stories|surface-meta|prototype-topology|prototype-home|feature-add|feature-dep|feature-remove|feature-list|feature-verify>');
+      console.error('Usage: adhd-state.mjs <init|read|status|next|set|gate|validate|audit|migrate|session-add|session-reset|preflight-confirm|advance-milestone|workspace-mode|workspace-add|workspace-remove|workspace-list|repo-bind|repo-unbind|migrate-repos|domain-add|domain-remove|domain-list|milestone-track|milestone-title|milestone-domains|milestone-stories|milestone-remove|surface-meta|prototype-topology|prototype-home|feature-add|feature-dep|feature-remove|feature-list|feature-verify>');
       process.exitCode = 1;
   }
 }
