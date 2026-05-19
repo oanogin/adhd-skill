@@ -17,7 +17,7 @@ If it reports missing items, HALT. Tell the user exactly which predecessor stage
 No skip, no override — this is the skill's central discipline.
 
 If the gate reports the plan file is missing, HALT and tell the user to run
-`{{command_prefix}}adhd plan --milestone {{N}} --feature {{feature}}` first. If it
+`adhd plan --milestone {{N}} --feature {{feature}}` first. If it
 reports unbuilt dependency features, HALT and tell the user to build those first — the
 DAG order is not optional.
 
@@ -30,7 +30,7 @@ DAG order is not optional.
    `m{{N}}/features.md`, resolve the repo's absolute local path via
    `node {{scripts_path}}/adhd-state.mjs workspace-list`, and `cd` into it before
    writing code. Honor that repo's own conventions (`CLAUDE.md`, etc.). If the repo is
-   unbound, HALT and tell the user to run `{{command_prefix}}adhd workspace`.
+   unbound, HALT and tell the user to run `adhd workspace`.
 2. **Verify before done.** When the whole plan is complete, run the feature's
    verification — the repo's tests, build, and type checks — and confirm it passes. Do
    not claim done on assertion alone; run the commands and read the output.

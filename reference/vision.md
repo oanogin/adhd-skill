@@ -11,7 +11,7 @@ If it reports missing items, HALT. Tell the user exactly which predecessor stage
 No skip, no override — this is the skill's central discipline.
 
 If the gate reports `setup` is missing, HALT and tell the user to run
-`{{command_prefix}}adhd setup` first.
+`adhd setup` first.
 
 ## Procedure
 1. **Interview the user.** Vision is a conversation, not a guess. Draw out, one topic

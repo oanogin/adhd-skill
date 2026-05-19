@@ -17,7 +17,7 @@ If it reports missing items, HALT. Tell the user exactly which predecessor stage
 No skip, no override — this is the skill's central discipline.
 
 If the gate reports `tracer` is not done, HALT and tell the user to run
-`{{command_prefix}}adhd tracer --milestone {{N}}` first. If it reports the milestone is
+`adhd tracer --milestone {{N}}` first. If it reports the milestone is
 "prototype-only", `features` does not apply — a prototype-only milestone goes from
 `design` straight to `review`.
 
@@ -27,7 +27,7 @@ If the gate reports `tracer` is not done, HALT and tell the user to run
    domain (one repo). A backend feature is a per-domain slice of the story; a frontend
    feature wires a surface to its backend. Reconcile against `m{{N}}/tracer.md`: where
    the tracer's backend reality contradicted the signed-off prototype, the **prototype
-   is corrected first** (re-run `{{command_prefix}}adhd design --milestone {{N}}`), then
+   is corrected first** (re-run `adhd design --milestone {{N}}`), then
    the features are written to match reality.
 2. **Write `m{{N}}/features.md`** as a table with exactly these columns:
 

@@ -15,7 +15,7 @@ If it reports missing items, HALT. Tell the user exactly which predecessor stage
 No skip, no override — this is the skill's central discipline.
 
 If the gate reports `vision` (or `docs/PRODUCT.md`) is missing, HALT and tell the user
-to run `{{command_prefix}}adhd vision` first.
+to run `adhd vision` first.
 
 ## Procedure
 1. **Brain-dump every envisioned story** with the user — the full, ambitious

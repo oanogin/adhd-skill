@@ -15,7 +15,7 @@ If it reports missing items, HALT. Tell the user exactly which predecessor stage
 No skip, no override — this is the skill's central discipline.
 
 If the gate reports `review` is not done, HALT and tell the user to run
-`{{command_prefix}}adhd review --milestone {{N}}` first.
+`adhd review --milestone {{N}}` first.
 
 ## Procedure
 1. **Drain and migrate `project/notes.md`.** It must end empty — migrate every durable

@@ -17,7 +17,7 @@ If it reports missing items, HALT. Tell the user exactly which predecessor stage
 No skip, no override — this is the skill's central discipline.
 
 If the gate reports `project/stories.md` is missing, HALT and tell the user to run
-`{{command_prefix}}adhd stories` first.
+`adhd stories` first.
 
 ## Procedure
 1. **Capture only the firm baseline.** With the user, write down the tech choices that

@@ -14,7 +14,7 @@ No skip, no override — this is the skill's central discipline.
 The gate is state-based and track-aware. A prototype-only milestone needs `design`
 done. A production-track milestone needs the `features` stage done and every feature
 both built and verified — if a feature is built but not verified, run
-`{{command_prefix}}adhd build` for it and complete its verification first.
+`adhd build` for it and complete its verification first.
 
 ## Procedure
 1. **Run a fresh-session audit.** Review is a clean-eyes pass once the milestone is

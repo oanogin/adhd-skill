@@ -13,9 +13,24 @@ skills own the work inside each stage.
 
 ## Invocation
 
-- `{{command_prefix}}adhd` — report progress (`adhd-state.mjs status`) and name the next runnable stage.
-- `{{command_prefix}}adhd <stage>` — run that stage. `<stage>` is one of the table below.
-- `{{command_prefix}}adhd <stage> <milestone|feature>` — run a stage for a specific milestone/feature.
+- `adhd` — report progress (`adhd-state.mjs status`) and name the next runnable stage.
+- `adhd <stage>` — run that stage. `<stage>` is one of the table below.
+- `adhd <stage> <milestone|feature>` — run a stage for a specific milestone/feature.
+
+On Claude Code, `adhd` is the `/adhd` slash command. On Codex, Cursor, and other
+agents there is no slash command — invoke the `adhd` skill directly (load this
+`SKILL.md` and follow it) with the stage as the argument. Throughout this skill the
+command is written as plain `adhd <stage>`.
+
+## Conventions
+
+**`{{scripts_path}}`** — every command below of the form `node {{scripts_path}}/...`
+uses this token. It is the `scripts/` directory of this skill's install directory:
+the folder you loaded this `SKILL.md` from, plus `/scripts`. Resolve it **once, now**,
+to a real absolute path and substitute it into every such command — never run the
+literal `{{scripts_path}}`. On a typical Claude Code global install it is
+`~/.claude/skills/adhd/scripts`; under `npx skills` or a plugin install it is wherever
+the skill was placed.
 
 ## Required-skill preflight (non-optional)
 

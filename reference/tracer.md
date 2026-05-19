@@ -11,7 +11,7 @@ If it reports missing items, HALT. Tell the user exactly which predecessor stage
 No skip, no override — this is the skill's central discipline.
 
 If the gate reports `design` is not done, HALT and tell the user to run
-`{{command_prefix}}adhd design --milestone {{N}}` first. If it reports the milestone is
+`adhd design --milestone {{N}}` first. If it reports the milestone is
 "prototype-only", `tracer` does not apply — a prototype-only milestone goes from
 `design` straight to `review`.
 
@@ -40,7 +40,7 @@ into features and built. It runs only on production-track milestones.
    In `multi` mode, read the slice surface's `repo` + `subpath` from `m{{N}}/brief.md`,
    then look up the repo's absolute local path via
    `node {{scripts_path}}/adhd-state.mjs workspace-list`. If the repo is unbound, HALT
-   and tell the user to run `{{command_prefix}}adhd workspace` to bind it; never guess a
+   and tell the user to run `adhd workspace` to bind it; never guess a
    path. The `tracer.md` notes always stay in the orchestration repo's `project/`.
 4. **Record findings in `m{{N}}/tracer.md`.** Write down what was built, what each risk
    class revealed against the real backend, and every surprise — a rule discovered, an

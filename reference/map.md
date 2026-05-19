@@ -11,7 +11,7 @@ If it reports missing items, HALT. Tell the user exactly which predecessor stage
 No skip, no override — this is the skill's central discipline.
 
 If the gate reports `foundation` is not done, HALT and tell the user to run
-`{{command_prefix}}adhd foundation` first.
+`adhd foundation` first.
 
 ## Procedure
 1. **Structural inventory only.** Map produces a sitemap, not detailed UX and not a

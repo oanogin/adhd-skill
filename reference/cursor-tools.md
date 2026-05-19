@@ -1,18 +1,18 @@
 # adhd — Cursor tool mapping
 
-The `adhd` skill is authored against Claude Code: its markdown uses placeholder
-tokens (`{{command_prefix}}`, `{{scripts_path}}`) and refers to Claude Code tool
-names (`Read`, `Write`, `Edit`, `Bash`). A Cursor agent running `adhd` resolves
-those tokens and tool names using the table below. The conceptual mapping —
-which capability fills which role — is what matters; nothing in `adhd` depends
-on a Claude-Code-specific tool.
+The `adhd` skill is authored against Claude Code: its markdown uses the placeholder
+token `{{scripts_path}}` (defined in `SKILL.md`, "Conventions") and refers to Claude
+Code tool names (`Read`, `Write`, `Edit`, `Bash`). A Cursor agent running `adhd`
+resolves the tool names using the table below; `{{scripts_path}}` it resolves exactly
+as `SKILL.md` says. The conceptual mapping — which capability fills which role — is
+what matters; nothing in `adhd` depends on a Claude-Code-specific tool. Cursor has no
+slash-command syntax for skills: invoke the `adhd` skill directly (load `SKILL.md` and
+follow it) with the stage as the argument.
 
 ## Mapping table
 
-| `adhd` token / Claude Code tool | Cursor equivalent |
+| Claude Code tool | Cursor equivalent |
 |---|---|
-| `{{command_prefix}}` | Cursor has no leading-slash command syntax for skills. Wherever a reference says `{{command_prefix}}adhd <stage>`, the Cursor agent instead invokes the `adhd` skill directly (load `SKILL.md` and follow it) with `<stage>` as the argument. Treat `{{command_prefix}}adhd` as "run the adhd skill". |
-| `{{scripts_path}}` | The absolute path `~/.claude/skills/adhd/scripts`. The three `.mjs` scripts there run unchanged under `node`, e.g. `node ~/.claude/skills/adhd/scripts/adhd-state.mjs status`. |
 | `Read` | Cursor's file-read tool — read a file's contents. |
 | `Write` | Cursor's file-creation / write tool — create a new file or overwrite an existing one. |
 | `Edit` | Cursor's file-edit tool — apply a targeted change (search-and-replace / diff) to an existing file. |

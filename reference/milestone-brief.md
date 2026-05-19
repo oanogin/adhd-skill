@@ -16,7 +16,7 @@ If it reports missing items, HALT. Tell the user exactly which predecessor stage
 No skip, no override — this is the skill's central discipline.
 
 If the gate reports `project/map.md` or `docs/GLOSSARY.md` is missing, HALT and tell
-the user to run `{{command_prefix}}adhd map` first.
+the user to run `adhd map` first.
 
 ## Procedure
 The whole stage writes one file — `m{{N}}/brief.md`. There are no state commands; the
