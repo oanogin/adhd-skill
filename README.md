@@ -210,6 +210,5 @@ Codex and Cursor are supported. See `reference/codex-tools.md` and
 
 - `SKILL.md` — router: stage table, gates, rules.
 - `reference/<stage>.md` — per-stage playbook, loaded on demand.
-- `scripts/` — `adhd-state.mjs` (state + CLI), `context-watch.mjs`,
-  `handoff-prompt.mjs`.
-- `docs/` — design spec and implementation plan (rationale; not loaded at runtime).
+- `scripts/` — `adhd-state.mjs` (read/derive + `config.json` CLI),
+  `context-watch.mjs`, `handoff-prompt.mjs`.
