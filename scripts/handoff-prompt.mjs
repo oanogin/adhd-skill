@@ -1,12 +1,12 @@
 // scripts/handoff-prompt.mjs
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { loadState, nextStage, statusReport } from './adhd-state.mjs';
+import { loadConfig, nextStage, statusReport } from './adhd-state.mjs';
 
 export function handoffPrompt(cwd = process.cwd()) {
-  const state = loadState(cwd);
-  if (!state) {
-    return 'No project/state.json found. Run `{{command_prefix}}adhd setup` to begin a new project.';
+  const config = loadConfig(cwd);
+  if (!config) {
+    return 'No project/config.json found. Run `{{command_prefix}}adhd setup` to begin a new project.';
   }
   const next = nextStage(cwd);
   const where = next.stage +

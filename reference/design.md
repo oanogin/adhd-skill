@@ -21,8 +21,8 @@ If the gate reports `milestone-brief` is not done, HALT and tell the user to run
 `{{command_prefix}}adhd milestone-brief --milestone {{N}}` first.
 
 ## Procedure
-1. **Design each surface.** For every surface in `m{{N}}/brief.md`, route by its `kind`
-   (read it with `node {{scripts_path}}/adhd-state.mjs surface-meta <name> --milestone {{N}}`):
+1. **Design each surface.** For every surface listed in `m{{N}}/brief.md`, route by its
+   `kind` (read it from the brief's surface list):
    - **`ui`** — `superpowers:brainstorming` for the UX (flows, states, interactions),
      then `impeccable` for the UI (layout, components, visual language). Have
      `impeccable` read `docs/PRODUCT.md` and `docs/DESIGN.md`.
@@ -34,10 +34,11 @@ If the gate reports `milestone-brief` is not done, HALT and tell the user to run
    security and error cases — field validation, empty/error states, edge inputs.
 2. **Build the `ui` surfaces into the prototype app.** Build each `ui` surface hi-fi on
    mock data, matching the design system via `impeccable`. Resolve the prototype app
-   location from `prototypeTopology` (see SKILL.md, "Prototype topology"): under
-   `colocated` build at `/p/<path>`; under `standalone` build into the project-wide
-   prototype app at `state.json.prototype`. Resolve any repo path via
-   `node {{scripts_path}}/adhd-state.mjs workspace-list`; HALT if a needed repo is unbound.
+   location from `prototypeTopology` in `project/config.json` (see SKILL.md, "Prototype
+   topology"): under `colocated` build at `/p/<path>`; under `standalone` build into the
+   project-wide prototype app at `config.json`'s `prototype` pointer. Resolve any repo
+   path via `node {{scripts_path}}/adhd-state.mjs workspace-list`; HALT if a needed repo
+   is unbound.
 3. **Wire the clickable prototype.** Assemble the milestone's `ui` surfaces into one
    runnable app — navigation, routing, shared mock state — clickable end to end. Use
    `impeccable craft` so the assembly matches the design system. Back `api`/`lib`
@@ -60,12 +61,12 @@ If the gate reports `milestone-brief` is not done, HALT and tell the user to run
 - `project/milestones/m{{N}}/design.md` — validation and sign-off notes.
 
 ## On completion
-1. Write the output file(s) above.
-2. `node {{scripts_path}}/adhd-state.mjs set design done --milestone {{N}}`
-3. `node {{scripts_path}}/adhd-state.mjs session-add design`
-4. `node {{scripts_path}}/context-watch.mjs --next <stage>` — `--next tracer` for a
+1. Write the output file(s) above — the stage is done the moment `m{{N}}/design.md`
+   exists.
+2. `node {{scripts_path}}/adhd-state.mjs session-add design`
+3. `node {{scripts_path}}/context-watch.mjs --next <stage>` — `--next tracer` for a
    production-track milestone, `--next review` for a prototype-only one. If it advises a
    fresh session, run `node {{scripts_path}}/handoff-prompt.mjs` and give the user the prompt.
-5. Drain `project/notes.md`: migrate any durable entry to its canonical home; healthy = empty.
-6. Tell the user the next runnable stage: `tracer` for a production-track milestone, or
+4. Drain `project/notes.md`: migrate any durable entry to its canonical home; healthy = empty.
+5. Tell the user the next runnable stage: `tracer` for a production-track milestone, or
    `review` for a prototype-only milestone.

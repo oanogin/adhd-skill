@@ -2,7 +2,7 @@
 
 **Effort:** high
 **Gate:** the milestone's `tracer` stage is done; production-track milestones only.
-**Output:** `project/milestones/m{{N}}/features.md` + the feature DAG in `state.json`.
+**Output:** `project/milestones/m{{N}}/features.md` — the feature DAG.
 **Sub-skill:** none.
 
 `features` decomposes the milestone's chosen stories into **features** — small,
@@ -29,28 +29,35 @@ If the gate reports `tracer` is not done, HALT and tell the user to run
    the tracer's backend reality contradicted the signed-off prototype, the **prototype
    is corrected first** (re-run `{{command_prefix}}adhd design --milestone {{N}}`), then
    the features are written to match reality.
-2. **Record each feature** in `state.json`:
-   `node {{scripts_path}}/adhd-state.mjs feature-add <id> --milestone {{N}} --story <s> --domain <d> --repo <r> [--surface <name>]`.
-   A frontend feature names the `--surface` it builds; a backend feature usually does not.
-3. **Wire the dependency edges.** A feature depends on another when it cannot be built
-   before it — most often a frontend feature depends on its backend feature, which is
-   how backend-before-frontend order is enforced. Record:
-   `node {{scripts_path}}/adhd-state.mjs feature-dep <id> --depends <f1,f2> --milestone {{N}}`.
-   The DAG must be acyclic — run `node {{scripts_path}}/adhd-state.mjs audit` to check.
-4. **Write `m{{N}}/features.md`** — the human-readable DAG: each feature with its story,
-   domain, repo, the surface it serves, and what it depends on.
+2. **Write `m{{N}}/features.md`** as a table with exactly these columns:
+
+   `| ID | Feature | Story | Domain | Repo | Depends on | Build | Verified |`
+
+   - `ID` — a stable short key for the feature (`f-registry-api`, `f1`, ...).
+   - `Story` — the parent story ID from `project/stories.md`.
+   - `Domain` / `Repo` — the one domain and the one repo the feature lives in.
+   - `Depends on` — comma-separated feature IDs this feature must be built after. A
+     frontend feature depends on its backend feature — that is how backend-before-
+     frontend order is enforced. The DAG must be acyclic.
+   - `Build` / `Verified` — leave **empty** now. `build` fills `Build` with `done` and
+     `Verified` with `yes` as each feature completes. The script parses this table for
+     the build-order gate.
+3. **Note the surface.** If a feature serves a specific surface, name it in the
+   `Feature` cell or an extra column — `plan` reads it to find the surface spec.
+4. **Check it.** Run `node {{scripts_path}}/adhd-state.mjs audit` — it flags unknown
+   stories, unknown repos, unknown dependency IDs, and dependency cycles.
 
 ## Output
-- the feature DAG in `state.json`, via `feature-add` / `feature-dep`.
-- `project/milestones/m{{N}}/features.md` — the readable DAG: every feature, its
-  story/domain/repo/surface, and its dependencies.
+`project/milestones/m{{N}}/features.md` — the feature DAG as a markdown table
+(`ID | Feature | Story | Domain | Repo | Depends on | Build | Verified`), one row per
+feature, `Build`/`Verified` empty. This table is the single source of truth for the
+DAG and, later, for per-feature build progress.
 
 ## On completion
-1. Write the output file(s) above.
-2. `node {{scripts_path}}/adhd-state.mjs set features done --milestone {{N}}`
-3. `node {{scripts_path}}/adhd-state.mjs session-add features`
-4. `node {{scripts_path}}/context-watch.mjs --next plan` — if it advises a fresh
+1. Write the output file — the stage is done the moment `m{{N}}/features.md` exists.
+2. `node {{scripts_path}}/adhd-state.mjs session-add features`
+3. `node {{scripts_path}}/context-watch.mjs --next plan` — if it advises a fresh
    session, run `node {{scripts_path}}/handoff-prompt.mjs` and give the user the prompt.
-5. Drain `project/notes.md`: migrate any durable entry to its canonical home; healthy = empty.
-6. Tell the user the next runnable stage is `plan` for the first feature of the DAG —
-   `node {{scripts_path}}/adhd-state.mjs next` names it.
+4. Drain `project/notes.md`: migrate any durable entry to its canonical home; healthy = empty.
+5. Tell the user the next runnable stage is `plan` for the first feature of the DAG —
+   `node {{scripts_path}}/adhd-state.mjs next --milestone {{N}}` names it.

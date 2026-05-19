@@ -18,10 +18,10 @@ the user to run `{{command_prefix}}adhd features --milestone {{N}}` first.
 
 ## Procedure
 1. **Write the implementation plan.** Run `superpowers:writing-plans` for the feature.
-   Read the feature's record (`node {{scripts_path}}/adhd-state.mjs feature-list --milestone {{N}}`)
-   — its story, domain, repo, and the surface it serves — and the relevant surface
-   spec(s) in `m{{N}}/surfaces/`. The plan turns the feature into an ordered set of
-   concrete implementation tasks for the Build stage.
+   Read the feature's row in `m{{N}}/features.md` — its story, domain, repo, and the
+   surface it serves — and the relevant surface spec(s) in `m{{N}}/surfaces/`. The plan
+   turns the feature into an ordered set of concrete implementation tasks for the Build
+   stage.
 2. **Override the plan output path.** `writing-plans` defaults to
    `docs/superpowers/plans/`. OVERRIDE that: save to the canonical target
    `project/milestones/m{{N}}/plans/{{feature}}.md`. Pass that path when invoking the
@@ -37,11 +37,11 @@ the user to run `{{command_prefix}}adhd features --milestone {{N}}` first.
 that take the feature through to working, verified code.
 
 ## On completion
-1. Write the output file(s) above.
-2. `node {{scripts_path}}/adhd-state.mjs set plan done --milestone {{N}} --feature {{feature}}`
-3. `node {{scripts_path}}/adhd-state.mjs session-add plan`
-4. `node {{scripts_path}}/context-watch.mjs --next build` — if it advises a fresh
+1. Write the output file(s) above — the feature is planned the moment
+   `m{{N}}/plans/{{feature}}.md` exists.
+2. `node {{scripts_path}}/adhd-state.mjs session-add plan`
+3. `node {{scripts_path}}/context-watch.mjs --next build` — if it advises a fresh
    session, run `node {{scripts_path}}/handoff-prompt.mjs` and give the user the prompt.
-5. Drain `project/notes.md`: migrate any durable entry to its canonical home; healthy = empty.
-6. Tell the user the next runnable stage is `build` for this feature — or `plan` for
-   the next feature; `node {{scripts_path}}/adhd-state.mjs next` names it.
+4. Drain `project/notes.md`: migrate any durable entry to its canonical home; healthy = empty.
+5. Tell the user the next runnable stage is `build` for this feature — or `plan` for
+   the next feature; `node {{scripts_path}}/adhd-state.mjs next --milestone {{N}}` names it.

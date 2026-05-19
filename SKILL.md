@@ -26,7 +26,7 @@ skills own the work inside each stage.
   The whole plugin is required, not just those three: other superpowers skills
   (e.g. `subagent-driven-development`, `systematic-debugging`) are useful during
   the build stage too.
-- the **`impeccable` skill** — UI design for the `design` and `build` stages.
+- the **`impeccable` skill** — UI design for the `design` stage.
 
 Before ANY file mutation, confirm both are available in the current agent.
 There is no programmatic probe — self-confirm: state, in the response, that the
@@ -36,8 +36,7 @@ them is the user's job.
 
 The Setup stage records this: after confirming both dependencies, it runs
 `node {{scripts_path}}/adhd-state.mjs preflight-confirm`, which writes
-`preflight.skillsConfirmed` in `state.json`. Later runs can inspect it with
-`node {{scripts_path}}/adhd-state.mjs read`.
+`preflight.skillsConfirmed` in `config.json`.
 
 Codex / Cursor agents must also state this line before mutating files:
 
@@ -47,9 +46,29 @@ ADHD_PREFLIGHT: skills=pass gate=pass|fail:<stage> mutation=open
 
 See `reference/codex-tools.md` and `reference/cursor-tools.md` for tool-name mappings.
 
+## The project IS its files
+
+`adhd` keeps no separate state database. The project's state is the `project/` and
+`docs/` tree itself:
+
+- **A stage is done the moment its artifact file exists.** `vision` is done when
+  `docs/PRODUCT.md` exists; `design` for milestone 2 is done when `m2/design.md`
+  exists. There is no status field. So: never create a stage's artifact file until the
+  stage is genuinely complete — write drafts to `notes.md`, create the canonical file
+  last.
+- **`project/config.json`** is the only non-doc file — the irreducible config: `mode`,
+  the `repos` registry, `prototypeTopology` + `prototype`, `preflight`. Mutate it only
+  through `adhd-state.mjs` config subcommands.
+- The agent reads and writes the `.md` artifacts directly. `adhd-state.mjs` is a
+  read/derive tool — `status`, `gate`, `next`, `validate`, `audit` — plus the
+  `config.json` writers. It does not own the project content.
+
+A project created before this model has a `project/state.json`; run
+`node {{scripts_path}}/adhd-state.mjs migrate` to convert it to `config.json`.
+
 ## Modes
 
-`adhd` runs in one of two modes, recorded in `project/state.json`:
+`adhd` runs in one of two modes, recorded in `project/config.json`:
 
 - **`single`** (default) — `project/` lives at the repo root; all work happens in
   this one repo. `setup` always scaffolds in `single` mode; nothing extra to do.
@@ -62,9 +81,7 @@ See `reference/codex-tools.md` and `reference/cursor-tools.md` for tool-name map
 
 In `multi` mode every `adhd` artifact still lives in the orchestration repo's
 `project/` and `docs/`. Only the code-writing stages (`design`, `tracer`, `build`)
-reach into a registered code repo, and only to write code there. A `state.json`
-written before these features (no `mode` / `repos` / `prototypeTopology` fields, or
-`version: 1`) must be upgraded with `node {{scripts_path}}/adhd-state.mjs migrate`.
+reach into a registered code repo, and only to write code there.
 
 ## Groundwork and per-milestone work
 
@@ -73,13 +90,14 @@ establishes the product and its structure. It is mostly run once — except `sto
 which is a **living backlog**: re-run it any time to add or change stories. There is
 **no pre-planned roadmap**: `adhd` keeps no list of future milestones.
 
-A **milestone** is formed just-in-time: `milestone-brief` is where you choose stories
-from the backlog and commit to delivering them. Then the per-milestone loop runs, the
-milestone is finalized, and the next one is formed the same way.
+A **milestone** is a folder, `project/milestones/m<N>/`. It is formed just-in-time:
+`milestone-brief` writes `m<N>/brief.md`, and that *is* the milestone. Milestones are
+**independent** — there is no global "current milestone" pointer, so two or three can
+be in flight at once (see "Working in parallel"). Each runs its own per-milestone loop.
 
 ## Canonical layout
 
-The Setup stage scaffolds this exact tree in every project. Never deviate.
+The Setup stage scaffolds this exact tree. The tree IS the project state.
 
 ```
 .ruler/                      agent instructions (ruler generates CLAUDE.md / AGENTS.md)
@@ -90,8 +108,9 @@ docs/
   DATA.md                    data model / schema — created lazily when a milestone persists data
   DECISIONS.md               decision log + firm tech baseline — Foundation seeds it
 project/
-  state.json                 progress, stage status, feature DAG, repo/domain registry, prototype topology
+  config.json                the only non-doc file — mode, repos, prototype topology, preflight
   repos.local.json           gitignored — per-user repo→path bindings (multi mode)
+  .session.json              gitignored — ephemeral context-watch scratch
   notes.md                   transient scratchpad (healthy = empty)
   stories.md                 Stories — the living story backlog
   map.md                     surface catalog + domains + deployables
@@ -100,7 +119,7 @@ project/
     surfaces/<name>.md       per-surface Design spec
     design.md                Design sign-off notes
     tracer.md                tracer slice notes (production-track)
-    features.md              feature DAG (production-track)
+    features.md              the feature DAG — a table with Build/Verified columns
     plans/<feature>.md       per-feature implementation Plan (production-track)
     review.md                milestone review-pass findings
     summary.md               Finalize — the milestone summary
@@ -108,19 +127,19 @@ project/
 
 ## Stages
 
-| Stage | Loop | Effort | Output | Sub-skill | Reference |
+| Stage | Loop | Effort | Artifact (exists ⇔ done) | Sub-skill | Reference |
 |---|---|---|---|---|---|
-| `setup` | groundwork | low | layout + `state.json` | none | [reference/setup.md](reference/setup.md) |
+| `setup` | groundwork | low | `project/config.json` | none | [reference/setup.md](reference/setup.md) |
 | `vision` | groundwork | high | `docs/PRODUCT.md` | none | [reference/vision.md](reference/vision.md) |
 | `stories` | groundwork (living) | medium | `project/stories.md` | none | [reference/stories.md](reference/stories.md) |
-| `foundation` | groundwork | medium | `docs/DECISIONS.md` | none | [reference/foundation.md](reference/foundation.md) |
-| `map` | groundwork | high | `project/map.md`, `docs/GLOSSARY.md` | none | [reference/map.md](reference/map.md) |
+| `foundation` | groundwork | medium | a logged decision in `docs/DECISIONS.md` | none | [reference/foundation.md](reference/foundation.md) |
+| `map` | groundwork | high | `project/map.md` + `docs/GLOSSARY.md` | none | [reference/map.md](reference/map.md) |
 | `milestone-brief` | per-milestone | medium | `m<N>/brief.md` | none | [reference/milestone-brief.md](reference/milestone-brief.md) |
-| `design` | per-milestone | high | `m<N>/surfaces/*` + `m<N>/design.md` + prototype | brainstorming + impeccable | [reference/design.md](reference/design.md) |
+| `design` | per-milestone | high | `m<N>/design.md` + `surfaces/*` + prototype | brainstorming + impeccable | [reference/design.md](reference/design.md) |
 | `tracer` | per-milestone (production) | high | `m<N>/tracer.md` + code | none | [reference/tracer.md](reference/tracer.md) |
-| `features` | per-milestone (production) | high | `m<N>/features.md` + feature DAG | none | [reference/features.md](reference/features.md) |
+| `features` | per-milestone (production) | high | `m<N>/features.md` (the DAG) | none | [reference/features.md](reference/features.md) |
 | `plan` | per-feature (production) | medium | `m<N>/plans/<feature>.md` | writing-plans | [reference/plan.md](reference/plan.md) |
-| `build` | per-feature (production) | medium | code + `state.json` | impeccable craft / executing-plans | [reference/build.md](reference/build.md) |
+| `build` | per-feature (production) | medium | code + `Build`/`Verified` in `features.md` | impeccable craft / executing-plans | [reference/build.md](reference/build.md) |
 | `review` | per-milestone | high | `m<N>/review.md` | none | [reference/review.md](reference/review.md) |
 | `finalize` | per-milestone | low | `m<N>/summary.md` | none | [reference/finalize.md](reference/finalize.md) |
 
@@ -130,10 +149,10 @@ milestone (`infra: none`) then goes straight to `review → finalize`. A
 **production-track** milestone instead continues `tracer → features`, then `plan →
 build` for every feature in dependency order, then `review → finalize`.
 
-After a milestone's `finalize`, `advance-milestone` bumps `currentMilestone`, clears
-`currentFeature`, and resets the context-watch session — the `finalize` stage runs it.
-Then `milestone-brief` forms the next milestone. When `adhd-state.mjs status` reports
-the next stage as `next-milestone`, this is the step it means.
+There is no "advance" step. The next milestone is created simply by running
+`milestone-brief` again — it writes a new `m<N>/` folder. `adhd-state.mjs status`
+shows every milestone's progress; `adhd-state.mjs next --milestone <N>` names the next
+stage for a specific one.
 
 ## Surfaces
 
@@ -151,43 +170,28 @@ as one unit, not a sub-tab or a single action. Decompose finer detail with **fea
 workspace into many surfaces. A milestone's prototype is the handful of `ui` surfaces
 it touches, wired together — keep that handful small and coherent.
 
-`kind` is assigned at `map` and confirmed at `milestone-brief`. The `design` stage
-routes by it:
+Surfaces are catalogued in `project/map.md` and selected into a milestone in
+`m<N>/brief.md` — plain markdown, authored directly. The `design` stage routes by
+`kind`: `ui` → brainstorming for UX then `impeccable` for UI; `api` → brainstorming
+then API-contract design; `lib` → brainstorming then a spec.
 
-- `ui` — brainstorming for UX, then `impeccable` for UI.
-- `api` — brainstorming for behavior and contract semantics, then API-contract
-  design (protobuf, OpenAPI, or similar). `impeccable` is not invoked.
-- `lib` — brainstorming for responsibility and public interface, then a spec only.
-
-Surfaces are **structural metadata** — `kind`, `domains`, `repo`, `subpath`. They have
-no per-surface stage status: `design` runs once per milestone over all of them, and
-`plan`/`build` operate on **features**, not surfaces. `milestone-brief` records each
-surface with
-`node {{scripts_path}}/adhd-state.mjs surface-meta <name> --milestone {{N}} --kind <kind> [--domain <d1,d2>] [--repo <repo>] [--subpath <path>]`.
-
-A surface's `repo`/`subpath` is its **production** home — and a `ui` surface is **not**
-the prototype. Every `ui` surface has two distinct realizations:
-
-- a presence in the **one prototype app** — automatic, built by `design`. The prototype
-  app is a single project-wide app (`state.json.prototype` under `standalone` topology;
-  the `/p/` route tree under `colocated`). It is never a per-surface location.
-- a **production home** — the surface's `repo`/`subpath`, a real production repo. For a
-  `ui` surface this is typically a frontend/microfront repo. It **may legitimately be
-  undecided** — leave `repo`/`subpath` unset until the production UI repo exists; that
-  is a normal state, not a gap. Never record the prototype app (its repo/subpath, or a
-  `prototype/` path) as a surface's production `repo` — that conflates the two, and
-  `audit` flags it.
+A surface's production home is the repo it ships from. A `ui` surface's production home
+is a frontend repo and **may be undecided** (`TBD`) — that is normal. A `ui` surface is
+**not** the prototype: the prototype app is one project-wide app (see "Prototype
+topology"), never a surface's production home.
 
 ## Features and the work DAG
 
 On a production-track milestone the `features` stage decomposes the milestone's chosen
 stories into **features** — small units of implementation work, each scoped to exactly
-one domain (one repo). A feature carries: its parent story, domain, repo, the surface
-it serves, and `dependsOn` edges to other features. The edges form a DAG, recorded in
-`state.json`; `plan` and `build` walk it in topological order. `build` of a feature is
-gated on every feature it `dependsOn` being built — which is how backend features land
-before the frontend features that wire them. `build` also records a per-feature
-`verified` flag; `review` cannot run until every feature is built **and** verified.
+one domain (one repo). The features live in `m<N>/features.md` as a table:
+`ID | Feature | Story | Domain | Repo | Depends on | Build | Verified`. The `Depends
+on` edges form a DAG. `build` is gated on every feature a feature `Depends on` showing
+`Build: done` — which is how backend features land before the frontend features that
+wire them. `build` fills the `Build` and `Verified` cells as each feature completes;
+`review` cannot run until every feature is `Build: done` and `Verified: yes`.
+`adhd-state.mjs` parses this table for the build-order gate — keep the column layout
+intact.
 
 ## Prototype and production apps
 
@@ -202,15 +206,14 @@ Every `adhd` project builds two apps that coexist even in `single` mode:
 The clickable prototype is built and signed off in `design` — **before** any backend,
 data store, or `tracer` decision. It is decoupled from `infra`: every milestone builds it.
 
-Each milestone has a **track**, set at `milestone-brief` from its `infra` field:
+Each milestone has a **track**, set at `milestone-brief` from its `infra` field and
+written as a `Track:` line in `brief.md`:
 
 - **prototype-only** (`infra: none`) — `milestone-brief → design → review → finalize`.
   The clickable prototype is the deliverable. No `tracer`, no production app, no data
   model, no database.
 - **production-track** (any real `infra`) — the same up to `design`, then continues
-  `tracer → features → plan → build → review → finalize`. `tracer` settles the data
-  store and proves backend reality; `features` decomposes the work; `build` builds the
-  production app.
+  `tracer → features → plan → build → review → finalize`.
 
 When real-backend reality contradicts the prototype, `features` updates the prototype
 FIRST (via `design`) — it stays the current reference, and the production app is moved
@@ -219,26 +222,19 @@ to match it.
 ### Prototype topology
 
 How the prototype app relates to the production app is a project-level setting,
-`prototypeTopology` in `state.json` — one of two values:
+`prototypeTopology` in `config.json`:
 
 - **`colocated`** (default) — the prototype lives in the **same codebase and framework
-  as the production app**, mounted under the **`/p/` route prefix**, backed by a
-  mock-data layer. A production surface at `/<path>` has its prototype at `/p/<path>`.
+  as the production app**, under the **`/p/` route prefix**. A production surface at
+  `/<path>` has its prototype at `/p/<path>`.
 - **`standalone`** — the prototype is its **own app**, separate from production, with
-  its own repo and possibly its own framework. There is no `/p/` prefix. The prototype
-  app's location is recorded once, project-wide, in `state.json.prototype`
-  (`repo` + `subpath`). A `ui` surface's own `repo`/`subpath` is then its
-  **production** home — a separate repo from the prototype.
+  its own repo and possibly its own framework. There is no `/p/` prefix. Its location
+  is recorded once, project-wide, in `config.json`'s `prototype` (`repo` + `subpath`).
 
-`setup` scaffolds `colocated`. Switch to `standalone` and set the prototype home with
-the `workspace` command:
-`adhd-state.mjs prototype-topology standalone`, then
-`adhd-state.mjs prototype-home --repo <name> --subpath <path>` (`--repo` names a
-registered repo, or is omitted to mean the orchestration repo).
-
-Either way the prototype app is the persistent, always-current UX reference and is
-never thrown away. Whether the prototype is reachable in the deployed production build
-is a project decision for `docs/DECISIONS.md`.
+`setup` scaffolds `colocated`. Switch with the `workspace` command:
+`adhd-state.mjs prototype-topology standalone`, then `adhd-state.mjs prototype-home
+--repo <name> --subpath <path>` (`--repo` names a registered repo, or is omitted to
+mean the orchestration repo).
 
 ## Hard gates
 
@@ -247,11 +243,12 @@ This is the skill's central discipline.
 
 Every stage's reference file begins with a gate check:
 `node {{scripts_path}}/adhd-state.mjs gate <stage> [--milestone N] [--feature name]`.
-If it reports `missing`, HALT and tell the user which predecessor stage to run.
+The gate checks whether the predecessor **artifact files exist** (and, for `build`,
+parses `features.md` for dependency order). If it reports `missing`, HALT and tell the
+user which predecessor stage to run.
 
-**Violating the letter of the gates is violating the spirit of `adhd`.** The whole
-skill IS the gate discipline. A "harmless" skip is exactly the failure mode it exists
-to prevent.
+**Violating the letter of the gates is violating the spirit of `adhd`.** A "harmless"
+skip is exactly the failure mode it exists to prevent.
 
 ### Red flags — STOP
 
@@ -261,6 +258,7 @@ You are about to break a gate if you catch yourself thinking any of these:
 - "This project is small / just a prototype, gates are overkill here."
 - "Setup/vision is obvious, I'll start a stage or two in."
 - "The gate says `missing` but I already know the answer in my head."
+- "I'll create the artifact file now and finish the stage's work after."
 - "I'll run the stage but skip its reference file — I remember the procedure."
 - "User said go fast / no clarifying questions, so gates don't apply."
 - "One `git commit` without an explicit ok is fine, it's clearly wanted."
@@ -275,9 +273,25 @@ Each of these means: STOP. Run the gate. Run the missing predecessor stage.
 | "User wants code now." | `adhd`'s value is code that fits a plan. Skipping the plan is the exact thing the user invoked `adhd` to prevent. |
 | "I know the predecessor's output — no need to run it." | The output is a file later stages and fresh sessions read. In-your-head ≠ on disk. Run the stage. |
 | "'No clarifying questions' means skip gates." | That instruction sets pace, not discipline. A gate is not a question. |
-| "The gate is a false positive." | The gate reads `state.json`. If it says `missing`, the artifact is missing. Fix the artifact, never the gate. |
+| "The gate is a false positive." | The gate checks whether the artifact file exists. If it says missing, the file is missing. Produce the artifact, never fake the check. |
+| "I'll create the file now, finish the work later." | The artifact's existence IS the done signal — later stages and gates trust it. An empty/stub file is a broken gate. Create it only when the stage is truly complete. |
 | "I'll backfill the skipped stage afterward." | Later lacks the context this stage has now. Stages are ordered because each feeds the next. |
 | "One commit without explicit ok is harmless." | The commit gate has zero exceptions. Ask first. |
+
+## Working in parallel
+
+Milestones are independent `m<N>/` folders with no shared pointer, so several can be
+in flight at once. Within a production milestone, `plan`/`build` run per feature, and
+the `features.md` DAG marks which features are independent — those parallelize. Three
+people = three independent features (or three milestones).
+
+- **Code** goes on git branches per feature, per repo — normal PR flow.
+- **The orchestration `project/` tree** is shared coordination state — keep its
+  `.md` edits on one branch. Different `m<N>/` folders and different `features.md`
+  files rarely collide; `config.json` changes rarely. There is no single mutated
+  state file to fight over.
+- A feature's `build` gate blocks until its dependency features are built — the DAG
+  enforces order across people automatically.
 
 ## Management commands
 
@@ -288,10 +302,10 @@ These are not stages — they have no gates and no place in the stage flow:
 - `adopt` — bring an existing project under `adhd`; substitutes for the groundwork
   loop. See [reference/adopt.md](reference/adopt.md).
 
-The CLI also exposes `migrate` (upgrade a `version: 1` `state.json` to the current
-schema), `audit` (a content check across the `.md` artifacts — see Cross-cutting
-rules), and `milestone-remove <N>` (delete a milestone that has no completed work and
-is not the current one — for clearing a speculatively-created milestone).
+The CLI also exposes `migrate` (convert a legacy `state.json` to `config.json`) and
+`audit` (a content check across the `.md` artifacts — see Cross-cutting rules). To
+drop a milestone, delete its `m<N>/` folder; to drop a surface or feature, edit the
+markdown — there are no special commands.
 
 ## Routing
 
@@ -315,19 +329,16 @@ is not the current one — for clearing a speculatively-created milestone).
    - state the routing decision, then proceed — confirming with the user first
      when the task is ambiguous or the action mutates files.
 
-If `state.json` does not exist, the only runnable stage is `setup`.
+If `project/config.json` does not exist, the only runnable stage is `setup`.
 
 ## Cross-cutting rules (active in every stage)
 
 - **Hard gates** — see above. Never bypass.
-- **Single source of truth** — every fact has exactly one owning artifact. Other
-  artifacts reference it; they never re-state it, and no stage back-fills a fact into a
-  second file. Surface, domain, repo, track, feature-DAG, and topology metadata live
-  only in `state.json` (set via `adhd-state.mjs`). The story backlog lives only in
-  `project/stories.md`. A `.md` file may *render* a `state.json` fact for human
-  reading, but the CLI write is authoritative — never hand-sync the two. Run
-  `node {{scripts_path}}/adhd-state.mjs audit` to catch drift, orphans, and misplaced
-  info across the `.md` artifacts.
+- **The files are the truth** — every fact has exactly one home. `config.json` holds
+  the non-doc config; everything else is a `.md` artifact. A stage's artifact file is
+  the sole record that the stage ran — there is no second status store, so never
+  pre-create an artifact. Run `node {{scripts_path}}/adhd-state.mjs audit` to catch
+  drift, orphans, and misplaced info across the markdown.
 - **Effort hints** — each stage carries a suggested reasoning effort; surface it to the user.
 - **Context watch** — after each stage run `context-watch.mjs`; if it advises a fresh
   session, run `handoff-prompt.mjs` and give the user the resume prompt.
@@ -345,16 +356,14 @@ If `state.json` does not exist, the only runnable stage is `setup`.
   and smuggles in scope assumptions. Say "Milestone 1" or "the first valuable product".
 - **Capability, not mechanism** — the product-scope stages (`vision`, `stories`, `map`)
   describe *what the product does* in capability terms ("data persists", "users sign
-  in", "results update live"). They never name a mechanism — no stack, framework,
-  database, or architecture. The firm tech baseline is logged by `foundation` in
-  `docs/DECISIONS.md`; per-feature mechanisms are settled at `tracer`.
+  in"). They never name a mechanism — no stack, framework, database, or architecture.
+  The firm tech baseline is logged by `foundation` in `docs/DECISIONS.md`; per-feature
+  mechanisms are settled at `tracer`.
 - **Tech at the latest responsible moment** — `foundation` records only the firm,
   known-from-the-start baseline (languages, frontend framework, repo topology). Every
   other stack/architecture decision is made by the milestone that first needs the
-  capability, never earlier, and logged in `docs/DECISIONS.md`. A milestone whose infra
-  need is "none" is a valid, fully-working UX prototype — mock data, no data model, no
-  database. The data model lives in `docs/DATA.md`, created lazily the first time a
-  milestone persists real data.
+  capability, never earlier, and logged in `docs/DECISIONS.md`. The data model lives in
+  `docs/DATA.md`, created lazily the first time a milestone persists real data.
 - **notes.md discipline** — `project/notes.md` is a transient scratchpad, read first
   every session, healthy when empty. Migrate anything durable to its canonical home
   (`DECISIONS.md`, `GLOSSARY.md`, `DATA.md`, a surface spec, `.ruler/`).
@@ -374,21 +383,22 @@ These are operational slips, not gate-skipping (gate rationalizations are tabled
 
 | Mistake | Fix |
 |---|---|
-| Hand-editing `project/state.json`. | It is owned by `adhd-state.mjs`. Mutate it only through CLI subcommands — hand edits desync gates, the feature DAG, and the effort log. |
-| Running a stage from memory, skipping its `reference/<stage>.md`. | Always load the reference file. It owns the gate check, procedure, and completion steps; memory drifts from the current version. |
+| Hand-editing `project/config.json`. | It is owned by `adhd-state.mjs`. Mutate it only through the config subcommands. |
+| Creating a stage's artifact file before the stage's work is complete. | Existence = done. Draft in `notes.md`; create the canonical file last. |
+| Running a stage from memory, skipping its `reference/<stage>.md`. | Always load the reference file — it owns the gate check, procedure, and completion steps. |
 | Letting sub-skills write to their default `docs/superpowers/` paths. | Pass the canonical target on every invocation — specs to `project/milestones/m<N>/surfaces/`, plans to `.../plans/`. |
 | Treating `project/notes.md` as durable storage. | It is a transient scratchpad. Migrate durable facts to `DECISIONS.md`, `GLOSSARY.md`, a surface spec, or `.ruler/`. Healthy `notes.md` is empty. |
 | Invoking `impeccable` for an `api` or `lib` surface. | `impeccable` runs only for `ui` surfaces. `api` → contract design; `lib` → spec only. |
-| Forgetting `advance-milestone` — the `finalize` stage runs it. | Without it `currentMilestone` never bumps and `status` keeps reporting the finished milestone. |
+| Breaking the `features.md` column layout. | `adhd-state.mjs` parses that table for the build-order gate — keep `ID | Feature | Story | Domain | Repo | Depends on | Build | Verified`. |
 | In `multi` mode, writing `project/` or `docs/` artifacts into a code repo. | All `adhd` artifacts live in the orchestration repo. Only the code-writing stages (`design`, `tracer`, `build`) touch a registered code repo, and only to write code. |
 | Bolting a mid-project story idea onto the current milestone. | File it to `stories.md` and let a future `milestone-brief` pick it up. Soft-warn if it would expand the current milestone. |
-| Building a feature before its `dependsOn` features. | The DAG order is enforced by the `build` gate — build the dependency features first. |
-| Building a `ui` surface's production code into the prototype app (or vice versa). | Under `standalone` topology they are different repos. `design` writes the prototype app (`state.json.prototype`); `build` writes the feature's production `repo`. |
+| Building a feature before its `Depends on` features. | The DAG order is enforced by the `build` gate — build the dependency features first. |
+| Building a `ui` surface's production code into the prototype app (or vice versa). | Under `standalone` topology they are different repos. `design` writes the prototype app; `build` writes the feature's production `repo`. |
 
 ## Scripts
 
 ```bash
-node {{scripts_path}}/adhd-state.mjs <init|read|status|next|set|gate|validate|audit|migrate|session-add|session-reset|preflight-confirm|advance-milestone|workspace-mode|workspace-add|workspace-remove|workspace-list|repo-bind|repo-unbind|migrate-repos|domain-add|domain-remove|domain-list|milestone-track|milestone-title|milestone-domains|milestone-stories|milestone-remove|surface-meta|surface-remove|prototype-topology|prototype-home|feature-add|feature-dep|feature-remove|feature-list|feature-verify>
+node {{scripts_path}}/adhd-state.mjs <init|read|status|next|gate|validate|audit|migrate|session-add|session-reset|preflight-confirm|workspace-mode|workspace-add|workspace-remove|workspace-list|repo-bind|repo-unbind|prototype-topology|prototype-home>
 node {{scripts_path}}/context-watch.mjs [--next <stage>]
 node {{scripts_path}}/handoff-prompt.mjs
 ```

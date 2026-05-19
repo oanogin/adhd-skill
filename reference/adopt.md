@@ -15,8 +15,8 @@ A repo is `adhd`-adoptable when:
   is a monorepo registered as one repo.
 - Its own reference documentation (architecture, data model, operations) lives in
   the repo's own `docs/`.
-- It contains no `adhd` workflow artifacts. `project/`, surface specs, plans, and
-  `state.json` live only in the orchestration repo. A code repo is a build target,
+- It contains no `adhd` workflow artifacts. `project/` (every `.md` artifact and
+  `config.json`) lives only in the orchestration repo. A code repo is a build target,
   never an `adhd` workspace — unless it is itself the orchestration repo.
 
 If a target repo does not meet these guidelines, note the cleanup as its own
@@ -24,7 +24,7 @@ milestone or a `docs/DECISIONS.md` entry. `adopt` does not block on it.
 
 ## Procedure
 
-1. **Preconditions.** `project/state.json` must exist (run `setup` first). In
+1. **Preconditions.** `project/config.json` must exist (run `setup` first). In
    `multi` mode, the code repos must already be registered (run `workspace` first). If
    the existing project's prototype is a standalone app (its own repo or separate from
    production), the `workspace` run should also set `standalone` prototype topology and
@@ -49,15 +49,14 @@ milestone or a `docs/DECISIONS.md` entry. `adopt` does not block on it.
 4. **Never invent.** Where the source docs do not cover something, flag the gap and ask
    the user — do not fabricate vision, scope, or stories. Same discipline as the
    `vision` stage.
-5. **Record completion.** After the user confirms each artifact, write the
-   canonical file, then mark the matching groundwork stage `done`:
-   `node {{scripts_path}}/adhd-state.mjs set vision done`,
-   `... set stories done`, `... set foundation done`, `... set map done`.
-   (`setup` is already `done` once `state.json` exists.)
+5. **Record completion.** After the user confirms each artifact, write the canonical
+   file. A groundwork stage is done the moment its artifact exists — there is no
+   separate completion command. (`setup` is already done once `config.json` exists;
+   `foundation` is done once `docs/DECISIONS.md` carries a logged decision.)
 
 ## On completion
 
-1. Confirm all five groundwork stages are `done`
+1. Confirm all five groundwork stages register as done
    (`node {{scripts_path}}/adhd-state.mjs status`).
 2. The project now resumes at the per-milestone loop exactly as a groundwork-loaded
    project would. Tell the user the next runnable stage is `milestone-brief` for

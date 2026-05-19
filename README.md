@@ -87,12 +87,16 @@ PER-MILESTONE LOOP
     tracer → features
     plan → build  (every feature — DAG order, the production app)
     review
-  → finalize → advance-milestone → next milestone
+  → finalize → next milestone (a new m<N>/ folder)
 ```
+
+Milestones are independent `m<N>/` folders — no global pointer, so two or three can be
+in flight at once. The next milestone is started simply by running `milestone-brief`
+again.
 
 | Stage | Does | Output |
 |---|---|---|
-| setup | scaffold layout, init `state.json` | folder tree |
+| setup | scaffold layout, init `config.json` | folder tree |
 | vision | product, users, usage | `docs/PRODUCT.md` |
 | stories | brain-dump every story — the living "spaceship" backlog | `project/stories.md` |
 | foundation | the firm tech baseline — no full arch | `docs/DECISIONS.md` |
@@ -147,13 +151,16 @@ A stage refuses to run unless every predecessor's output exists. **No skip, no
 override.** If a gate fails, `adhd` halts and names the predecessor stage to run.
 This is the skill's central discipline — it is not a bug when a stage refuses.
 
-The gate is mechanical: it reads `state.json`, not intent. "Small project", "just
-a prototype", "go fast", or "I already know the answer" do not open it — `adhd`
-treats those as the failure mode the gate exists to catch, and the only way past
-is to run the missing stage. The commit gate is absolute: no `git commit` without
-your explicit "ok".
+The gate is mechanical: it checks whether the predecessor **artifact files exist** on
+disk, not your intent. A stage is done the moment its artifact exists — so never
+create that file before the stage's work is truly complete. "Small project", "just a
+prototype", "go fast", or "I already know the answer" do not open a gate. The commit
+gate is absolute: no `git commit` without your explicit "ok".
 
 ## What it creates in your project
+
+The project's state IS this tree — there is no separate database. A stage is done
+when its artifact file exists.
 
 ```
 .ruler/                  agent instructions
@@ -161,16 +168,17 @@ docs/
   PRODUCT.md  DESIGN.md  GLOSSARY.md  DECISIONS.md
   DATA.md                data model — created lazily, only once a milestone persists data
 project/
-  state.json             workflow progress + feature DAG — never hand-edit
+  config.json            the only non-doc file — mode, repos, prototype topology
   repos.local.json       gitignored — per-user repo→path bindings (multi mode)
+  .session.json          gitignored — ephemeral context-watch scratch
   notes.md               transient scratchpad — healthy when empty
   stories.md             the living story backlog
   map.md                 surface catalog + domains + deployables
-  milestones/m<N>/        brief, surfaces/, design, tracer, features, plans/, review, summary
+  milestones/m<N>/        brief, surfaces/, design, tracer, features (the DAG), plans/, review, summary
 ```
 
-`project/state.json` is owned by `scripts/adhd-state.mjs`. Never edit it by hand;
-use the CLI (`/adhd` drives it for you).
+`project/config.json` is owned by `scripts/adhd-state.mjs` — mutate it via the CLI,
+not by hand. Everything else is plain markdown you (and `adhd`) edit directly.
 
 ## Rules worth knowing
 

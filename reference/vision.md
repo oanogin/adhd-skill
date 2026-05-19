@@ -1,7 +1,7 @@
 # adhd — Vision
 
 **Effort:** high
-**Gate:** `setup` is done — the canonical layout and `project/state.json` exist.
+**Gate:** `setup` is done — the canonical layout and `project/config.json` exist.
 **Output:** `docs/PRODUCT.md`.
 **Sub-skill:** none.
 
@@ -45,10 +45,9 @@ If the gate reports `setup` is missing, HALT and tell the user to run
 7. `## Strategic principles` — the durable principles guiding later decisions.
 
 ## On completion
-1. Write the output file(s) above.
-2. `node {{scripts_path}}/adhd-state.mjs set vision done`
-3. `node {{scripts_path}}/adhd-state.mjs session-add vision`
-4. `node {{scripts_path}}/context-watch.mjs --next stories` — if it advises a fresh
+1. Write the output file(s) above — the stage is done the moment `docs/PRODUCT.md` exists.
+2. `node {{scripts_path}}/adhd-state.mjs session-add vision`
+3. `node {{scripts_path}}/context-watch.mjs --next stories` — if it advises a fresh
    session, run `node {{scripts_path}}/handoff-prompt.mjs` and give the user the prompt.
-5. Drain `project/notes.md`: migrate any durable entry to its canonical home; healthy = empty.
-6. Tell the user the next runnable stage is `stories`.
+4. Drain `project/notes.md`: migrate any durable entry to its canonical home; healthy = empty.
+5. Tell the user the next runnable stage is `stories`.

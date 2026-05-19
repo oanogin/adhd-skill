@@ -46,12 +46,11 @@ to run `{{command_prefix}}adhd vision` first.
   decisions deferred to a later `milestone-brief`.
 
 ## On completion
-1. Write the output file.
-2. `node {{scripts_path}}/adhd-state.mjs set stories done` — on a re-run the stage
-   stays `done`; simply re-run `{{command_prefix}}adhd stories` to amend the backlog.
-3. `node {{scripts_path}}/adhd-state.mjs session-add stories`
-4. `node {{scripts_path}}/context-watch.mjs --next foundation` — if it advises a fresh
+1. Write the output file — the stage is done the moment `project/stories.md` exists.
+   `stories` is re-runnable: simply edit the file again to amend the backlog.
+2. `node {{scripts_path}}/adhd-state.mjs session-add stories`
+3. `node {{scripts_path}}/context-watch.mjs --next foundation` — if it advises a fresh
    session, run `node {{scripts_path}}/handoff-prompt.mjs` and give the user the prompt.
-5. Drain `project/notes.md`: migrate any durable entry to its canonical home; healthy = empty.
-6. On the first run, tell the user the next runnable stage is `foundation`. On a
+4. Drain `project/notes.md`: migrate any durable entry to its canonical home; healthy = empty.
+5. On the first run, tell the user the next runnable stage is `foundation`. On a
    mid-project amend, point them back to the per-milestone stage they were in.

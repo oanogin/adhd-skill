@@ -37,8 +37,7 @@ into features and built. It runs only on production-track milestones.
    ship the surface. Build only enough to make each risk class real; leave the polish
    and the remaining work for the `features` decomposition and the per-feature stages.
 
-   In `multi` mode, resolve the slice's target location from the surface's `repo` +
-   `subpath` (`node {{scripts_path}}/adhd-state.mjs surface-meta <name> --milestone {{N}}`),
+   In `multi` mode, read the slice surface's `repo` + `subpath` from `m{{N}}/brief.md`,
    then look up the repo's absolute local path via
    `node {{scripts_path}}/adhd-state.mjs workspace-list`. If the repo is unbound, HALT
    and tell the user to run `{{command_prefix}}adhd workspace` to bind it; never guess a
@@ -63,10 +62,9 @@ The tracer code itself is also produced, committed only after the user's explici
 `docs/DATA.md` is authored here if the slice persists data.
 
 ## On completion
-1. Write the output file(s) above.
-2. `node {{scripts_path}}/adhd-state.mjs set tracer done --milestone {{N}}`
-3. `node {{scripts_path}}/adhd-state.mjs session-add tracer`
-4. `node {{scripts_path}}/context-watch.mjs --next features` — if it advises a fresh
+1. Write the output file(s) above — tracer is done the moment `m{{N}}/tracer.md` exists.
+2. `node {{scripts_path}}/adhd-state.mjs session-add tracer`
+3. `node {{scripts_path}}/context-watch.mjs --next features` — if it advises a fresh
    session, run `node {{scripts_path}}/handoff-prompt.mjs` and give the user the prompt.
-5. Drain `project/notes.md`: migrate any durable entry to its canonical home; healthy = empty.
-6. Tell the user the next runnable stage is `features` for milestone {{N}}.
+4. Drain `project/notes.md`: migrate any durable entry to its canonical home; healthy = empty.
+5. Tell the user the next runnable stage is `features` for milestone {{N}}.

@@ -1,7 +1,7 @@
 // scripts/context-watch.mjs
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { loadState, STAGE_EFFORT, EFFORT_WEIGHT } from './adhd-state.mjs';
+import { loadSession, STAGE_EFFORT, EFFORT_WEIGHT } from './adhd-state.mjs';
 
 // Heuristic tuned by feel, not a measured constant — roughly three high-effort
 // stages in one session. Adjust if sessions consistently feel too short or long.
@@ -12,8 +12,7 @@ function weight(stage) {
 }
 
 export function pressure(cwd = process.cwd(), { next } = {}) {
-  const state = loadState(cwd);
-  const run = state?.session?.stagesRun ?? [];
+  const run = loadSession(cwd).stagesRun ?? [];
   const score = run.reduce((sum, s) => sum + weight(s), 0);
   const projected = next ? score + weight(next) : score;
   const advise = projected >= THRESHOLD;

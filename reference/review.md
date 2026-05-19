@@ -46,10 +46,9 @@ both built and verified — if a feature is built but not verified, run
 - `fix` — the action that resolves it.
 
 ## On completion
-1. Write the output file(s) above.
-2. `node {{scripts_path}}/adhd-state.mjs set review done --milestone {{N}}`
-3. `node {{scripts_path}}/adhd-state.mjs session-add review`
-4. `node {{scripts_path}}/context-watch.mjs --next finalize` — if it advises a fresh
+1. Write the output file(s) above — review is done the moment `m{{N}}/review.md` exists.
+2. `node {{scripts_path}}/adhd-state.mjs session-add review`
+3. `node {{scripts_path}}/context-watch.mjs --next finalize` — if it advises a fresh
    session, run `node {{scripts_path}}/handoff-prompt.mjs` and give the user the prompt.
-5. Drain `project/notes.md`: migrate any durable entry to its canonical home; healthy = empty.
-6. Tell the user the next runnable stage is `finalize` for milestone {{N}}.
+4. Drain `project/notes.md`: migrate any durable entry to its canonical home; healthy = empty.
+5. Tell the user the next runnable stage is `finalize` for milestone {{N}}.
