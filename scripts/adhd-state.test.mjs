@@ -543,6 +543,17 @@ test('audit flags a feature pointing at an unknown story', () => {
   assert.ok(audit(cwd).findings.some((f) => /unknown story "S404"/.test(f)));
 });
 
+test('audit flags a ui surface whose repo points at the prototype app', () => {
+  const cwd = tmp();
+  initState(cwd);
+  setPrototypeHome(cwd, { repo: 'orchestration', subpath: 'prototype' });
+  setSurfaceMeta(cwd, { milestone: 1, surface: 'admin', kind: 'ui', repo: 'orchestration', subpath: 'prototype' });
+  assert.ok(audit(cwd).findings.some((f) => /prototype app/.test(f) && /admin/.test(f)));
+  // an undecided production home (unset repo) is fine — not flagged
+  setSurfaceMeta(cwd, { milestone: 1, surface: 'admin2', kind: 'ui' });
+  assert.ok(!audit(cwd).findings.some((f) => /admin2/.test(f)));
+});
+
 test('audit warns about a mechanism leak in product-scope docs', () => {
   const cwd = tmp();
   initState(cwd);

@@ -20,6 +20,16 @@ If the gate reports `foundation` is not done, HALT and tell the user to run
    one-line purpose and its `kind` (`ui` | `api` | `lib`). Do NOT group surfaces by
    milestone: there is no milestone plan yet. A milestone selects from this catalog at
    `milestone-brief` time, and `surface-meta` records the per-milestone tagging then.
+
+   A surface's location in the catalog is its **production home** — the real repo it
+   ships from. An `api`/`lib` surface takes it from its domain's `home`. A `ui`
+   surface's production home is a frontend/microfront repo, which **may legitimately be
+   undecided** at this stage — record it as undecided (e.g. `TBD`) rather than guessing.
+   A `ui` surface is **not** the prototype app: every `ui` surface also has a presence
+   in the single project-wide prototype app, but the prototype is built by `design` and
+   is never a surface's production home. Never write the prototype app (its repo, or a
+   `prototype/`-style path) into a surface's location column — that conflates the two,
+   and `audit` flags it.
 2. **Define domains (`multi` mode only).** With the user, decompose the product into
    logical domains — each a named slice with a one-line description and an optional
    `home` (`repo` + `subpath`) for its backend code. Register each with
@@ -41,10 +51,13 @@ If the gate reports `foundation` is not done, HALT and tell the user to run
 
 ## Output
 - `project/map.md` — a flat surface catalog (each surface: name, one-line purpose,
-  `kind`); in `multi` mode also a **Domains** section (name, description, `home`) and a
-  **Deployables** section (each deployable and the domains it carries). Cross-references
-  `docs/GLOSSARY.md`. A `ui` surface's `repo` is its **production** home; the prototype
-  app's home is the project-wide `state.json.prototype` pointer (set via `workspace`).
+  `kind`, production home); in `multi` mode also a **Domains** section (name,
+  description, `home`) and a **Deployables** section (each deployable and the domains it
+  carries; the prototype app is one of the deployables). Cross-references
+  `docs/GLOSSARY.md`. A surface's production home is the repo it ships from — a `ui`
+  surface's may be `TBD`. The prototype app is listed once among the deployables, not
+  as any surface's home; its location is the project-wide `state.json.prototype`
+  pointer (set via `workspace`).
 - `docs/GLOSSARY.md` — the domain glossary: core product concepts and their
   relationships, in plain product terms. No field types, no schema, no persistence.
 

@@ -500,10 +500,21 @@ export function audit(cwd = process.cwd()) {
     }
   }
 
+  const proto = state.prototype ?? {};
+  const protoSet = Boolean(proto.repo || proto.subpath);
   for (const [key, ms] of Object.entries(state.milestones ?? {})) {
     if (state.frontload?.map?.status === 'done' && (ms.stories ?? []).length === 0
         && ms.stages?.['milestone-brief']?.status === 'done') {
       findings.push(`milestone ${key}: milestone-brief is done but no stories are assigned`);
+    }
+    for (const [sname, surf] of Object.entries(ms.surfaces ?? {})) {
+      if (surf.kind !== 'ui') continue;
+      const surfSet = Boolean(surf.repo || surf.subpath);
+      if (protoSet && surfSet
+          && (surf.repo ?? null) === (proto.repo ?? null)
+          && (surf.subpath ?? null) === (proto.subpath ?? null)) {
+        findings.push(`milestone ${key} surface "${sname}": its repo/subpath points at the prototype app — a ui surface's repo is its production home, not the prototype`);
+      }
     }
     for (const s of ms.stories ?? []) {
       if (storyIds.size && !storyIds.has(s)) findings.push(`milestone ${key}: story "${s}" is not in stories.md`);

@@ -150,9 +150,19 @@ no per-surface stage status: `design` runs once per milestone over all of them, 
 `plan`/`build` operate on **features**, not surfaces. `milestone-brief` records each
 surface with
 `node {{scripts_path}}/adhd-state.mjs surface-meta <name> --milestone {{N}} --kind <kind> [--domain <d1,d2>] [--repo <repo>] [--subpath <path>]`.
-A surface's `repo`/`subpath` is its **production** home; under `standalone` prototype
-topology the prototype app lives elsewhere (the project-wide `state.json.prototype`
-pointer), not at the surface's `repo`.
+
+A surface's `repo`/`subpath` is its **production** home — and a `ui` surface is **not**
+the prototype. Every `ui` surface has two distinct realizations:
+
+- a presence in the **one prototype app** — automatic, built by `design`. The prototype
+  app is a single project-wide app (`state.json.prototype` under `standalone` topology;
+  the `/p/` route tree under `colocated`). It is never a per-surface location.
+- a **production home** — the surface's `repo`/`subpath`, a real production repo. For a
+  `ui` surface this is typically a frontend/microfront repo. It **may legitimately be
+  undecided** — leave `repo`/`subpath` unset until the production UI repo exists; that
+  is a normal state, not a gap. Never record the prototype app (its repo/subpath, or a
+  `prototype/` path) as a surface's production `repo` — that conflates the two, and
+  `audit` flags it.
 
 ## Features and the work DAG
 
