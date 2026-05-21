@@ -203,6 +203,34 @@ test('nextStage: build order follows feature dependencies', () => {
   assert.equal(nextStage(cwd, { milestone: 1 }).feature, 'f-api');
 });
 
+test('nextStage interleaves plan and build feature by feature', () => {
+  const cwd = tmp();
+  groundwork(cwd);
+  w(cwd, 'project/milestones/m1/brief.md', 'Track: production');
+  w(cwd, 'project/milestones/m1/design.md');
+  w(cwd, 'project/milestones/m1/tracer.md');
+  const feats = [
+    '| ID | Feature | Story | Domain | Repo | Depends on | Build | Verified |',
+    '|--|--|--|--|--|--|--|--|',
+    '| f-api | a | S1 | d | r | | | |',
+    '| f-ui  | b | S1 | d | r | f-api | | |',
+  ].join('\n');
+  w(cwd, 'project/milestones/m1/features.md', feats);
+  const nx = () => { const n = nextStage(cwd, { milestone: 1 }); return [n.stage, n.feature]; };
+  // nothing planned/built -> plan the first workable feature
+  assert.deepEqual(nx(), ['plan', 'f-api']);
+  // f-api planned -> next is BUILD f-api, NOT plan f-ui (interleaved, not plan-all-first)
+  w(cwd, 'project/milestones/m1/plans/f-api.md');
+  assert.deepEqual(nx(), ['build', 'f-api']);
+  // f-api built -> now plan f-ui
+  w(cwd, 'project/milestones/m1/features.md',
+    feats.replace('| f-api | a | S1 | d | r | | | |', '| f-api | a | S1 | d | r | | done | yes |'));
+  assert.deepEqual(nx(), ['plan', 'f-ui']);
+  // f-ui planned -> build f-ui
+  w(cwd, 'project/milestones/m1/plans/f-ui.md');
+  assert.deepEqual(nx(), ['build', 'f-ui']);
+});
+
 test('milestones are independent — two can be in flight', () => {
   const cwd = tmp();
   groundwork(cwd);

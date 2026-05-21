@@ -161,8 +161,10 @@ project/
 Flow: groundwork runs `setup → vision → stories → foundation → map` (`stories` stays
 re-runnable). Then per milestone: `milestone-brief → design`. A **prototype-only**
 milestone (`infra: none`) then goes straight to `review → finalize`. A
-**production-track** milestone instead continues `tracer → features`, then `plan →
-build` for every feature in dependency order, then `review → finalize`.
+**production-track** milestone instead continues `tracer → features`, then works
+through the feature DAG in dependency order **one feature at a time** — `plan` it then
+`build` it before moving to the next feature, not planning them all up front — then
+`review → finalize`.
 
 There is no "advance" step. The next milestone is created simply by running
 `milestone-brief` again — it writes a new `m<N>/` folder. `adhd-state.mjs status`
@@ -201,10 +203,14 @@ On a production-track milestone the `features` stage decomposes the milestone's 
 stories into **features** — small units of implementation work, each scoped to exactly
 one domain (one repo). The features live in `m<N>/features.md` as a table:
 `ID | Feature | Story | Domain | Repo | Depends on | Build | Verified`. The `Depends
-on` edges form a DAG. `build` is gated on every feature a feature `Depends on` showing
-`Build: done` — which is how backend features land before the frontend features that
-wire them. `build` fills the `Build` and `Verified` cells as each feature completes;
-`review` cannot run until every feature is `Build: done` and `Verified: yes`.
+on` edges form a DAG. The DAG is worked **one feature at a time, plan then build**:
+`adhd next` returns `plan` for the next workable feature, then `build` for that same
+feature, before moving on — so each feature's plan is written against already-built
+dependencies, not all features planned up front. `build` is gated on every feature a
+feature `Depends on` showing `Build: done` — which is how backend features land before
+the frontend features that wire them. `build` fills the `Build` and `Verified` cells as
+each feature completes; `review` cannot run until every feature is `Build: done` and
+`Verified: yes`.
 `adhd-state.mjs` parses this table for the build-order gate — keep the column layout
 intact.
 

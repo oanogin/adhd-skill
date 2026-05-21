@@ -85,7 +85,7 @@ PER-MILESTONE LOOP
   prototype-only milestone (infra: none):  → review → finalize
   production-track milestone:
     tracer → features
-    plan → build  (every feature — DAG order, the production app)
+    plan → build  (one feature at a time, DAG order — plan it, build it, next)
     review
   → finalize → next milestone (a new m<N>/ folder)
 ```

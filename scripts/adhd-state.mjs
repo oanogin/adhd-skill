@@ -318,18 +318,23 @@ function milestoneNext(cwd, m) {
   if (milestoneTrack(cwd, m) !== 'prototype') {
     if (!milestoneStageDone(cwd, m, 'tracer')) return at('tracer');
     if (!milestoneStageDone(cwd, m, 'features')) return at('features');
+    // Interleaved plan -> build, one feature at a time, in dependency order:
+    // for the first not-yet-built feature whose deps are built, plan it if it
+    // is not planned yet, otherwise build it. Only then move to the next feature.
     const feats = parseFeatures(cwd, m) ?? [];
+    let blocked = null;
     for (const f of feats) {
-      if (!planDone(cwd, m, f.id)) return at('plan', f.id);
-    }
-    let pending = null;
-    for (const f of feats) {
-      if (!f.build) {
-        if (depsBuilt(feats, f)) return at('build', f.id);
-        if (!pending) pending = f.id;
+      if (f.build) continue;
+      if (depsBuilt(feats, f)) {
+        if (!planDone(cwd, m, f.id)) return at('plan', f.id);
+        return at('build', f.id);
       }
+      if (!blocked) blocked = f;
     }
-    if (pending) return at('build', pending);
+    if (blocked) {
+      if (!planDone(cwd, m, blocked.id)) return at('plan', blocked.id);
+      return at('build', blocked.id);
+    }
   }
   if (!milestoneStageDone(cwd, m, 'review')) return at('review');
   if (!milestoneStageDone(cwd, m, 'finalize')) return at('finalize');
