@@ -16,12 +16,13 @@ each stage.
 
 `adhd` hard-depends on two things. No fallback, no degraded mode:
 
-- the **`superpowers` plugin** — `adhd` invokes `brainstorming` (design stage),
+- the **`superpowers` plugin** — `adhd` invokes `brainstorming` (prototype stage),
   `writing-plans` (plan stage), and `executing-plans` (build stage) from it. The
   whole plugin is required, not just those three: other superpowers skills
   (`subagent-driven-development`, `systematic-debugging`, and so on) are useful
   during the build stage too.
-- the **`impeccable` skill** — UI design, used by the `design` and `build` stages.
+- the **`impeccable` skill** — UI design, used by the `prototype`, `ux-refine`, and
+  `build` stages.
 
 Install both yourself. At preflight `adhd` checks both are available and halts
 if either is missing.
@@ -59,28 +60,33 @@ picks the stage or command that fits, respecting the gates.
 - **`multi`** — the product spans several git repos. `adhd`'s `project/` tree lives
   in an orchestration repo; code repos are registered by logical name, and local
   paths live in a gitignored `project/repos.local.json` bound per-user. The product
-  is split into user-defined **domains** — logical slices defined in the `map` stage;
-  a milestone may span several domains. Run `/adhd workspace` to switch to `multi`
-  mode and register repos.
+  is split into user-defined **domains** — logical slices defined in the `prototype`
+  stage; a milestone may span several domains. Run `/adhd workspace` to switch to
+  `multi` mode and register repos.
 
-Surfaces carry a `kind` — `ui`, `api`, or `lib`. The `design` stage uses
+Surfaces carry a `kind` — `ui`, `api`, or `lib`. The `prototype` stage uses
 `impeccable` only for `ui` surfaces; `api` surfaces get an API-contract design and
-`lib` surfaces get a plain spec.
+`lib` surfaces get a plain spec. Per milestone, `ux-refine` deepens the chosen
+surfaces' detail.
 
 ## The flow
 
-Groundwork establishes the product and its structure (mostly once — `stories` stays
-re-runnable as a living backlog). There is no pre-planned roadmap: a milestone is
-formed just-in-time at `milestone-brief` by choosing stories. The per-milestone loop
-then repeats; the per-feature loop repeats inside a production-track milestone.
+Groundwork establishes the product and its structure (mostly once — `prototype` and
+`stories` stay re-runnable). It front-loads the **whole-product UX**: `prototype` builds
+a Hi-Fi, clickable, mock-data app for the entire product, and `stories` is derived from
+it. There is no pre-planned roadmap — but that whole-product prototype is the shared
+**soft roadmap** a milestone is carved from, just-in-time, at `milestone-brief`. The
+per-milestone loop then repeats; the per-feature loop repeats inside a production-track
+milestone.
 
 ```
 GROUNDWORK
-  setup → vision → stories → foundation → map
+  setup → vision → foundation → prototype → stories
+                               (whole-product Hi-Fi clickable prototype, signed off)
 
 PER-MILESTONE LOOP
   milestone-brief   (choose stories from the backlog; set the track)
-  design            (every surface UX+UI + the wired clickable prototype + sign-off)
+  ux-refine         (deepen this milestone's slice of the prototype + sign-off)
 
   prototype-only milestone (infra: none):  → review → finalize
   production-track milestone:
@@ -98,11 +104,11 @@ again.
 |---|---|---|
 | setup | scaffold layout, init `config.json` | folder tree |
 | vision | product, users, usage | `docs/PRODUCT.md` |
-| stories | brain-dump every story — the living "spaceship" backlog | `project/stories.md` |
 | foundation | the firm tech baseline — no full arch | `docs/DECISIONS.md` |
-| map | surface catalog + domains + deployables + glossary | `project/map.md`, `docs/GLOSSARY.md` |
+| prototype | whole-product UX+UI, wired clickable prototype + sitemap + glossary + sign-off | `project/prototype.md`, `project/map.md`, `docs/GLOSSARY.md`, `project/surfaces/*` |
+| stories | story backlog, derived from the prototype — the living "spaceship" | `project/stories.md` |
 | milestone-brief | choose stories, confirm surfaces, set track, lock security/errors | `m<N>/brief.md` |
-| design | every surface UX+UI + the wired clickable prototype + sign-off | `m<N>/surfaces/*`, `m<N>/design.md` |
+| ux-refine | deepen this milestone's slice of the prototype + sign-off | `m<N>/surfaces/*`, `m<N>/ux-refine.md` |
 | tracer | settle the data store; one thin slice through the real backend | `m<N>/tracer.md` + code |
 | features | decompose chosen stories into the per-domain feature DAG | `m<N>/features.md` |
 | plan | per-feature implementation plan for the production app | `m<N>/plans/<feature>.md` |
@@ -112,7 +118,7 @@ again.
 
 `tracer`, `features`, `plan`, and `build` run only on **production-track**
 milestones. A **prototype-only** milestone (`infra: none`) goes
-`design → review → finalize`.
+`ux-refine → review → finalize`.
 
 ## Prototype and production apps
 
@@ -122,10 +128,11 @@ Every project builds two apps that coexist even in single-repo mode:
   persistent and always-current reference;
 - the **production app** — the real UI on real data and a real backend.
 
-The clickable prototype is built and signed off **before** any backend or data-store
-decision — the `design` stage builds each `ui` surface into it and wires the milestone
-into one runnable app you open in a browser and validate. Every milestone builds it,
-regardless of `infra`.
+The clickable prototype is built and signed off **before** any stories, any milestone,
+or any backend/data-store decision — the groundwork `prototype` stage builds **every
+`ui` surface of the whole product** into it and wires them into one runnable app you open
+in a browser and validate. Per milestone, `ux-refine` deepens only that milestone's
+slice.
 
 Where the prototype lives is the project's **`prototypeTopology`**. By default it is
 `colocated` — the prototype shares the **production app's codebase and framework**,
@@ -136,12 +143,14 @@ app** — its own repo, possibly its own framework, separate from production —
 command, and each `ui` surface's own `repo` is its separate production home.
 
 Each milestone has a **track**, set from its `infra`. A `infra: none` milestone is
-**prototype-only** — the clickable prototype is its deliverable. A milestone with real
-`infra` is **production-track**: after the prototype is signed off, `tracer` settles the
-data store and proves backend reality, `features` decomposes the work into a dependency
-DAG, and `build` builds the production app to match the prototype. When reality
-contradicts the prototype, the prototype is updated first — it stays the reference, and
-the production app moves to match.
+**prototype-only** — its refined prototype slice is the deliverable. A milestone with
+real `infra` is **production-track**: after `ux-refine`, `tracer` settles the data store
+and proves backend reality, `features` decomposes the work into a dependency DAG, and
+`build` builds the production app to match the prototype. When reality contradicts the
+prototype, the prototype is updated first — a milestone-slice fix via `ux-refine`, a
+whole-product flow fix by re-running the groundwork `prototype` stage — and the
+production app moves to match. (The milestone **track** value `prototype` is a different
+thing from the groundwork **stage** named `prototype`.)
 
 Where the two apps live in the repo is a tech decision, logged in `docs/DECISIONS.md`.
 
@@ -172,9 +181,11 @@ project/
   repos.local.json       gitignored — per-user repo→path bindings (multi mode)
   .session.json          gitignored — ephemeral context-watch scratch
   notes.md               transient scratchpad — healthy when empty
-  stories.md             the living story backlog
-  map.md                 surface catalog + domains + deployables
-  milestones/m<N>/        brief, surfaces/, design, tracer, features (the DAG), plans/, review, summary
+  prototype.md           whole-product prototype sign-off (the prototype stage's done artifact)
+  map.md                 surface catalog + domains + deployables (prototype output)
+  surfaces/<name>.md     project-wide surface specs (prototype output)
+  stories.md             the living story backlog, derived from the prototype
+  milestones/m<N>/        brief, surfaces/, ux-refine, tracer, features (the DAG), plans/, review, summary
 ```
 
 `project/config.json` is owned by `scripts/adhd-state.mjs` — mutate it via the CLI,
@@ -186,9 +197,11 @@ not by hand. Everything else is plain markdown you (and `adhd`) edit directly.
 - **Milestone discipline** — a new story idea raised mid-project is filed to
   `stories.md` (the living backlog), to be picked up by a future `milestone-brief` —
   not bolted onto the milestone in flight.
-- **Product before tech** — the scope stages (`vision`, `stories`, `map`) describe
-  *what the product does* in capability terms — never a stack, framework, database, or
-  architecture. The firm tech baseline lives in `docs/DECISIONS.md` (`foundation`).
+- **Product before tech** — the scope artifacts (`docs/PRODUCT.md`, `project/stories.md`,
+  `project/map.md`) describe *what the product does* in capability terms — never a stack,
+  framework, database, or architecture. (The prototype *app* is the exception — real code
+  on the framework chosen at `foundation` — but the `map.md` sitemap stays
+  capability-level.) The firm tech baseline lives in `docs/DECISIONS.md` (`foundation`).
 - **Tech, just-in-time** — `foundation` records only the firm, known-from-the-start
   baseline; every other stack decision is made by the milestone that first needs it. A
   milestone can declare `infra: none` and ship as a fully-working UX prototype on mock

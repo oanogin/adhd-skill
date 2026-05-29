@@ -2,7 +2,7 @@
 
 **Effort:** high
 **Purpose:** bring an existing, already-built project under `adhd`. Substitutes for
-the groundwork loop (`vision → stories → foundation → map`).
+the groundwork loop (`vision → foundation → prototype → stories`).
 **Not a stage:** no gate. Run it once, instead of the groundwork stages, when the
 project already exists.
 
@@ -39,11 +39,17 @@ milestone or a `docs/DECISIONS.md` entry. `adopt` does not block on it.
    below, draft the `adhd`-style version from what the scan found and present it to
    the user for review before writing:
    - `docs/PRODUCT.md` — product, users, usage, brand, anti-references, principles.
-   - `docs/GLOSSARY.md` — entities, key fields, relationships.
    - `docs/DECISIONS.md` — carry over the existing decision log and the firm tech
      baseline (the `foundation` artifact).
-   - `project/stories.md` — the story backlog (`ID | Story | Value | Depends on | Size`).
    - `project/map.md` — the surface catalog, domains, and deployables.
+   - `docs/GLOSSARY.md` — entities, key fields, relationships.
+   - `project/surfaces/<name>.md` — a spec per `ui` surface, read off the existing UI.
+   - `project/prototype.md` — the `prototype` artifact. The existing built UI *is* the
+     whole-product UX reference, so record what it covers and treat it as signed off;
+     no new prototype app is built. (`prototype` is done once `project/prototype.md`,
+     `project/map.md`, and `docs/GLOSSARY.md` all exist.)
+   - `project/stories.md` — the story backlog (`ID | Story | Value | Depends on | Size`),
+     derived from the existing product.
    There is no roadmap artifact: milestones are formed just-in-time at `milestone-brief`,
    so `adopt` does not produce one.
 4. **Never invent.** Where the source docs do not cover something, flag the gap and ask

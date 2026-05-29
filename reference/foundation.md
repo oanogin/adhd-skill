@@ -1,7 +1,7 @@
 # adhd — Foundation
 
 **Effort:** medium
-**Gate:** `project/stories.md` exists — the Stories stage has seeded the backlog.
+**Gate:** `docs/PRODUCT.md` exists — the Vision stage is done.
 **Output:** `docs/DECISIONS.md` (the firm tech baseline).
 **Sub-skill:** none.
 
@@ -16,8 +16,8 @@ Run `node {{scripts_path}}/adhd-state.mjs gate foundation`.
 If it reports missing items, HALT. Tell the user exactly which predecessor stage to run.
 No skip, no override — this is the skill's central discipline.
 
-If the gate reports `project/stories.md` is missing, HALT and tell the user to run
-`adhd stories` first.
+If the gate reports `docs/PRODUCT.md` (the Vision stage) is missing, HALT and tell the
+user to run `adhd vision` first.
 
 ## Procedure
 1. **Capture only the firm baseline.** With the user, write down the tech choices that
@@ -44,7 +44,7 @@ If the gate reports `project/stories.md` is missing, HALT and tell the user to r
 1. Write the output file(s) above — foundation is done once `docs/DECISIONS.md` carries
    at least one logged decision (a `## ` entry).
 2. `node {{scripts_path}}/adhd-state.mjs session-add foundation`
-3. `node {{scripts_path}}/context-watch.mjs --next map` — if it advises a fresh
+3. `node {{scripts_path}}/context-watch.mjs --next prototype` — if it advises a fresh
    session, run `node {{scripts_path}}/handoff-prompt.mjs` and give the user the prompt.
 4. Drain `project/notes.md`: migrate any durable entry to its canonical home; healthy = empty.
-5. Tell the user the next runnable stage is `map`.
+5. Tell the user the next runnable stage is `prototype`.

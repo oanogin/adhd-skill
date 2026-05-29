@@ -20,9 +20,9 @@ test('fresh session has zero score and does not advise', () => {
 test('three high-effort stages cross the threshold', () => {
   const cwd = tmp();
   initConfig(cwd);
-  sessionAdd(cwd, 'vision'); // high = 3
-  sessionAdd(cwd, 'design'); // high = 3
-  sessionAdd(cwd, 'map');    // high = 3  -> 9 >= 8
+  sessionAdd(cwd, 'vision');    // high = 3
+  sessionAdd(cwd, 'prototype');  // high = 3
+  sessionAdd(cwd, 'ux-refine');  // high = 3  -> 9 >= 8
   const p = pressure(cwd);
   assert.equal(p.score, 9);
   assert.equal(p.advise, true);
@@ -33,9 +33,9 @@ test('--next pre-emptively advises when the next stage would cross', () => {
   initConfig(cwd);
   sessionAdd(cwd, 'vision');  // 3
   sessionAdd(cwd, 'stories'); // 2  -> 5
-  const p = pressure(cwd, { next: 'design' }); // high = 3 -> 8
+  const p = pressure(cwd, { next: 'ux-refine' }); // high = 3 -> 8
   assert.equal(p.advise, true);
-  assert.match(p.reason, /design/);
+  assert.match(p.reason, /ux-refine/);
 });
 
 test('below threshold does not advise', () => {

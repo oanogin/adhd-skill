@@ -36,12 +36,13 @@ the skill was placed.
 
 `adhd` hard-depends on two things, with no fallback and no degraded mode:
 
-- the **`superpowers` plugin** — `adhd` invokes `brainstorming` (design stage),
+- the **`superpowers` plugin** — `adhd` invokes `brainstorming` (prototype stage),
   `writing-plans` (plan stage), and `executing-plans` (build stage) from it.
   The whole plugin is required, not just those three: other superpowers skills
   (e.g. `subagent-driven-development`, `systematic-debugging`) are useful during
   the build stage too.
-- the **`impeccable` skill** — UI design for the `design` stage.
+- the **`impeccable` skill** — UI design for the `prototype` (groundwork) and
+  `ux-refine` (per-milestone) stages.
 
 Before ANY file mutation, confirm both are available in the current agent.
 There is no programmatic probe — self-confirm: state, in the response, that the
@@ -67,7 +68,7 @@ See `reference/codex-tools.md` and `reference/cursor-tools.md` for tool-name map
 `docs/` tree itself:
 
 - **A stage is done the moment its artifact file exists.** `vision` is done when
-  `docs/PRODUCT.md` exists; `design` for milestone 2 is done when `m2/design.md`
+  `docs/PRODUCT.md` exists; `ux-refine` for milestone 2 is done when `m2/ux-refine.md`
   exists. There is no status field. So: never create a stage's artifact file until the
   stage is genuinely complete — write drafts to `notes.md`, create the canonical file
   last.
@@ -92,18 +93,22 @@ A project created before this model has a `project/state.json`; run
   local paths live in a gitignored `project/repos.local.json` (bound per-user).
   Switch to `multi` and register repos with the `workspace` command. In `multi`
   mode the product is also split into user-defined **domains** — logical product
-  slices defined during the `map` stage; a milestone may span several domains.
+  slices defined during the `prototype` stage; a milestone may span several domains.
 
 In `multi` mode every `adhd` artifact still lives in the orchestration repo's
-`project/` and `docs/`. Only the code-writing stages (`design`, `tracer`, `build`)
-reach into a registered code repo, and only to write code there.
+`project/` and `docs/`. Only the code-writing stages (`prototype`, `ux-refine`,
+`tracer`, `build`) reach into a registered code repo, and only to write code there.
 
 ## Groundwork and per-milestone work
 
-`adhd` has two phases. **Groundwork** (`setup → vision → stories → foundation → map`)
-establishes the product and its structure. It is mostly run once — except `stories`,
-which is a **living backlog**: re-run it any time to add or change stories. There is
-**no pre-planned roadmap**: `adhd` keeps no list of future milestones.
+`adhd` has two phases. **Groundwork** (`setup → vision → foundation → prototype →
+stories`) establishes the product and its structure. It front-loads the **whole-product
+UX**: `prototype` builds a Hi-Fi, clickable, mock-data app for the entire product before
+any milestone exists, and `stories` is then *derived from* that prototype. It is mostly
+run once — except `prototype` and `stories`, which are **living**: re-run `prototype` to
+evolve the whole-product flow, and `stories` to add or change stories. There is still
+**no pre-planned roadmap** — `adhd` keeps no list of future milestones — but the
+whole-product prototype is the shared **soft roadmap** the milestones are carved out of.
 
 A **milestone** is a folder, `project/milestones/m<N>/`. It is formed just-in-time:
 `milestone-brief` writes `m<N>/brief.md`, and that *is* the milestone. Milestones are
@@ -127,12 +132,14 @@ project/
   repos.local.json           gitignored — per-user repo→path bindings (multi mode)
   .session.json              gitignored — ephemeral context-watch scratch
   notes.md                   transient scratchpad (healthy = empty)
-  stories.md                 Stories — the living story backlog
-  map.md                     surface catalog + domains + deployables
+  prototype.md               Prototype sign-off — whole-product UX flow & rules (done artifact)
+  map.md                     surface catalog + domains + deployables (Prototype output)
+  surfaces/<name>.md         project-wide surface spec (Prototype output)
+  stories.md                 Stories — the living story backlog, derived from the prototype
   milestones/m<N>/
     brief.md                 Milestone Brief — chosen stories, surfaces, track, security/errors
-    surfaces/<name>.md       per-surface Design spec
-    design.md                Design sign-off notes
+    surfaces/<name>.md       per-milestone refined surface spec
+    ux-refine.md             UX Refine sign-off notes (this milestone's slice)
     tracer.md                tracer slice notes (production-track)
     features.md              the feature DAG — a table with Build/Verified columns
     plans/<feature>.md       per-feature implementation Plan (production-track)
@@ -146,11 +153,11 @@ project/
 |---|---|---|---|---|---|
 | `setup` | groundwork | low | `project/config.json` | none | [reference/setup.md](reference/setup.md) |
 | `vision` | groundwork | high | `docs/PRODUCT.md` | none | [reference/vision.md](reference/vision.md) |
-| `stories` | groundwork (living) | medium | `project/stories.md` | none | [reference/stories.md](reference/stories.md) |
 | `foundation` | groundwork | medium | a logged decision in `docs/DECISIONS.md` | none | [reference/foundation.md](reference/foundation.md) |
-| `map` | groundwork | high | `project/map.md` + `docs/GLOSSARY.md` | none | [reference/map.md](reference/map.md) |
+| `prototype` | groundwork (living) | high | `project/prototype.md` + `project/map.md` + `docs/GLOSSARY.md` + prototype app | brainstorming + impeccable | [reference/prototype.md](reference/prototype.md) |
+| `stories` | groundwork (living) | medium | `project/stories.md` | none | [reference/stories.md](reference/stories.md) |
 | `milestone-brief` | per-milestone | medium | `m<N>/brief.md` | none | [reference/milestone-brief.md](reference/milestone-brief.md) |
-| `design` | per-milestone | high | `m<N>/design.md` + `surfaces/*` + prototype | brainstorming + impeccable | [reference/design.md](reference/design.md) |
+| `ux-refine` | per-milestone | high | `m<N>/ux-refine.md` + `surfaces/*` + prototype slice | impeccable (+ brainstorming) | [reference/ux-refine.md](reference/ux-refine.md) |
 | `tracer` | per-milestone (production) | high | `m<N>/tracer.md` + code | none | [reference/tracer.md](reference/tracer.md) |
 | `features` | per-milestone (production) | high | `m<N>/features.md` (the DAG) | none | [reference/features.md](reference/features.md) |
 | `plan` | per-feature (production) | medium | `m<N>/plans/<feature>.md` | writing-plans | [reference/plan.md](reference/plan.md) |
@@ -158,10 +165,10 @@ project/
 | `review` | per-milestone | high | `m<N>/review.md` | none | [reference/review.md](reference/review.md) |
 | `finalize` | per-milestone | low | `m<N>/summary.md` | none | [reference/finalize.md](reference/finalize.md) |
 
-Flow: groundwork runs `setup → vision → stories → foundation → map` (`stories` stays
-re-runnable). Then per milestone: `milestone-brief → design`. A **prototype-only**
-milestone (`infra: none`) then goes straight to `review → finalize`. A
-**production-track** milestone instead continues `tracer → features`, then works
+Flow: groundwork runs `setup → vision → foundation → prototype → stories` (`prototype`
+and `stories` stay re-runnable). Then per milestone: `milestone-brief → ux-refine`. A
+**prototype-only** milestone (`infra: none`) then goes straight to `review → finalize`.
+A **production-track** milestone instead continues `tracer → features`, then works
 through the feature DAG in dependency order **one feature at a time** — `plan` it then
 `build` it before moving to the next feature, not planning them all up front — then
 `review → finalize`.
@@ -187,10 +194,11 @@ as one unit, not a sub-tab or a single action. Decompose finer detail with **fea
 workspace into many surfaces. A milestone's prototype is the handful of `ui` surfaces
 it touches, wired together — keep that handful small and coherent.
 
-Surfaces are catalogued in `project/map.md` and selected into a milestone in
-`m<N>/brief.md` — plain markdown, authored directly. The `design` stage routes by
-`kind`: `ui` → brainstorming for UX then `impeccable` for UI; `api` → brainstorming
-then API-contract design; `lib` → brainstorming then a spec.
+Surfaces are catalogued in `project/map.md` (authored by the `prototype` stage) and
+selected into a milestone in `m<N>/brief.md` — plain markdown, authored directly. The
+`prototype` stage routes by `kind`: `ui` → brainstorming for UX then `impeccable` for
+UI; `api` → brainstorming then API-contract design; `lib` → brainstorming then a spec.
+Per milestone, `ux-refine` deepens only the chosen surfaces' detail.
 
 A surface's production home is the repo it ships from. A `ui` surface's production home
 is a frontend repo and **may be undecided** (`TBD`) — that is normal. A `ui` surface is
@@ -219,26 +227,35 @@ intact.
 Every `adhd` project builds two apps that coexist even in `single` mode:
 
 - the **prototype app** — the product's UX on mock data, visual and clickable. The
-  `design` stage builds each `ui` surface into it and wires the milestone into one
-  runnable app the user opens in a browser and validates. It is the persistent,
-  always-current UX reference and is never thrown away.
+  groundwork `prototype` stage builds **every `ui` surface of the whole product** into
+  it and wires them into one runnable app the user opens in a browser and signs off —
+  before any milestone exists. Per milestone, `ux-refine` deepens only that milestone's
+  slice. It is the persistent, always-current UX reference and is never thrown away.
 - the **production app** — the real UI on real data and a real backend.
 
-The clickable prototype is built and signed off in `design` — **before** any backend,
-data store, or `tracer` decision. It is decoupled from `infra`: every milestone builds it.
+The clickable prototype is built and signed off in the groundwork `prototype` stage —
+**before** any stories, any milestone, any backend, data store, or `tracer` decision. It
+is decoupled from `infra`: it exists for the whole product up front, and every milestone
+refines its own slice.
 
 Each milestone has a **track**, set at `milestone-brief` from its `infra` field and
 written as a `Track:` line in `brief.md`:
 
-- **prototype-only** (`infra: none`) — `milestone-brief → design → review → finalize`.
-  The clickable prototype is the deliverable. No `tracer`, no production app, no data
+- **prototype-only** (`infra: none`) — `milestone-brief → ux-refine → review → finalize`.
+  The refined prototype slice is the deliverable. No `tracer`, no production app, no data
   model, no database.
-- **production-track** (any real `infra`) — the same up to `design`, then continues
+- **production-track** (any real `infra`) — the same up to `ux-refine`, then continues
   `tracer → features → plan → build → review → finalize`.
 
-When real-backend reality contradicts the prototype, `features` updates the prototype
-FIRST (via `design`) — it stays the current reference, and the production app is moved
-to match it.
+> **Naming note.** The milestone **track** value `prototype` (a prototype-only
+> milestone) is distinct from the groundwork **stage** named `prototype` (which builds
+> the whole-product prototype app). Same word, different namespaces: a `Track: prototype`
+> milestone still runs `ux-refine`, never the groundwork `prototype` stage.
+
+When real-backend reality contradicts the prototype, the prototype is updated FIRST and
+the production app is moved to match it: a milestone-slice contradiction is fixed via
+`ux-refine`; a whole-product flow or rule contradiction is fixed by re-running the
+groundwork `prototype` stage. The prototype always stays the current reference.
 
 ### Prototype topology
 
@@ -341,8 +358,9 @@ markdown — there are no special commands.
 3. **First word matches nothing** — treat the whole input as a task description.
    Run `adhd-state.mjs status`, then select the stage or management command that
    fits the task, gate-aware:
-   - route the task to the stage that addresses it (e.g. "this API needs
-     designing" → `design` for that milestone);
+   - route the task to the stage that addresses it (e.g. "this milestone's screen
+     needs deeper UI" → `ux-refine` for that milestone; "the product flow is wrong" →
+     re-run the groundwork `prototype` stage);
    - if the task implies skipping ahead, name the gate blocking it instead of
      running it;
    - if it is a new story idea raised mid-project, file it to `stories.md` and
@@ -375,11 +393,14 @@ If `project/config.json` does not exist, the only runnable stage is `setup`.
   hard-block.
 - **No "MVP"** — never write "MVP" in any `adhd` artifact or message. The term is vague
   and smuggles in scope assumptions. Say "Milestone 1" or "the first valuable product".
-- **Capability, not mechanism** — the product-scope stages (`vision`, `stories`, `map`)
-  describe *what the product does* in capability terms ("data persists", "users sign
-  in"). They never name a mechanism — no stack, framework, database, or architecture.
-  The firm tech baseline is logged by `foundation` in `docs/DECISIONS.md`; per-feature
-  mechanisms are settled at `tracer`.
+- **Capability, not mechanism** — the product-scope artifacts (`docs/PRODUCT.md`,
+  `project/stories.md`, `project/map.md`) describe *what the product does* in capability
+  terms ("data persists", "users sign in"). They never name a mechanism — no stack,
+  framework, database, or architecture. (The prototype *app* itself is the exception: it
+  is real code, so it legitimately uses the frontend framework chosen at `foundation` —
+  but `map.md`, the sitemap it is built from, stays capability-level.) The firm tech
+  baseline is logged by `foundation` in `docs/DECISIONS.md`; per-feature mechanisms are
+  settled at `tracer`.
 - **Tech at the latest responsible moment** — `foundation` records only the firm,
   known-from-the-start baseline (languages, frontend framework, repo topology). Every
   other stack/architecture decision is made by the milestone that first needs the
@@ -393,10 +414,12 @@ If `project/config.json` does not exist, the only runnable stage is `setup`.
 
 `brainstorming` and `writing-plans` default their durable output to
 `docs/superpowers/specs/` and `docs/superpowers/plans/`. `adhd` overrides this on
-every invocation: surface specs go to `project/milestones/m<N>/surfaces/`, feature
-plans to `project/milestones/m<N>/plans/`. Always pass the canonical target path when
-invoking a sub-skill. Leave `.superpowers/` and `.impeccable/` untouched — Setup
-gitignores `.superpowers/`; `.impeccable/` stays tracked in git.
+every invocation: project-wide surface specs (from the groundwork `prototype` stage) go
+to `project/surfaces/`, per-milestone refined surface specs (from `ux-refine`) go to
+`project/milestones/m<N>/surfaces/`, and feature plans go to
+`project/milestones/m<N>/plans/`. Always pass the canonical target path when invoking a
+sub-skill. Leave `.superpowers/` and `.impeccable/` untouched — Setup gitignores
+`.superpowers/`; `.impeccable/` stays tracked in git.
 
 ## Common mistakes
 
@@ -407,14 +430,15 @@ These are operational slips, not gate-skipping (gate rationalizations are tabled
 | Hand-editing `project/config.json`. | It is owned by `adhd-state.mjs`. Mutate it only through the config subcommands. |
 | Creating a stage's artifact file before the stage's work is complete. | Existence = done. Draft in `notes.md`; create the canonical file last. |
 | Running a stage from memory, skipping its `reference/<stage>.md`. | Always load the reference file — it owns the gate check, procedure, and completion steps. |
-| Letting sub-skills write to their default `docs/superpowers/` paths. | Pass the canonical target on every invocation — specs to `project/milestones/m<N>/surfaces/`, plans to `.../plans/`. |
+| Letting sub-skills write to their default `docs/superpowers/` paths. | Pass the canonical target on every invocation — project-wide specs to `project/surfaces/`, milestone specs to `project/milestones/m<N>/surfaces/`, plans to `.../plans/`. |
 | Treating `project/notes.md` as durable storage. | It is a transient scratchpad. Migrate durable facts to `DECISIONS.md`, `GLOSSARY.md`, a surface spec, or `.ruler/`. Healthy `notes.md` is empty. |
 | Invoking `impeccable` for an `api` or `lib` surface. | `impeccable` runs only for `ui` surfaces. `api` → contract design; `lib` → spec only. |
 | Breaking the `features.md` column layout. | `adhd-state.mjs` parses that table for the build-order gate — keep `ID | Feature | Story | Domain | Repo | Depends on | Build | Verified`. |
-| In `multi` mode, writing `project/` or `docs/` artifacts into a code repo. | All `adhd` artifacts live in the orchestration repo. Only the code-writing stages (`design`, `tracer`, `build`) touch a registered code repo, and only to write code. |
+| In `multi` mode, writing `project/` or `docs/` artifacts into a code repo. | All `adhd` artifacts live in the orchestration repo. Only the code-writing stages (`prototype`, `ux-refine`, `tracer`, `build`) touch a registered code repo, and only to write code. |
 | Bolting a mid-project story idea onto the current milestone. | File it to `stories.md` and let a future `milestone-brief` pick it up. Soft-warn if it would expand the current milestone. |
 | Building a feature before its `Depends on` features. | The DAG order is enforced by the `build` gate — build the dependency features first. |
-| Building a `ui` surface's production code into the prototype app (or vice versa). | Under `standalone` topology they are different repos. `design` writes the prototype app; `build` writes the feature's production `repo`. |
+| Building a `ui` surface's production code into the prototype app (or vice versa). | Under `standalone` topology they are different repos. The `prototype`/`ux-refine` stages write the prototype app; `build` writes the feature's production `repo`. |
+| Changing the whole-product flow or rules inside `ux-refine`. | `ux-refine` only refines the current milestone's slice. To change the whole-product flow, re-run the groundwork `prototype` stage. |
 
 ## Scripts
 

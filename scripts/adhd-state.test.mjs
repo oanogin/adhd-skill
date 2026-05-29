@@ -33,10 +33,11 @@ const FEATURES_MD = [
 function groundwork(cwd) {
   initConfig(cwd);
   w(cwd, 'docs/PRODUCT.md');
-  w(cwd, 'project/stories.md', '| ID | Story | Depends on |\n|----|----|----|\n| S1 | a | |');
   w(cwd, 'docs/DECISIONS.md', '# Decisions\n\n## 2026 — a real decision\n');
   w(cwd, 'project/map.md');
   w(cwd, 'docs/GLOSSARY.md');
+  w(cwd, 'project/prototype.md');
+  w(cwd, 'project/stories.md', '| ID | Story | Depends on |\n|----|----|----|\n| S1 | a | |');
 }
 
 test('defaultConfig: version 3, single, colocated', () => {
@@ -49,8 +50,8 @@ test('defaultConfig: version 3, single, colocated', () => {
 });
 
 test('stage lists', () => {
-  assert.deepEqual(GROUNDWORK_STAGES, ['setup', 'vision', 'stories', 'foundation', 'map']);
-  assert.deepEqual(MILESTONE_STAGES, ['milestone-brief', 'design', 'tracer', 'features', 'review', 'finalize']);
+  assert.deepEqual(GROUNDWORK_STAGES, ['setup', 'vision', 'foundation', 'prototype', 'stories']);
+  assert.deepEqual(MILESTONE_STAGES, ['milestone-brief', 'ux-refine', 'tracer', 'features', 'review', 'finalize']);
   assert.deepEqual(FEATURE_STAGES, ['plan', 'build']);
   assert.deepEqual(SURFACE_KINDS, ['ui', 'api', 'lib']);
   assert.deepEqual(MODES, ['single', 'multi']);
@@ -110,6 +111,12 @@ test('groundworkDone derives from files', () => {
   assert.equal(groundworkDone(cwd, 'foundation'), false); // no ## heading
   w(cwd, 'docs/DECISIONS.md', '# Decisions\n\n## a decision\n');
   assert.equal(groundworkDone(cwd, 'foundation'), true);
+  assert.equal(groundworkDone(cwd, 'prototype'), false);
+  w(cwd, 'project/map.md');
+  w(cwd, 'docs/GLOSSARY.md');
+  assert.equal(groundworkDone(cwd, 'prototype'), false); // map+glossary but no sign-off
+  w(cwd, 'project/prototype.md');
+  assert.equal(groundworkDone(cwd, 'prototype'), true);
 });
 
 test('gate: groundwork chain', () => {
@@ -118,26 +125,37 @@ test('gate: groundwork chain', () => {
   assert.equal(gate(cwd, 'vision').pass, false);
   initConfig(cwd);
   assert.equal(gate(cwd, 'vision').pass, true);
-  assert.equal(gate(cwd, 'stories').pass, false);
+  assert.equal(gate(cwd, 'foundation').pass, false);
   w(cwd, 'docs/PRODUCT.md');
+  assert.equal(gate(cwd, 'foundation').pass, true);
+  assert.equal(gate(cwd, 'prototype').pass, false);
+  w(cwd, 'docs/DECISIONS.md', '# Decisions\n\n## a decision\n');
+  assert.equal(gate(cwd, 'prototype').pass, true);
+  assert.equal(gate(cwd, 'stories').pass, false);
+  w(cwd, 'project/map.md');
+  w(cwd, 'docs/GLOSSARY.md');
+  w(cwd, 'project/prototype.md');
   assert.equal(gate(cwd, 'stories').pass, true);
+  assert.equal(gate(cwd, 'milestone-brief', { milestone: 1 }).pass, false);
+  w(cwd, 'project/stories.md', '| ID | Story |\n|--|--|\n| S1 | a |');
+  assert.equal(gate(cwd, 'milestone-brief', { milestone: 1 }).pass, true);
 });
 
 test('gate: milestone stages need a milestone and predecessors', () => {
   const cwd = tmp();
   groundwork(cwd);
-  assert.equal(gate(cwd, 'design').pass, false); // no --milestone
+  assert.equal(gate(cwd, 'ux-refine').pass, false); // no --milestone
   assert.equal(gate(cwd, 'milestone-brief', { milestone: 1 }).pass, true);
-  assert.equal(gate(cwd, 'design', { milestone: 1 }).pass, false);
+  assert.equal(gate(cwd, 'ux-refine', { milestone: 1 }).pass, false);
   w(cwd, 'project/milestones/m1/brief.md', 'Track: production');
-  assert.equal(gate(cwd, 'design', { milestone: 1 }).pass, true);
+  assert.equal(gate(cwd, 'ux-refine', { milestone: 1 }).pass, true);
 });
 
 test('gate: tracer refuses a prototype-only milestone', () => {
   const cwd = tmp();
   groundwork(cwd);
   w(cwd, 'project/milestones/m1/brief.md', 'Track: prototype');
-  w(cwd, 'project/milestones/m1/design.md');
+  w(cwd, 'project/milestones/m1/ux-refine.md');
   const g = gate(cwd, 'tracer', { milestone: 1 });
   assert.equal(g.pass, false);
   assert.ok(g.missing.some((x) => /prototype-only/.test(x)));
@@ -177,8 +195,8 @@ test('nextStage walks groundwork then a milestone', () => {
   groundwork(cwd);
   assert.deepEqual(nextStage(cwd), { stage: 'milestone-brief', milestone: 1, feature: null });
   w(cwd, 'project/milestones/m1/brief.md', 'Track: production');
-  assert.equal(nextStage(cwd, { milestone: 1 }).stage, 'design');
-  w(cwd, 'project/milestones/m1/design.md');
+  assert.equal(nextStage(cwd, { milestone: 1 }).stage, 'ux-refine');
+  w(cwd, 'project/milestones/m1/ux-refine.md');
   assert.equal(nextStage(cwd, { milestone: 1 }).stage, 'tracer');
 });
 
@@ -186,7 +204,7 @@ test('nextStage: prototype-only milestone skips tracer/features', () => {
   const cwd = tmp();
   groundwork(cwd);
   w(cwd, 'project/milestones/m1/brief.md', 'Track: prototype');
-  w(cwd, 'project/milestones/m1/design.md');
+  w(cwd, 'project/milestones/m1/ux-refine.md');
   assert.equal(nextStage(cwd, { milestone: 1 }).stage, 'review');
 });
 
@@ -194,7 +212,7 @@ test('nextStage: build order follows feature dependencies', () => {
   const cwd = tmp();
   groundwork(cwd);
   w(cwd, 'project/milestones/m1/brief.md', 'Track: production');
-  w(cwd, 'project/milestones/m1/design.md');
+  w(cwd, 'project/milestones/m1/ux-refine.md');
   w(cwd, 'project/milestones/m1/tracer.md');
   w(cwd, 'project/milestones/m1/features.md', FEATURES_MD.replace(/done|yes/g, '')); // nothing built
   w(cwd, 'project/milestones/m1/plans/f-api.md');
@@ -207,7 +225,7 @@ test('nextStage interleaves plan and build feature by feature', () => {
   const cwd = tmp();
   groundwork(cwd);
   w(cwd, 'project/milestones/m1/brief.md', 'Track: production');
-  w(cwd, 'project/milestones/m1/design.md');
+  w(cwd, 'project/milestones/m1/ux-refine.md');
   w(cwd, 'project/milestones/m1/tracer.md');
   const feats = [
     '| ID | Feature | Story | Domain | Repo | Depends on | Build | Verified |',
@@ -237,8 +255,8 @@ test('milestones are independent — two can be in flight', () => {
   w(cwd, 'project/milestones/m1/brief.md', 'Track: prototype');
   w(cwd, 'project/milestones/m2/brief.md', 'Track: prototype');
   assert.deepEqual(milestoneDirs(cwd), [1, 2]);
-  assert.equal(nextStage(cwd, { milestone: 1 }).stage, 'design');
-  assert.equal(nextStage(cwd, { milestone: 2 }).stage, 'design');
+  assert.equal(nextStage(cwd, { milestone: 1 }).stage, 'ux-refine');
+  assert.equal(nextStage(cwd, { milestone: 2 }).stage, 'ux-refine');
 });
 
 test('statusReport mentions the next stage and is legacy-aware', () => {
