@@ -19,7 +19,7 @@ No skip, no override — this is the skill's central discipline.
 If the gate reports `tracer` is not done, HALT and tell the user to run
 `adhd tracer --milestone {{N}}` first. If it reports the milestone is
 "prototype-only", `features` does not apply — a prototype-only milestone goes from
-`design` straight to `review`.
+`ux-refine` straight to `review`.
 
 ## Procedure
 1. **Decompose each chosen story into features.** For every story in the milestone,
@@ -27,8 +27,9 @@ If the gate reports `tracer` is not done, HALT and tell the user to run
    domain (one repo). A backend feature is a per-domain slice of the story; a frontend
    feature wires a surface to its backend. Reconcile against `m{{N}}/tracer.md`: where
    the tracer's backend reality contradicted the signed-off prototype, the **prototype
-   is corrected first** (re-run `adhd design --milestone {{N}}`), then
-   the features are written to match reality.
+   is corrected first** — a milestone-slice fix via `adhd ux-refine --milestone {{N}}`,
+   or, if the whole-product flow or rules are wrong, by re-running the groundwork
+   `adhd prototype` stage — then the features are written to match reality.
 2. **Write `m{{N}}/features.md`** as a table with exactly these columns:
 
    `| ID | Feature | Story | Domain | Repo | Depends on | Build | Verified |`

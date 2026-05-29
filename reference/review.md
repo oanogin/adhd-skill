@@ -1,7 +1,7 @@
 # adhd — Review
 
 **Effort:** high
-**Gate:** prototype-only milestone — `design` is done; production-track milestone —
+**Gate:** prototype-only milestone — `ux-refine` is done; production-track milestone —
 every feature is built **and** verified.
 **Output:** `project/milestones/m{{N}}/review.md`.
 **Sub-skill:** none.
@@ -11,7 +11,7 @@ Run `node {{scripts_path}}/adhd-state.mjs gate review --milestone {{N}}`.
 If it reports missing items, HALT. Tell the user exactly which predecessor stage to run.
 No skip, no override — this is the skill's central discipline.
 
-The gate is state-based and track-aware. A prototype-only milestone needs `design`
+The gate is state-based and track-aware. A prototype-only milestone needs `ux-refine`
 done. A production-track milestone needs the `features` stage done and every feature
 both built and verified — if a feature is built but not verified, run
 `adhd build` for it and complete its verification first.

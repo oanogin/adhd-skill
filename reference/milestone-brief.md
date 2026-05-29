@@ -1,7 +1,8 @@
 # adhd — Milestone Brief
 
 **Effort:** medium
-**Gate:** `project/map.md` and `docs/GLOSSARY.md` exist — the Map stage is done.
+**Gate:** `project/stories.md` exists — the Stories stage is done (which in turn
+required the whole-product `prototype` and the rest of groundwork).
 **Output:** `project/milestones/m{{N}}/brief.md`.
 **Sub-skill:** none.
 
@@ -15,8 +16,8 @@ Run `node {{scripts_path}}/adhd-state.mjs gate milestone-brief --milestone {{N}}
 If it reports missing items, HALT. Tell the user exactly which predecessor stage to run.
 No skip, no override — this is the skill's central discipline.
 
-If the gate reports `project/map.md` or `docs/GLOSSARY.md` is missing, HALT and tell
-the user to run `adhd map` first.
+If the gate reports `project/stories.md` is missing, HALT and tell the user to run
+`adhd stories` first.
 
 ## Procedure
 The whole stage writes one file — `m{{N}}/brief.md`. There are no state commands; the
@@ -34,7 +35,7 @@ brief *is* the milestone's record.
    "Surfaces"). Record each surface in `brief.md` with its `kind`, `domains`, and
    production home (a `ui` surface's may be `TBD`).
 3. **Set the track.** Decide the milestone's `infra` need, in capability terms only.
-   `infra: none` → **prototype-only** (`milestone-brief → design → review → finalize`);
+   `infra: none` → **prototype-only** (`milestone-brief → ux-refine → review → finalize`);
    any real infra → **production-track** (also `tracer → features → plan → build`).
    Write a line `Track: production` or `Track: prototype` in `brief.md` — the gates and
    `status` parse it. In `multi` mode also note the milestone's domains.
@@ -58,7 +59,7 @@ brief *is* the milestone's record.
 1. Write the output file — milestone `{{N}}` exists and the stage is done the moment
    `m{{N}}/brief.md` exists.
 2. `node {{scripts_path}}/adhd-state.mjs session-add milestone-brief`
-3. `node {{scripts_path}}/context-watch.mjs --next design` — if it advises a fresh
+3. `node {{scripts_path}}/context-watch.mjs --next ux-refine` — if it advises a fresh
    session, run `node {{scripts_path}}/handoff-prompt.mjs` and give the user the prompt.
 4. Drain `project/notes.md`: migrate any durable entry to its canonical home; healthy = empty.
-5. Tell the user the next runnable stage is `design` for milestone {{N}}.
+5. Tell the user the next runnable stage is `ux-refine` for milestone {{N}}.

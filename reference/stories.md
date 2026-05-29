@@ -1,28 +1,33 @@
 # adhd — Stories
 
 **Effort:** medium
-**Gate:** `docs/PRODUCT.md` exists — the Vision stage is done.
+**Gate:** `project/prototype.md` exists — the Prototype stage is done (the whole-product
+clickable prototype is signed off, and `project/map.md` + `docs/GLOSSARY.md` exist).
 **Output:** `project/stories.md`.
 **Sub-skill:** none.
 
-`stories` is a **living stage**. It seeds the backlog once, and is re-run any time the
-product grows or changes — adding, rewording, re-sizing, or removing stories. It is not
-a one-shot front-load step: the story backlog evolves across the whole product lifecycle.
+`stories` is a **living stage**. It seeds the backlog once — **derived from the
+signed-off whole-product prototype** and the behaviours clarified while building it — and
+is re-run any time the product grows or changes (adding, rewording, re-sizing, or
+removing stories). It is not a one-shot front-load step: the story backlog evolves across
+the whole product lifecycle.
 
 ## Gate check
 Run `node {{scripts_path}}/adhd-state.mjs gate stories`.
 If it reports missing items, HALT. Tell the user exactly which predecessor stage to run.
 No skip, no override — this is the skill's central discipline.
 
-If the gate reports `vision` (or `docs/PRODUCT.md`) is missing, HALT and tell the user
-to run `adhd vision` first.
+If the gate reports `prototype` (or `project/prototype.md` / `project/map.md` /
+`docs/GLOSSARY.md`) is missing, HALT and tell the user to run `adhd prototype` first.
 
 ## Procedure
-1. **Brain-dump every envisioned story** with the user — the full, ambitious
-   "spaceship". A **story** is a product-level user story: actor + action + outcome. It
-   may span domains and repos; it is not scoped to one. Capture breadth freely now so
-   ideas do not leak into a running milestone later as scope creep. Nothing is too big
-   or too speculative for this backlog.
+1. **Derive stories from the prototype.** Walk the signed-off whole-product prototype —
+   its surfaces, flows, and rules — with the user, and capture each as a product-level
+   user story: actor + action + outcome. Because the prototype already shows the full,
+   ambitious "spaceship", this is mostly *reading off* the stories the prototype implies,
+   plus any the user adds. A story may span domains and repos; it is not scoped to one.
+   Capture breadth freely now so ideas do not leak into a running milestone later as
+   scope creep.
 2. **Record each story** with: a stable short ID, the story text (actor + action +
    outcome), its business value, its dependencies (other stories, by ID), and a rough
    size estimate.
@@ -49,8 +54,9 @@ to run `adhd vision` first.
 1. Write the output file — the stage is done the moment `project/stories.md` exists.
    `stories` is re-runnable: simply edit the file again to amend the backlog.
 2. `node {{scripts_path}}/adhd-state.mjs session-add stories`
-3. `node {{scripts_path}}/context-watch.mjs --next foundation` — if it advises a fresh
-   session, run `node {{scripts_path}}/handoff-prompt.mjs` and give the user the prompt.
+3. `node {{scripts_path}}/context-watch.mjs --next milestone-brief` — if it advises a
+   fresh session, run `node {{scripts_path}}/handoff-prompt.mjs` and give the user the prompt.
 4. Drain `project/notes.md`: migrate any durable entry to its canonical home; healthy = empty.
-5. On the first run, tell the user the next runnable stage is `foundation`. On a
-   mid-project amend, point them back to the per-milestone stage they were in.
+5. On the first run, the groundwork is complete — tell the user the next runnable stage
+   is `milestone-brief` for milestone 1. On a mid-project amend, point them back to the
+   per-milestone stage they were in.

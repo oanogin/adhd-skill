@@ -1,7 +1,7 @@
 # adhd — Tracer
 
 **Effort:** high
-**Gate:** the milestone's `design` stage is done, and the milestone is production-track.
+**Gate:** the milestone's `ux-refine` stage is done, and the milestone is production-track.
 **Output:** `project/milestones/m{{N}}/tracer.md` plus tracer code.
 **Sub-skill:** none.
 
@@ -10,10 +10,10 @@ Run `node {{scripts_path}}/adhd-state.mjs gate tracer --milestone {{N}}`.
 If it reports missing items, HALT. Tell the user exactly which predecessor stage to run.
 No skip, no override — this is the skill's central discipline.
 
-If the gate reports `design` is not done, HALT and tell the user to run
-`adhd design --milestone {{N}}` first. If it reports the milestone is
+If the gate reports `ux-refine` is not done, HALT and tell the user to run
+`adhd ux-refine --milestone {{N}}` first. If it reports the milestone is
 "prototype-only", `tracer` does not apply — a prototype-only milestone goes from
-`design` straight to `review`.
+`ux-refine` straight to `review`.
 
 ## What this stage is
 

@@ -21,11 +21,11 @@ test('handoffPrompt without config.json tells user to run setup', () => {
 test('handoffPrompt names notes.md first, the next stage, and the run command', () => {
   const cwd = tmp();
   initConfig(cwd);
-  w(cwd, 'docs/PRODUCT.md'); // setup + vision done -> next is stories
+  w(cwd, 'docs/PRODUCT.md'); // setup + vision done -> next is foundation
   const out = handoffPrompt(cwd);
   assert.match(out, /project\/notes\.md/);
-  assert.match(out, /stories/);
-  assert.match(out, /\{\{command_prefix\}\}adhd stories/);
+  assert.match(out, /foundation/);
+  assert.match(out, /\{\{command_prefix\}\}adhd foundation/);
 });
 
 test('handoffPrompt includes a groundwork status line', () => {

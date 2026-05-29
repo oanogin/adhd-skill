@@ -14,13 +14,13 @@ export const LOCAL_REPOS_FILE = 'project/repos.local.json';
 export const SESSION_FILE = 'project/.session.json';
 export const LEGACY_STATE_FILE = 'project/state.json';
 
-export const GROUNDWORK_STAGES = ['setup', 'vision', 'stories', 'foundation', 'map'];
-export const MILESTONE_STAGES = ['milestone-brief', 'design', 'tracer', 'features', 'review', 'finalize'];
+export const GROUNDWORK_STAGES = ['setup', 'vision', 'foundation', 'prototype', 'stories'];
+export const MILESTONE_STAGES = ['milestone-brief', 'ux-refine', 'tracer', 'features', 'review', 'finalize'];
 export const FEATURE_STAGES = ['plan', 'build'];
 
 export const STAGE_EFFORT = {
-  setup: 'low', vision: 'high', stories: 'medium', foundation: 'medium', map: 'high',
-  'milestone-brief': 'medium', design: 'high', tracer: 'high', features: 'high',
+  setup: 'low', vision: 'high', foundation: 'medium', prototype: 'high', stories: 'medium',
+  'milestone-brief': 'medium', 'ux-refine': 'high', tracer: 'high', features: 'high',
   review: 'high', finalize: 'low', plan: 'medium', build: 'medium',
 };
 export const EFFORT_WEIGHT = { low: 1, medium: 2, high: 3, 'extra-high': 4 };
@@ -206,18 +206,20 @@ export function groundworkDone(cwd, stage) {
   switch (stage) {
     case 'setup': return exists(cwd, CONFIG_FILE);
     case 'vision': return exists(cwd, `${docHome}/PRODUCT.md`);
-    case 'stories': return exists(cwd, 'project/stories.md');
     case 'foundation':
       return exists(cwd, `${docHome}/DECISIONS.md`)
         && /^##\s/m.test(read(cwd, `${docHome}/DECISIONS.md`));
-    case 'map':
-      return exists(cwd, 'project/map.md') && exists(cwd, `${docHome}/GLOSSARY.md`);
+    case 'prototype':
+      return exists(cwd, 'project/prototype.md')
+        && exists(cwd, 'project/map.md')
+        && exists(cwd, `${docHome}/GLOSSARY.md`);
+    case 'stories': return exists(cwd, 'project/stories.md');
     default: return false;
   }
 }
 
 export function milestoneStageDone(cwd, m, stage) {
-  const f = { 'milestone-brief': 'brief.md', design: 'design.md', tracer: 'tracer.md',
+  const f = { 'milestone-brief': 'brief.md', 'ux-refine': 'ux-refine.md', tracer: 'tracer.md',
     features: 'features.md', review: 'review.md', finalize: 'summary.md' }[stage];
   return f ? exists(cwd, milestoneRel(m, f)) : false;
 }
@@ -235,7 +237,7 @@ export function gate(cwd, stage, { milestone, feature } = {}) {
   const need = (ok, msg) => { if (!ok) missing.push(msg); };
   const gw = (s) => groundworkDone(cwd, s);
   const ms = (s) => milestone != null && milestoneStageDone(cwd, milestone, s);
-  const needsMilestone = ['milestone-brief', 'design', 'tracer', 'features', 'plan', 'build', 'review', 'finalize'];
+  const needsMilestone = ['milestone-brief', 'ux-refine', 'tracer', 'features', 'plan', 'build', 'review', 'finalize'];
   if (needsMilestone.includes(stage) && milestone == null) {
     return { pass: false, missing: ['--milestone is required for this stage'] };
   }
@@ -244,13 +246,13 @@ export function gate(cwd, stage, { milestone, feature } = {}) {
   switch (stage) {
     case 'setup': break;
     case 'vision': need(gw('setup'), 'setup not done — no project/config.json'); break;
-    case 'stories': need(gw('vision'), 'vision not done — docs/PRODUCT.md missing'); break;
-    case 'foundation': need(gw('stories'), 'stories not done — project/stories.md missing'); break;
-    case 'map': need(gw('foundation'), 'foundation not done — no decisions logged in docs/DECISIONS.md'); break;
-    case 'milestone-brief': need(gw('map'), 'map not done — project/map.md / docs/GLOSSARY.md missing'); break;
-    case 'design': need(ms('milestone-brief'), `milestone ${milestone}: milestone-brief not done`); break;
+    case 'foundation': need(gw('vision'), 'vision not done — docs/PRODUCT.md missing'); break;
+    case 'prototype': need(gw('foundation'), 'foundation not done — no decisions logged in docs/DECISIONS.md'); break;
+    case 'stories': need(gw('prototype'), 'prototype not done — project/prototype.md / project/map.md / docs/GLOSSARY.md missing'); break;
+    case 'milestone-brief': need(gw('stories'), 'stories not done — project/stories.md missing'); break;
+    case 'ux-refine': need(ms('milestone-brief'), `milestone ${milestone}: milestone-brief not done`); break;
     case 'tracer':
-      need(ms('design'), `milestone ${milestone}: design not done`);
+      need(ms('ux-refine'), `milestone ${milestone}: ux-refine not done`);
       need(track !== 'prototype', `milestone ${milestone} is prototype-only — tracer does not apply`);
       break;
     case 'features':
@@ -277,7 +279,7 @@ export function gate(cwd, stage, { milestone, feature } = {}) {
     }
     case 'review':
       if (track === 'prototype') {
-        need(ms('design'), `milestone ${milestone}: design not done`);
+        need(ms('ux-refine'), `milestone ${milestone}: ux-refine not done`);
       } else {
         need(ms('features'), `milestone ${milestone}: features not done`);
         for (const f of parseFeatures(cwd, milestone) ?? []) {
@@ -314,7 +316,7 @@ function milestoneComplete(cwd, m) {
 function milestoneNext(cwd, m) {
   const at = (stage, feature = null) => ({ stage, milestone: m, feature });
   if (!milestoneStageDone(cwd, m, 'milestone-brief')) return at('milestone-brief');
-  if (!milestoneStageDone(cwd, m, 'design')) return at('design');
+  if (!milestoneStageDone(cwd, m, 'ux-refine')) return at('ux-refine');
   if (milestoneTrack(cwd, m) !== 'prototype') {
     if (!milestoneStageDone(cwd, m, 'tracer')) return at('tracer');
     if (!milestoneStageDone(cwd, m, 'features')) return at('features');
@@ -345,7 +347,7 @@ function milestoneNext(cwd, m) {
 const ICON = (done) => (done ? '✓' : '·');
 
 export function statusReport(cwd = process.cwd()) {
-  if (!loadConfig(cwd)) return 'No project/config.json. Run `{{command_prefix}}adhd setup` to begin.';
+  if (!loadConfig(cwd)) return 'No project/config.json. Run `adhd setup` to begin.';
   const lines = [];
   if (exists(cwd, LEGACY_STATE_FILE)) {
     lines.push('! legacy project/state.json present — run `adhd-state.mjs migrate`.', '');
@@ -356,7 +358,7 @@ export function statusReport(cwd = process.cwd()) {
     const track = milestoneTrack(cwd, m);
     lines.push(`Milestone ${m}${title ? ` — ${title}` : ''}${track ? ` [${track}]` : ''}:`);
     const stages = track === 'prototype'
-      ? ['milestone-brief', 'design', 'review', 'finalize']
+      ? ['milestone-brief', 'ux-refine', 'review', 'finalize']
       : MILESTONE_STAGES;
     lines.push('  ' + stages.map((s) => `${s} ${ICON(milestoneStageDone(cwd, m, s))}`).join('  '));
     for (const f of parseFeatures(cwd, m) ?? []) {
@@ -421,7 +423,7 @@ export function validate(cwd = process.cwd()) {
   // standalone prototype topology needs a home
   if ((config.prototypeTopology ?? 'colocated') === 'standalone') {
     const proto = config.prototype ?? {};
-    if (groundworkDone(cwd, 'map') && !proto.subpath && !proto.repo) {
+    if (groundworkDone(cwd, 'prototype') && !proto.subpath && !proto.repo) {
       blockers.push('prototype topology is "standalone" but no prototype home is set — run `adhd workspace`');
     }
     if (proto.repo && config.mode === 'multi' && !(config.repos ?? {})[proto.repo]) {
