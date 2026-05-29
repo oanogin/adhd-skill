@@ -25,7 +25,7 @@ test('handoffPrompt names notes.md first, the next stage, and the run command', 
   const out = handoffPrompt(cwd);
   assert.match(out, /project\/notes\.md/);
   assert.match(out, /foundation/);
-  assert.match(out, /\{\{command_prefix\}\}adhd foundation/);
+  assert.match(out, /Run: adhd foundation/);
 });
 
 test('handoffPrompt includes a groundwork status line', () => {

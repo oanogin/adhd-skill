@@ -6,7 +6,7 @@ import { loadConfig, nextStage, statusReport } from './adhd-state.mjs';
 export function handoffPrompt(cwd = process.cwd()) {
   const config = loadConfig(cwd);
   if (!config) {
-    return 'No project/config.json found. Run `{{command_prefix}}adhd setup` to begin a new project.';
+    return 'No project/config.json found. Run `adhd setup` to begin a new project.';
   }
   const next = nextStage(cwd);
   const where = next.stage +
@@ -18,7 +18,7 @@ export function handoffPrompt(cwd = process.cwd()) {
     '',
     '1. Read `project/notes.md` FIRST — it is the scratchpad from the previous session.',
     `2. Current position: ${where}`,
-    `3. Run: {{command_prefix}}adhd ${runArg}`,
+    `3. Run: adhd ${runArg}`,
     '',
     'State summary:',
     statusReport(cwd).split('\n').map((l) => '  ' + l).join('\n'),
