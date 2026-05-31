@@ -76,7 +76,7 @@ See `reference/codex-tools.md` and `reference/cursor-tools.md` for tool-name map
   the `repos` registry, `prototypeTopology` + `prototype`, `preflight`. Mutate it only
   through `adhd-state.mjs` config subcommands.
 - The agent reads and writes the `.md` artifacts directly. `adhd-state.mjs` is a
-  read/derive tool — `status`, `gate`, `next`, `validate`, `audit` — plus the
+  read/derive tool — `status`, `gate`, `next`, `validate` — plus the
   `config.json` writers. It does not own the project content.
 
 A project created before this model has a `project/state.json`; run
@@ -120,7 +120,8 @@ be in flight at once (see "Working in parallel"). Each runs its own per-mileston
 
 A long stage can outlive one session. To survive compaction and make handoff seamless,
 every **high-effort** stage (`vision`, `concepts`, `prototype`, `ux-refine`, `tracer`,
-`features`, `review`) auto-creates a working-memory file at its start:
+`features`, `review`) creates a working-memory file as its first procedure step (a
+discipline the stage follows, not a script-enforced step):
 `project/work/<stage>.md` for groundwork, `project/work/m<N>-<stage>.md` for a milestone
 stage. Medium/low stages (including `build` — its plan already is the memory) create
 none.
@@ -132,11 +133,11 @@ The file has two light zones:
 ## Log             ← free-form, newest last: what was done / what failed / decisions
 ```
 
-Write to it as the work proceeds, so an unexpected compaction cannot corrupt context.
+Write to it as the work proceeds, so a session that ends mid-stage resumes cleanly.
 It is **transient scratch — never a source of truth**, exactly like `notes.md`. On stage
 completion, drain durable facts to their canonical home (`DECISIONS.md`, `CONCEPTS.md`,
 `DATA.md`, a surface spec, `.ruler/`) and **delete** the file. `project/work/` is
-gitignored; `audit` flags any work file whose stage is already done.
+gitignored; the `verify` pass flags any work file whose stage is already done.
 `handoff-prompt.mjs` reads the active work file and leads the resume prompt with it.
 
 ## Canonical layout
@@ -367,11 +368,16 @@ These are not stages — they have no gates and no place in the stage flow:
   prototype topology. See [reference/workspace.md](reference/workspace.md).
 - `adopt` — bring an existing project under `adhd`; substitutes for the groundwork
   loop. See [reference/adopt.md](reference/adopt.md).
+- `verify` — an agent-driven consistency & quality audit of the `.md` artifacts: a
+  read-only sub-agent reports drift, contradictions, and determinism issues and proposes
+  edits for your approval. Replaces the old script content-audit. See
+  [reference/verify.md](reference/verify.md).
 
-The CLI also exposes `migrate` (convert a legacy `state.json` to `config.json`) and
-`audit` (a content check across the `.md` artifacts — see Cross-cutting rules). To
-drop a milestone, delete its `m<N>/` folder; to drop a surface or feature, edit the
-markdown — there are no special commands.
+The CLI also exposes `migrate` (convert a legacy `state.json` to `config.json`).
+Content/consistency auditing is the agent-driven `verify` command (see
+[reference/verify.md](reference/verify.md)), not a script. To drop a milestone, delete
+its `m<N>/` folder; to drop a surface or feature, edit the markdown — there are no
+special commands.
 
 ## Routing
 
@@ -380,7 +386,7 @@ markdown — there are no special commands.
    and restate user intent in one line. If `validate` reports blockers, name the
    fix and HALT. Otherwise name the next runnable stage. Stop.
 2. **First word is a stage or a management command** — the 13 stages are in the
-   table above; `workspace` and `adopt` are management commands. Load the matching
+   table above; `workspace`, `adopt`, and `verify` are management commands. Load the matching
    `reference/<name>.md` and follow it exactly. The reference owns the gate check
    (stages), the procedure, and the completion steps.
 3. **First word matches nothing** — treat the whole input as a task description.
@@ -404,8 +410,10 @@ If `project/config.json` does not exist, the only runnable stage is `setup`.
 - **The files are the truth** — every fact has exactly one home. `config.json` holds
   the non-doc config; everything else is a `.md` artifact. A stage's artifact file is
   the sole record that the stage ran — there is no second status store, so never
-  pre-create an artifact. Run `node {{scripts_path}}/adhd-state.mjs audit` to catch
-  drift, orphans, and misplaced info across the markdown.
+  pre-create an artifact. Run the agent-driven `verify` pass (see
+  [reference/verify.md](reference/verify.md)) to catch drift, orphans, and misplaced
+  info across the markdown; `adhd-state.mjs validate` covers fast, structural sanity
+  (legacy state, config version, repo bindings, DAG cycles).
 - **Effort hints** — each stage carries a suggested reasoning effort; surface it to the user.
 - **Context watch** — after each stage run `context-watch.mjs`; if it advises a fresh
   session, run `handoff-prompt.mjs` and give the user the resume prompt. On high-effort
@@ -468,7 +476,7 @@ These are operational slips, not gate-skipping (gate rationalizations are tabled
 | Building a feature before its `Depends on` features. | The DAG order is enforced by the `build` gate — build the dependency features first. |
 | Building a `ui` surface's production code into the prototype app (or vice versa). | Under `standalone` topology they are different repos. The `prototype`/`ux-refine` stages write the prototype app; `build` writes the feature's production `repo`. |
 | Changing the whole-product flow or rules inside `ux-refine`. | `ux-refine` only refines the current milestone's slice. To change the whole-product flow, re-run the groundwork `prototype` stage. |
-| Leaving a `project/work/<task>.md` behind after a stage is done. | It is transient scratch. Drain durable facts to their canonical home and delete it — `audit` flags stale work files. |
+| Leaving a `project/work/<task>.md` behind after a stage is done. | It is transient scratch. Drain durable facts to their canonical home and delete it — the `verify` pass flags stale work files. |
 | Putting fields, schema, or surfaces into `docs/CONCEPTS.md`. | `CONCEPTS.md` is conceptual (entities + relationships + helicopter behavior). Fields live in `docs/DATA.md`; surfaces/placement live in `project/map.md`. |
 
 ## Scripts

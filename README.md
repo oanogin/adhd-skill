@@ -42,11 +42,13 @@ Run inside the project you are building (not in this skill's repo):
 
 Start a new project with `/adhd setup`.
 
-Two management commands sit outside the stage flow:
+Three management commands sit outside the stage flow:
 
 - `/adhd workspace` — switch to `multi` mode, register code repos, set prototype topology.
 - `/adhd adopt` — bring an existing, already-built project under `adhd` (drafts the
   groundwork docs from the project's existing documentation).
+- `/adhd verify` — agent-driven consistency & quality audit of the project's docs
+  (reports drift and proposes fixes for your approval).
 
 You can also describe a task in plain words — `/adhd <free text>` — and `adhd`
 picks the stage or command that fits, respecting the gates.
@@ -209,8 +211,9 @@ not by hand. Everything else is plain markdown you (and `adhd`) edit directly.
   milestone can declare `infra: none` and ship as a fully-working UX prototype on mock
   data — no database, no data model. The data model appears in `docs/DATA.md` only once
   a milestone actually persists data.
-- **Single source of truth** — `adhd audit` checks the `.md` artifacts for drift,
-  orphans, and misplaced info.
+- **Single source of truth** — `adhd verify` (an agent-driven pass) checks the `.md`
+  artifacts for drift, orphans, and misplaced info; `adhd-state.mjs validate` covers fast
+  structural sanity.
 - **notes.md** — a scratchpad read first every session; durable facts get
   migrated to their real home (`DECISIONS.md`, `CONCEPTS.md`, a surface spec).
 - **Context watch** — `adhd` flags when to start a fresh session and emits a
