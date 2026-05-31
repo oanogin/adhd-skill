@@ -156,7 +156,8 @@ project/
   repos.local.json           gitignored — per-user repo→path bindings (multi mode)
   .session.json              gitignored — ephemeral context-watch scratch
   notes.md                   transient scratchpad (healthy = empty)
-  work/<stage>[-m<N>].md     gitignored — per-task working memory (high-effort stages); deleted on completion
+  work/<stage>.md            gitignored — per-task working memory (high-effort stages);
+                             milestone form `m<N>-<stage>.md`; deleted on completion
   prototype.md               Prototype sign-off — whole-product UX flow & rules (done artifact)
   map.md                     surface catalog + domains + deployables (Prototype output)
   surfaces/<name>.md         project-wide surface spec (Prototype output)

@@ -25,10 +25,6 @@ If the gate reports `tracer` is not done, HALT and tell the user to run
 1. **Start working memory.** This high-effort stage may span sessions. Create
    `project/work/m{{N}}-features.md` (`## Left to do` + `## Log`) and append as you
    work — see SKILL.md, "Working memory".
-- **New entity → update `concepts` first.** If this stage surfaces a product entity not
-  already in `docs/CONCEPTS.md`, stop and re-run `adhd concepts` to add it (entity +
-  relationships + any state rule) before continuing. The concepts file is the single
-  source of the ubiquitous language; it must not silently fall behind the build.
 2. **Decompose each chosen story into features.** For every story in the milestone,
    break the work into features — each one small, concrete, and living in exactly one
    domain (one repo). A backend feature is a per-domain slice of the story; a frontend
@@ -54,6 +50,11 @@ If the gate reports `tracer` is not done, HALT and tell the user to run
    `Feature` cell or an extra column — `plan` reads it to find the surface spec.
 5. **Check it.** Run `node {{scripts_path}}/adhd-state.mjs audit` — it flags unknown
    stories, unknown repos, unknown dependency IDs, and dependency cycles.
+
+- **New entity → update `concepts` first.** If this stage surfaces a product entity not
+  already in `docs/CONCEPTS.md`, stop and re-run `adhd concepts` to add it (entity +
+  relationships + any state rule) before continuing. The concepts file is the single
+  source of the ubiquitous language; it must not silently fall behind the build.
 
 ## Output
 `project/milestones/m{{N}}/features.md` — the feature DAG as a markdown table

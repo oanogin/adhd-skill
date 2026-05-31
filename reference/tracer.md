@@ -25,10 +25,6 @@ into features and built. It runs only on production-track milestones.
 1. **Start working memory.** This high-effort stage may span sessions. Create
    `project/work/m{{N}}-tracer.md` (`## Left to do` + `## Log`) and append as you work —
    see SKILL.md, "Working memory".
-- **New entity → update `concepts` first.** If this stage surfaces a product entity not
-  already in `docs/CONCEPTS.md`, stop and re-run `adhd concepts` to add it (entity +
-  relationships + any state rule) before continuing. The concepts file is the single
-  source of the ubiquitous language; it must not silently fall behind the build.
 2. **Settle the infra mechanism — latest responsible moment.** Read the milestone's
    `infra` need from `m{{N}}/brief.md`. For each capability it requires that has no
    mechanism chosen yet, decide the mechanism now, with the user, and log it in
@@ -56,6 +52,11 @@ into features and built. It runs only on production-track milestones.
    correcting the prototype first.
 6. **Respect the commit gate.** Do not commit the tracer code without the user's
    explicit "ok".
+
+- **New entity → update `concepts` first.** If this stage surfaces a product entity not
+  already in `docs/CONCEPTS.md`, stop and re-run `adhd concepts` to add it (entity +
+  relationships + any state rule) before continuing. The concepts file is the single
+  source of the ubiquitous language; it must not silently fall behind the build.
 
 ## Output
 `project/milestones/m{{N}}/tracer.md` with:

@@ -71,8 +71,8 @@ surfaces' detail.
 
 ## The flow
 
-Groundwork establishes the product and its structure (mostly once — `prototype` and
-`stories` stay re-runnable). It front-loads the **whole-product UX**: `prototype` builds
+Groundwork establishes the product and its structure (mostly once — `concepts`,
+`prototype`, and `stories` stay re-runnable). It front-loads the **whole-product UX**: `prototype` builds
 a Hi-Fi, clickable, mock-data app for the entire product, and `stories` is derived from
 it. There is no pre-planned roadmap — but that whole-product prototype is the shared
 **soft roadmap** a milestone is carved from, just-in-time, at `milestone-brief`. The
