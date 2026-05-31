@@ -403,6 +403,16 @@ test('saveConfig leaves no .tmp file behind', () => {
   assert.equal(fs.existsSync(path.join(cwd, 'project/config.json.tmp')), false);
 });
 
+test('audit: flags a DATA.md entity missing from CONCEPTS.md', () => {
+  const cwd = tmp();
+  initConfig(cwd);
+  w(cwd, 'docs/CONCEPTS.md', '# Concepts\n\nTeam — a group of people.\n');
+  w(cwd, 'docs/DATA.md', '# Data\n\n## Team\nname: string\n\n## Invoice\namount: number\n');
+  const r = audit(cwd);
+  assert.ok(r.findings.some((f) => /Invoice/.test(f) && /CONCEPTS/.test(f)));
+  assert.ok(!r.findings.some((f) => /"Team"/.test(f)));
+});
+
 test('audit: warns on a stale work file for a completed stage', () => {
   const cwd = tmp();
   initConfig(cwd);

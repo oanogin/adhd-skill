@@ -510,6 +510,16 @@ export function audit(cwd = process.cwd()) {
       }
     }
   }
+  if (exists(cwd, `${docHome}/DATA.md`) && exists(cwd, `${docHome}/CONCEPTS.md`)) {
+    const concepts = read(cwd, `${docHome}/CONCEPTS.md`).toLowerCase();
+    const heads = [...read(cwd, `${docHome}/DATA.md`).matchAll(/^##\s+(.+?)\s*$/gm)].map((m) => m[1]);
+    for (const ent of heads) {
+      const name = clean(ent).toLowerCase();
+      if (name && !concepts.includes(name)) {
+        findings.push(`docs/DATA.md entity "${clean(ent)}" is not defined in docs/CONCEPTS.md — update concepts first`);
+      }
+    }
+  }
   const workDir = path.join(cwd, 'project/work');
   if (fs.existsSync(workDir)) {
     for (const file of fs.readdirSync(workDir)) {
