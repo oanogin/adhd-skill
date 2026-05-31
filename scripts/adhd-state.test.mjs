@@ -7,13 +7,11 @@ import path from 'node:path';
 import {
   defaultConfig, loadConfig, saveConfig, initConfig, CONFIG_VERSION,
   GROUNDWORK_STAGES, MILESTONE_STAGES, FEATURE_STAGES, SURFACE_KINDS, MODES, PROTOTYPE_TOPOLOGIES,
-  STAGE_EFFORT,
   parseTable, parseStories, parseFeatures, milestoneTrack, milestoneDirs,
   groundworkDone, milestoneStageDone, gate, nextStage, statusReport,
   validate, migrate,
   setMode, addRepo, removeRepo, bindRepo, unbindRepo, listRepos,
   setPrototypeTopology, setPrototypeHome, confirmPreflight,
-  loadSession, sessionAdd, sessionReset,
 } from './adhd-state.mjs';
 
 function tmp() { return fs.mkdtempSync(path.join(os.tmpdir(), 'adhd-')); }
@@ -59,8 +57,7 @@ test('stage lists', () => {
   assert.deepEqual(PROTOTYPE_TOPOLOGIES, ['colocated', 'standalone']);
 });
 
-test('concepts is a high-effort groundwork stage between foundation and prototype', () => {
-  assert.equal(STAGE_EFFORT.concepts, 'high');
+test('concepts is a groundwork stage between foundation and prototype', () => {
   const i = GROUNDWORK_STAGES.indexOf('concepts');
   assert.equal(GROUNDWORK_STAGES[i - 1], 'foundation');
   assert.equal(GROUNDWORK_STAGES[i + 1], 'prototype');
@@ -361,16 +358,6 @@ test('bindRepo rejects unregistered / missing / non-git paths', () => {
   addRepo(cwd, { name: 'backend', kind: 'api' });
   assert.throws(() => bindRepo(cwd, 'backend', '/no/such/path'), /does not exist/);
   assert.throws(() => bindRepo(cwd, 'backend', tmp()), /Not a git repository/);
-});
-
-test('session scratch: add and reset', () => {
-  const cwd = tmp();
-  initConfig(cwd);
-  sessionAdd(cwd, 'vision');
-  sessionAdd(cwd, 'stories');
-  assert.deepEqual(loadSession(cwd).stagesRun, ['vision', 'stories']);
-  sessionReset(cwd);
-  assert.deepEqual(loadSession(cwd).stagesRun, []);
 });
 
 test('saveConfig leaves no .tmp file behind', () => {
