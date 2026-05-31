@@ -48,3 +48,22 @@ test('handoffPrompt leads with the active work file and inlines checklist + log'
   assert.doesNotMatch(out, /entities/);
   assert.match(out, /Run: adhd concepts/);
 });
+
+test('handoffPrompt resumes the correct milestone and names --milestone in the run command', () => {
+  const cwd = tmp();
+  initConfig(cwd);
+  w(cwd, 'docs/PRODUCT.md');
+  w(cwd, 'docs/DECISIONS.md', '# Decisions\n\n## d\n');
+  w(cwd, 'docs/CONCEPTS.md');
+  w(cwd, 'project/map.md');
+  w(cwd, 'project/prototype.md');
+  w(cwd, 'project/stories.md', '| ID | Story |\n|--|--|\n| S1 | a |');
+  w(cwd, 'project/milestones/m1/brief.md', 'Track: production'); // next = ux-refine, milestone 1
+  w(cwd, 'project/work/m1-ux-refine.md', '## Left to do\n- [ ] refine nav\n\n## Log\n- started\n');
+  w(cwd, 'project/work/m2-ux-refine.md', '## Left to do\n- [ ] other milestone\n\n## Log\n- nope\n');
+  const out = handoffPrompt(cwd);
+  assert.match(out, /project\/work\/m1-ux-refine\.md` FIRST/);
+  assert.doesNotMatch(out, /m2-ux-refine/);
+  assert.match(out, /refine nav/);
+  assert.match(out, /Run: adhd ux-refine --milestone 1/);
+});

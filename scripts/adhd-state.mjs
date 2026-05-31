@@ -451,94 +451,6 @@ export function validate(cwd = process.cwd()) {
   return { ok: blockers.length === 0, blockers, warnings };
 }
 
-// ---- audit ----
-const MECHANISM_KEYWORDS = [
-  'postgres', 'postgresql', 'mysql', 'sqlite', 'mongodb', 'redis', 'kafka',
-  'react', 'vue', 'svelte', 'angular', 'next.js', 'nextjs',
-  'kubernetes', 'docker', 'graphql', 'grpc', 'rest api',
-];
-
-export function audit(cwd = process.cwd()) {
-  const findings = [];
-  const warnings = [];
-  const config = loadConfig(cwd);
-  if (!config) return { ok: false, findings: ['No project/config.json — run `adhd setup` first.'], warnings: [] };
-  const docHome = config.docHome ?? 'docs';
-
-  const stories = parseStories(cwd);
-  const storyIds = new Set();
-  if (stories === null) {
-    if (groundworkDone(cwd, 'stories')) findings.push('project/stories.md not found but the stories stage is done');
-  } else {
-    for (const s of stories) {
-      if (storyIds.has(s.id)) findings.push(`stories.md: duplicate story ID "${s.id}"`);
-      storyIds.add(s.id);
-    }
-    for (const s of stories) {
-      for (const d of s.dependsOn) {
-        if (!storyIds.has(d)) findings.push(`stories.md: story "${s.id}" depends on unknown story ID "${d}"`);
-      }
-    }
-  }
-
-  for (const m of milestoneDirs(cwd)) {
-    const feats = parseFeatures(cwd, m);
-    if (!feats) continue;
-    const ids = new Set(feats.map((f) => f.id));
-    for (const f of feats) {
-      if (f.story && storyIds.size && !storyIds.has(f.story)) {
-        findings.push(`milestone ${m} feature "${f.id}": unknown story "${f.story}"`);
-      }
-      if (f.repo && config.mode === 'multi' && !(config.repos ?? {})[f.repo]) {
-        findings.push(`milestone ${m} feature "${f.id}": unknown repo "${f.repo}"`);
-      }
-      for (const d of f.dependsOn) {
-        if (d === f.id) findings.push(`milestone ${m} feature "${f.id}": depends on itself`);
-        else if (!ids.has(d)) findings.push(`milestone ${m} feature "${f.id}": depends on unknown feature "${d}"`);
-      }
-    }
-    const cyc = findCycle(feats);
-    if (cyc) findings.push(`milestone ${m}: feature dependency cycle: ${cyc.join(' → ')}`);
-  }
-
-  for (const rel of [`${docHome}/PRODUCT.md`, 'project/stories.md', 'project/map.md']) {
-    if (!exists(cwd, rel)) continue;
-    const lower = read(cwd, rel).toLowerCase();
-    for (const kw of MECHANISM_KEYWORDS) {
-      if (lower.includes(kw)) {
-        warnings.push(`${rel}: mentions "${kw}" — product-scope docs should name capabilities, not mechanisms`);
-      }
-    }
-  }
-  if (exists(cwd, `${docHome}/DATA.md`) && exists(cwd, `${docHome}/CONCEPTS.md`)) {
-    const concepts = read(cwd, `${docHome}/CONCEPTS.md`).toLowerCase();
-    const heads = [...read(cwd, `${docHome}/DATA.md`).matchAll(/^##\s+(.+?)\s*$/gm)].map((m) => m[1]);
-    for (const ent of heads) {
-      const name = clean(ent).toLowerCase();
-      if (name && !concepts.includes(name)) {
-        findings.push(`docs/DATA.md entity "${clean(ent)}" is not defined in docs/CONCEPTS.md — update concepts first`);
-      }
-    }
-  }
-  const workDir = path.join(cwd, 'project/work');
-  if (fs.existsSync(workDir)) {
-    for (const file of fs.readdirSync(workDir)) {
-      if (!file.endsWith('.md')) continue;
-      const base = file.slice(0, -3);
-      const mm = /^m(\d+)-(.+)$/.exec(base);
-      const stage = mm ? mm[2] : base;
-      const done = mm ? milestoneStageDone(cwd, Number(mm[1]), stage) : groundworkDone(cwd, stage);
-      if (done) {
-        warnings.push(`project/work/${file}: stage "${stage}" is done — drain durable facts to their canonical home and delete this work file`);
-      }
-    }
-  }
-  if (exists(cwd, 'project/notes.md') && read(cwd, 'project/notes.md').trim() !== '') {
-    warnings.push('project/notes.md is not empty — drain durable entries to their canonical home');
-  }
-  return { ok: findings.length === 0, findings, warnings };
-}
-
 // ---- config writers ----
 export function setMode(cwd = process.cwd(), mode) {
   if (!MODES.includes(mode)) throw new Error(`Invalid mode "${mode}". Valid: ${MODES.join(', ')}`);
@@ -691,14 +603,9 @@ function main(argv) {
       if (!r.ok) process.exitCode = 1;
       break;
     }
-    case 'audit': {
-      const r = audit(cwd);
-      for (const f of r.findings) console.log(`FINDING: ${f}`);
-      for (const w of r.warnings) console.log(`warning: ${w}`);
-      console.log(r.ok ? 'audit: clean' : 'audit: issues found');
-      if (!r.ok) process.exitCode = 1;
+    case 'audit':
+      console.log('Content audit is now agent-driven: run the `verify` pass (see reference/verify.md).');
       break;
-    }
     case 'migrate': {
       const r = migrate(cwd);
       console.log(r.migrated ? 'migrated project/state.json -> project/config.json' : `nothing to migrate (${r.reason})`);

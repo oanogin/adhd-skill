@@ -48,7 +48,7 @@ If the gate reports `concepts` is not done, HALT and tell the user to run
    is a frontend/microfront repo, which **may legitimately be undecided** — write `TBD`
    rather than guessing. A `ui` surface is **not** the prototype app: never write the
    prototype app (its repo, or a `prototype/`-style path) into a surface's production-home
-   column — `audit` flags it. Name capabilities, never mechanisms — no stack, framework,
+   column — the `verify` pass flags it. Name capabilities, never mechanisms — no stack, framework,
    database, or architecture in `map.md` (those live in `docs/DECISIONS.md`).
 
    `map.md` groups the `docs/CONCEPTS.md` entities into deployables, DDD bounded contexts,

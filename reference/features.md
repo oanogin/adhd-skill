@@ -48,8 +48,10 @@ If the gate reports `tracer` is not done, HALT and tell the user to run
      the build-order gate.
 4. **Note the surface.** If a feature serves a specific surface, name it in the
    `Feature` cell or an extra column — `plan` reads it to find the surface spec.
-5. **Check it.** Run `node {{scripts_path}}/adhd-state.mjs audit` — it flags unknown
-   stories, unknown repos, unknown dependency IDs, and dependency cycles.
+5. **Check it.** Run `node {{scripts_path}}/adhd-state.mjs validate` for structural
+   sanity (dependency cycles, unknown dependency IDs), then run the `verify` pass (see
+   [reference/verify.md](verify.md)) for content checks (unknown stories, unknown repos,
+   drift).
 
 - **New entity → update `concepts` first.** If this stage surfaces a product entity not
   already in `docs/CONCEPTS.md`, stop and re-run `adhd concepts` to add it (entity +

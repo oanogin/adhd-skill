@@ -10,7 +10,7 @@ import {
   STAGE_EFFORT,
   parseTable, parseStories, parseFeatures, milestoneTrack, milestoneDirs,
   groundworkDone, milestoneStageDone, gate, nextStage, statusReport,
-  validate, audit, migrate,
+  validate, migrate,
   setMode, addRepo, removeRepo, bindRepo, unbindRepo, listRepos,
   setPrototypeTopology, setPrototypeHome, confirmPreflight,
   loadSession, sessionAdd, sessionReset,
@@ -309,30 +309,6 @@ test('validate: multi-mode unbound repo, standalone topology, feature cycle', ()
   assert.ok(validate(cwd3).blockers.some((b) => /cycle/.test(b)));
 });
 
-test('audit: clean fresh project; flags dup story and unknown dep', () => {
-  const cwd = tmp();
-  initConfig(cwd);
-  assert.equal(audit(cwd).ok, true);
-  w(cwd, 'project/stories.md', [
-    '| ID | Story | Depends on |', '|--|--|--|',
-    '| S1 | a | |', '| S1 | b | |', '| S2 | c | S9 |',
-  ].join('\n'));
-  const r = audit(cwd);
-  assert.ok(r.findings.some((f) => /duplicate story ID "S1"/.test(f)));
-  assert.ok(r.findings.some((f) => /unknown story ID "S9"/.test(f)));
-});
-
-test('audit: flags a feature pointing at an unknown story; warns on mechanism leak', () => {
-  const cwd = tmp();
-  initConfig(cwd);
-  w(cwd, 'project/stories.md', '| ID | Story |\n|--|--|\n| S1 | a |');
-  w(cwd, 'project/milestones/m1/features.md', [
-    '| ID | Story | Depends on |', '|--|--|--|', '| f1 | S404 | |',
-  ].join('\n'));
-  assert.ok(audit(cwd).findings.some((f) => /unknown story "S404"/.test(f)));
-  w(cwd, 'docs/PRODUCT.md', 'We store data in PostgreSQL.');
-  assert.ok(audit(cwd).warnings.some((w) => /postgres/.test(w)));
-});
 
 test('migrate converts a v2 state.json to config.json and removes it', () => {
   const cwd = tmp();
@@ -403,27 +379,3 @@ test('saveConfig leaves no .tmp file behind', () => {
   assert.equal(fs.existsSync(path.join(cwd, 'project/config.json.tmp')), false);
 });
 
-test('audit: flags a DATA.md entity missing from CONCEPTS.md', () => {
-  const cwd = tmp();
-  initConfig(cwd);
-  w(cwd, 'docs/CONCEPTS.md', '# Concepts\n\nTeam — a group of people.\n');
-  w(cwd, 'docs/DATA.md', '# Data\n\n## Team\nname: string\n\n## Invoice\namount: number\n');
-  const r = audit(cwd);
-  assert.ok(r.findings.some((f) => /Invoice/.test(f) && /CONCEPTS/.test(f)));
-  assert.ok(!r.findings.some((f) => /"Team"/.test(f)));
-});
-
-test('audit: warns on a stale work file for a completed stage', () => {
-  const cwd = tmp();
-  initConfig(cwd);
-  w(cwd, 'docs/PRODUCT.md');            // vision done
-  w(cwd, 'project/work/vision.md', '# wm');
-  assert.ok(audit(cwd).warnings.some((x) => /work\/vision\.md/.test(x) && /done/.test(x)));
-  // a work file for an unfinished stage does NOT warn
-  w(cwd, 'project/work/prototype.md', '# wm');
-  assert.ok(!audit(cwd).warnings.some((x) => /work\/prototype\.md/.test(x)));
-  // a milestone work file whose stage is done warns
-  w(cwd, 'project/milestones/m1/ux-refine.md');
-  w(cwd, 'project/work/m1-ux-refine.md', '# wm');
-  assert.ok(audit(cwd).warnings.some((x) => /work\/m1-ux-refine\.md/.test(x)));
-});
