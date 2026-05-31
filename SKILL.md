@@ -101,12 +101,13 @@ In `multi` mode every `adhd` artifact still lives in the orchestration repo's
 
 ## Groundwork and per-milestone work
 
-`adhd` has two phases. **Groundwork** (`setup → vision → foundation → prototype →
-stories`) establishes the product and its structure. It front-loads the **whole-product
-UX**: `prototype` builds a Hi-Fi, clickable, mock-data app for the entire product before
-any milestone exists, and `stories` is then *derived from* that prototype. It is mostly
-run once — except `prototype` and `stories`, which are **living**: re-run `prototype` to
-evolve the whole-product flow, and `stories` to add or change stories. There is still
+`adhd` has two phases. **Groundwork** (`setup → vision → foundation → concepts →
+prototype → stories`) establishes the product and its structure. It front-loads the
+**whole-product UX**: `prototype` builds a Hi-Fi, clickable, mock-data app for the entire
+product before any milestone exists, and `stories` is then *derived from* that prototype.
+It is mostly run once — except `concepts`, `prototype`, and `stories`, which are
+**living**: re-run `concepts` to evolve the ubiquitous language, `prototype` to evolve
+the whole-product flow, and `stories` to add or change stories. There is still
 **no pre-planned roadmap** — `adhd` keeps no list of future milestones — but the
 whole-product prototype is the shared **soft roadmap** the milestones are carved out of.
 
@@ -114,6 +115,29 @@ A **milestone** is a folder, `project/milestones/m<N>/`. It is formed just-in-ti
 `milestone-brief` writes `m<N>/brief.md`, and that *is* the milestone. Milestones are
 **independent** — there is no global "current milestone" pointer, so two or three can
 be in flight at once (see "Working in parallel"). Each runs its own per-milestone loop.
+
+## Working memory (high-effort stages)
+
+A long stage can outlive one session. To survive compaction and make handoff seamless,
+every **high-effort** stage (`vision`, `concepts`, `prototype`, `ux-refine`, `tracer`,
+`features`, `review`) auto-creates a working-memory file at its start:
+`project/work/<stage>.md` for groundwork, `project/work/m<N>-<stage>.md` for a milestone
+stage. Medium/low stages (including `build` — its plan already is the memory) create
+none.
+
+The file has two light zones:
+
+```
+## Left to do      ← checklist; unchecked items are the resume pointer
+## Log             ← free-form, newest last: what was done / what failed / decisions
+```
+
+Write to it as the work proceeds, so an unexpected compaction cannot corrupt context.
+It is **transient scratch — never a source of truth**, exactly like `notes.md`. On stage
+completion, drain durable facts to their canonical home (`DECISIONS.md`, `CONCEPTS.md`,
+`DATA.md`, a surface spec, `.ruler/`) and **delete** the file. `project/work/` is
+gitignored; `audit` flags any work file whose stage is already done.
+`handoff-prompt.mjs` reads the active work file and leads the resume prompt with it.
 
 ## Canonical layout
 
@@ -124,7 +148,7 @@ The Setup stage scaffolds this exact tree. The tree IS the project state.
 docs/
   PRODUCT.md                 Vision output — impeccable reads this
   DESIGN.md                  design system — impeccable reads/writes this
-  GLOSSARY.md                domain glossary (concepts + relationships) — Map output
+  CONCEPTS.md                ubiquitous language — entities, ER relationships, helicopter view — Concepts output
   DATA.md                    data model / schema — created lazily when a milestone persists data
   DECISIONS.md               decision log + firm tech baseline — Foundation seeds it
 project/
@@ -132,6 +156,8 @@ project/
   repos.local.json           gitignored — per-user repo→path bindings (multi mode)
   .session.json              gitignored — ephemeral context-watch scratch
   notes.md                   transient scratchpad (healthy = empty)
+  work/<stage>.md            gitignored — per-task working memory (high-effort stages);
+                             milestone form `m<N>-<stage>.md`; deleted on completion
   prototype.md               Prototype sign-off — whole-product UX flow & rules (done artifact)
   map.md                     surface catalog + domains + deployables (Prototype output)
   surfaces/<name>.md         project-wide surface spec (Prototype output)
@@ -154,7 +180,8 @@ project/
 | `setup` | groundwork | low | `project/config.json` | none | [reference/setup.md](reference/setup.md) |
 | `vision` | groundwork | high | `docs/PRODUCT.md` | none | [reference/vision.md](reference/vision.md) |
 | `foundation` | groundwork | medium | a logged decision in `docs/DECISIONS.md` | none | [reference/foundation.md](reference/foundation.md) |
-| `prototype` | groundwork (living) | high | `project/prototype.md` + `project/map.md` + `docs/GLOSSARY.md` + prototype app | brainstorming + impeccable | [reference/prototype.md](reference/prototype.md) |
+| `concepts` | groundwork (living) | high | `docs/CONCEPTS.md` | brainstorming | [reference/concepts.md](reference/concepts.md) |
+| `prototype` | groundwork (living) | high | `project/prototype.md` + `project/map.md` + prototype app | brainstorming + impeccable | [reference/prototype.md](reference/prototype.md) |
 | `stories` | groundwork (living) | medium | `project/stories.md` | none | [reference/stories.md](reference/stories.md) |
 | `milestone-brief` | per-milestone | medium | `m<N>/brief.md` | none | [reference/milestone-brief.md](reference/milestone-brief.md) |
 | `ux-refine` | per-milestone | high | `m<N>/ux-refine.md` + `surfaces/*` + prototype slice | impeccable (+ brainstorming) | [reference/ux-refine.md](reference/ux-refine.md) |
@@ -165,8 +192,9 @@ project/
 | `review` | per-milestone | high | `m<N>/review.md` | none | [reference/review.md](reference/review.md) |
 | `finalize` | per-milestone | low | `m<N>/summary.md` | none | [reference/finalize.md](reference/finalize.md) |
 
-Flow: groundwork runs `setup → vision → foundation → prototype → stories` (`prototype`
-and `stories` stay re-runnable). Then per milestone: `milestone-brief → ux-refine`. A
+Flow: groundwork runs `setup → vision → foundation → concepts → prototype → stories`
+(`concepts`, `prototype`, and `stories` stay re-runnable). Then per milestone:
+`milestone-brief → ux-refine`. A
 **prototype-only** milestone (`infra: none`) then goes straight to `review → finalize`.
 A **production-track** milestone instead continues `tracer → features`, then works
 through the feature DAG in dependency order **one feature at a time** — `plan` it then
@@ -380,7 +408,8 @@ If `project/config.json` does not exist, the only runnable stage is `setup`.
   drift, orphans, and misplaced info across the markdown.
 - **Effort hints** — each stage carries a suggested reasoning effort; surface it to the user.
 - **Context watch** — after each stage run `context-watch.mjs`; if it advises a fresh
-  session, run `handoff-prompt.mjs` and give the user the resume prompt.
+  session, run `handoff-prompt.mjs` and give the user the resume prompt. On high-effort
+  stages the auto working-memory file (see "Working memory") makes that handoff seamless.
 - **Handoff prompts** — on a session switch, the resume prompt always says "read
   `project/notes.md` first".
 - **Small steps** — every stage and feature is bounded. If a step will not fit cleanly,
@@ -408,7 +437,7 @@ If `project/config.json` does not exist, the only runnable stage is `setup`.
   `docs/DATA.md`, created lazily the first time a milestone persists real data.
 - **notes.md discipline** — `project/notes.md` is a transient scratchpad, read first
   every session, healthy when empty. Migrate anything durable to its canonical home
-  (`DECISIONS.md`, `GLOSSARY.md`, `DATA.md`, a surface spec, `.ruler/`).
+  (`DECISIONS.md`, `CONCEPTS.md`, `DATA.md`, a surface spec, `.ruler/`).
 
 ## Sub-skill output routing
 
@@ -431,7 +460,7 @@ These are operational slips, not gate-skipping (gate rationalizations are tabled
 | Creating a stage's artifact file before the stage's work is complete. | Existence = done. Draft in `notes.md`; create the canonical file last. |
 | Running a stage from memory, skipping its `reference/<stage>.md`. | Always load the reference file — it owns the gate check, procedure, and completion steps. |
 | Letting sub-skills write to their default `docs/superpowers/` paths. | Pass the canonical target on every invocation — project-wide specs to `project/surfaces/`, milestone specs to `project/milestones/m<N>/surfaces/`, plans to `.../plans/`. |
-| Treating `project/notes.md` as durable storage. | It is a transient scratchpad. Migrate durable facts to `DECISIONS.md`, `GLOSSARY.md`, a surface spec, or `.ruler/`. Healthy `notes.md` is empty. |
+| Treating `project/notes.md` as durable storage. | It is a transient scratchpad. Migrate durable facts to `DECISIONS.md`, `CONCEPTS.md`, a surface spec, or `.ruler/`. Healthy `notes.md` is empty. |
 | Invoking `impeccable` for an `api` or `lib` surface. | `impeccable` runs only for `ui` surfaces. `api` → contract design; `lib` → spec only. |
 | Breaking the `features.md` column layout. | `adhd-state.mjs` parses that table for the build-order gate — keep `ID | Feature | Story | Domain | Repo | Depends on | Build | Verified`. |
 | In `multi` mode, writing `project/` or `docs/` artifacts into a code repo. | All `adhd` artifacts live in the orchestration repo. Only the code-writing stages (`prototype`, `ux-refine`, `tracer`, `build`) touch a registered code repo, and only to write code. |
@@ -439,6 +468,8 @@ These are operational slips, not gate-skipping (gate rationalizations are tabled
 | Building a feature before its `Depends on` features. | The DAG order is enforced by the `build` gate — build the dependency features first. |
 | Building a `ui` surface's production code into the prototype app (or vice versa). | Under `standalone` topology they are different repos. The `prototype`/`ux-refine` stages write the prototype app; `build` writes the feature's production `repo`. |
 | Changing the whole-product flow or rules inside `ux-refine`. | `ux-refine` only refines the current milestone's slice. To change the whole-product flow, re-run the groundwork `prototype` stage. |
+| Leaving a `project/work/<task>.md` behind after a stage is done. | It is transient scratch. Drain durable facts to their canonical home and delete it — `audit` flags stale work files. |
+| Putting fields, schema, or surfaces into `docs/CONCEPTS.md`. | `CONCEPTS.md` is conceptual (entities + relationships + helicopter behavior). Fields live in `docs/DATA.md`; surfaces/placement live in `project/map.md`. |
 
 ## Scripts
 

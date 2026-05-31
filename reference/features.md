@@ -22,7 +22,10 @@ If the gate reports `tracer` is not done, HALT and tell the user to run
 `ux-refine` straight to `review`.
 
 ## Procedure
-1. **Decompose each chosen story into features.** For every story in the milestone,
+1. **Start working memory.** This high-effort stage may span sessions. Create
+   `project/work/m{{N}}-features.md` (`## Left to do` + `## Log`) and append as you
+   work — see SKILL.md, "Working memory".
+2. **Decompose each chosen story into features.** For every story in the milestone,
    break the work into features — each one small, concrete, and living in exactly one
    domain (one repo). A backend feature is a per-domain slice of the story; a frontend
    feature wires a surface to its backend. Reconcile against `m{{N}}/tracer.md`: where
@@ -30,7 +33,7 @@ If the gate reports `tracer` is not done, HALT and tell the user to run
    is corrected first** — a milestone-slice fix via `adhd ux-refine --milestone {{N}}`,
    or, if the whole-product flow or rules are wrong, by re-running the groundwork
    `adhd prototype` stage — then the features are written to match reality.
-2. **Write `m{{N}}/features.md`** as a table with exactly these columns:
+3. **Write `m{{N}}/features.md`** as a table with exactly these columns:
 
    `| ID | Feature | Story | Domain | Repo | Depends on | Build | Verified |`
 
@@ -43,10 +46,15 @@ If the gate reports `tracer` is not done, HALT and tell the user to run
    - `Build` / `Verified` — leave **empty** now. `build` fills `Build` with `done` and
      `Verified` with `yes` as each feature completes. The script parses this table for
      the build-order gate.
-3. **Note the surface.** If a feature serves a specific surface, name it in the
+4. **Note the surface.** If a feature serves a specific surface, name it in the
    `Feature` cell or an extra column — `plan` reads it to find the surface spec.
-4. **Check it.** Run `node {{scripts_path}}/adhd-state.mjs audit` — it flags unknown
+5. **Check it.** Run `node {{scripts_path}}/adhd-state.mjs audit` — it flags unknown
    stories, unknown repos, unknown dependency IDs, and dependency cycles.
+
+- **New entity → update `concepts` first.** If this stage surfaces a product entity not
+  already in `docs/CONCEPTS.md`, stop and re-run `adhd concepts` to add it (entity +
+  relationships + any state rule) before continuing. The concepts file is the single
+  source of the ubiquitous language; it must not silently fall behind the build.
 
 ## Output
 `project/milestones/m{{N}}/features.md` — the feature DAG as a markdown table
@@ -59,6 +67,7 @@ DAG and, later, for per-feature build progress.
 2. `node {{scripts_path}}/adhd-state.mjs session-add features`
 3. `node {{scripts_path}}/context-watch.mjs --next plan` — if it advises a fresh
    session, run `node {{scripts_path}}/handoff-prompt.mjs` and give the user the prompt.
-4. Drain `project/notes.md`: migrate any durable entry to its canonical home; healthy = empty.
+4. Drain `project/notes.md` and `project/work/m{{N}}-features.md`: migrate durable facts
+   to their canonical home, then delete the work file. `notes.md` healthy = empty.
 5. Tell the user the next runnable stage is `plan` for the first feature of the DAG —
    `node {{scripts_path}}/adhd-state.mjs next --milestone {{N}}` names it.

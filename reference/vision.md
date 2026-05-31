@@ -14,7 +14,10 @@ If the gate reports `setup` is missing, HALT and tell the user to run
 `adhd setup` first.
 
 ## Procedure
-1. **Interview the user.** Vision is a conversation, not a guess. Draw out, one topic
+1. **Start working memory.** This high-effort stage may span sessions. Create
+   `project/work/vision.md` (`## Left to do` + `## Log`) and append as you work — see
+   SKILL.md, "Working memory".
+2. **Interview the user.** Vision is a conversation, not a guess. Draw out, one topic
    at a time:
    - the product one-liner — what it is, in a single sentence;
    - target users — who they are and the context they operate in;
@@ -23,11 +26,11 @@ If the gate reports `setup` is missing, HALT and tell the user to run
    - brand and tone — how it should feel;
    - anti-references — what it must NOT feel like;
    - strategic principles — the durable rules that guide every later decision.
-2. **Write `docs/PRODUCT.md`** in the shape `impeccable` expects, with exactly these
+3. **Write `docs/PRODUCT.md`** in the shape `impeccable` expects, with exactly these
    seven sections, in this order: `# Product`, `## Users`, `## Problem`,
    `## Usage context`, `## Brand & tone`, `## Anti-references`,
    `## Strategic principles`.
-3. **No invention.** Capture only what the user actually states — do not invent users,
+4. **No invention.** Capture only what the user actually states — do not invent users,
    scope, or principles. Where an answer is still open, leave a clearly marked
    placeholder, then resolve every such placeholder marker before finishing the stage.
    `impeccable` rejects a PRODUCT.md that still contains unresolved placeholder
@@ -49,5 +52,6 @@ If the gate reports `setup` is missing, HALT and tell the user to run
 2. `node {{scripts_path}}/adhd-state.mjs session-add vision`
 3. `node {{scripts_path}}/context-watch.mjs --next foundation` — if it advises a fresh
    session, run `node {{scripts_path}}/handoff-prompt.mjs` and give the user the prompt.
-4. Drain `project/notes.md`: migrate any durable entry to its canonical home; healthy = empty.
+4. Drain `project/notes.md` and `project/work/vision.md`: migrate durable facts to their
+   canonical home, then delete the work file. `notes.md` healthy = empty.
 5. Tell the user the next runnable stage is `foundation`.

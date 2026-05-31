@@ -19,12 +19,16 @@ If the gate reports `review` is not done, HALT and tell the user to run
 
 ## Procedure
 1. **Drain and migrate `project/notes.md`.** It must end empty — migrate every durable
-   entry to its canonical home (`docs/DECISIONS.md`, `docs/GLOSSARY.md`,
+   entry to its canonical home (`docs/DECISIONS.md`, `docs/CONCEPTS.md`,
    `docs/DATA.md`, a surface spec, `.ruler/`).
-2. **Update the canonical docs.** Reflect what the milestone actually changed: new or
-   refined glossary terms, the data model in `docs/DATA.md`, decisions in
-   `docs/DECISIONS.md`. Run `node {{scripts_path}}/adhd-state.mjs audit` and resolve any
-   findings — misplaced info, stale references, mechanism leaks.
+2. **Update the canonical docs to the milestone's reality.** Reflect what the milestone
+   actually changed: decisions in `docs/DECISIONS.md`, refined concepts in
+   `docs/CONCEPTS.md`. On a **production-track** milestone, update `docs/DATA.md` to the
+   current field-level state of every entity this milestone added or changed (create
+   `docs/DATA.md` if this is the first milestone to persist data). `DATA.md` entities are
+   `## ` headings; every one must be defined in `docs/CONCEPTS.md` — if not, update
+   `concepts` first. Run `node {{scripts_path}}/adhd-state.mjs audit` and resolve any
+   findings.
 3. **Write `m{{N}}/summary.md`** — what the milestone delivered: stories completed,
    features built, surfaces shipped, key decisions made, and anything explicitly
    carried forward to a future milestone.

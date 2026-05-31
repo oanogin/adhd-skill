@@ -45,6 +45,10 @@ DAG order is not optional.
    wait for confirmation, then commit.
 5. **Park new ideas.** A new story idea raised mid-build is filed to `project/stories.md`
    (re-run `stories`), never bolted onto the running milestone.
+- **New entity → update `concepts` first.** If this stage surfaces a product entity not
+  already in `docs/CONCEPTS.md`, stop and re-run `adhd concepts` to add it (entity +
+  relationships + any state rule) before continuing. The concepts file is the single
+  source of the ubiquitous language; it must not silently fall behind the build.
 
 ## Output
 - working, verified code for the feature — the plan `plans/{{feature}}.md` executed to

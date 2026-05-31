@@ -2,7 +2,7 @@
 
 **Effort:** medium
 **Gate:** `project/prototype.md` exists — the Prototype stage is done (the whole-product
-clickable prototype is signed off, and `project/map.md` + `docs/GLOSSARY.md` exist).
+clickable prototype is signed off, and `project/map.md` exists).
 **Output:** `project/stories.md`.
 **Sub-skill:** none.
 
@@ -17,8 +17,8 @@ Run `node {{scripts_path}}/adhd-state.mjs gate stories`.
 If it reports missing items, HALT. Tell the user exactly which predecessor stage to run.
 No skip, no override — this is the skill's central discipline.
 
-If the gate reports `prototype` (or `project/prototype.md` / `project/map.md` /
-`docs/GLOSSARY.md`) is missing, HALT and tell the user to run `adhd prototype` first.
+If the gate reports `prototype` (or `project/prototype.md` / `project/map.md`) is
+missing, HALT and tell the user to run `adhd prototype` first.
 
 ## Procedure
 1. **Derive stories from the prototype.** Walk the signed-off whole-product prototype —

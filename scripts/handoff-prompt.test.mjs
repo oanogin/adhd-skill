@@ -33,3 +33,18 @@ test('handoffPrompt includes a groundwork status line', () => {
   initConfig(cwd);
   assert.match(handoffPrompt(cwd), /Groundwork:/);
 });
+
+test('handoffPrompt leads with the active work file and inlines checklist + log', () => {
+  const cwd = tmp();
+  initConfig(cwd);
+  w(cwd, 'docs/PRODUCT.md');
+  w(cwd, 'docs/DECISIONS.md', '# Decisions\n\n## d\n'); // next stage = concepts
+  w(cwd, 'project/work/concepts.md',
+    '# Working memory: concepts\n\n## Left to do\n- [x] entities\n- [ ] draw ER diagram\n\n## Log\n- defined Team and Project\n- stuck on cardinality\n');
+  const out = handoffPrompt(cwd);
+  assert.match(out, /project\/work\/concepts\.md` FIRST/);
+  assert.match(out, /draw ER diagram/);
+  assert.match(out, /stuck on cardinality/);
+  assert.doesNotMatch(out, /entities/);
+  assert.match(out, /Run: adhd concepts/);
+});

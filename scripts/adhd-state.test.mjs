@@ -7,6 +7,7 @@ import path from 'node:path';
 import {
   defaultConfig, loadConfig, saveConfig, initConfig, CONFIG_VERSION,
   GROUNDWORK_STAGES, MILESTONE_STAGES, FEATURE_STAGES, SURFACE_KINDS, MODES, PROTOTYPE_TOPOLOGIES,
+  STAGE_EFFORT,
   parseTable, parseStories, parseFeatures, milestoneTrack, milestoneDirs,
   groundworkDone, milestoneStageDone, gate, nextStage, statusReport,
   validate, audit, migrate,
@@ -34,8 +35,8 @@ function groundwork(cwd) {
   initConfig(cwd);
   w(cwd, 'docs/PRODUCT.md');
   w(cwd, 'docs/DECISIONS.md', '# Decisions\n\n## 2026 — a real decision\n');
+  w(cwd, 'docs/CONCEPTS.md');
   w(cwd, 'project/map.md');
-  w(cwd, 'docs/GLOSSARY.md');
   w(cwd, 'project/prototype.md');
   w(cwd, 'project/stories.md', '| ID | Story | Depends on |\n|----|----|----|\n| S1 | a | |');
 }
@@ -50,12 +51,19 @@ test('defaultConfig: version 3, single, colocated', () => {
 });
 
 test('stage lists', () => {
-  assert.deepEqual(GROUNDWORK_STAGES, ['setup', 'vision', 'foundation', 'prototype', 'stories']);
+  assert.deepEqual(GROUNDWORK_STAGES, ['setup', 'vision', 'foundation', 'concepts', 'prototype', 'stories']);
   assert.deepEqual(MILESTONE_STAGES, ['milestone-brief', 'ux-refine', 'tracer', 'features', 'review', 'finalize']);
   assert.deepEqual(FEATURE_STAGES, ['plan', 'build']);
   assert.deepEqual(SURFACE_KINDS, ['ui', 'api', 'lib']);
   assert.deepEqual(MODES, ['single', 'multi']);
   assert.deepEqual(PROTOTYPE_TOPOLOGIES, ['colocated', 'standalone']);
+});
+
+test('concepts is a high-effort groundwork stage between foundation and prototype', () => {
+  assert.equal(STAGE_EFFORT.concepts, 'high');
+  const i = GROUNDWORK_STAGES.indexOf('concepts');
+  assert.equal(GROUNDWORK_STAGES[i - 1], 'foundation');
+  assert.equal(GROUNDWORK_STAGES[i + 1], 'prototype');
 });
 
 test('initConfig writes config.json and is idempotent', () => {
@@ -111,10 +119,12 @@ test('groundworkDone derives from files', () => {
   assert.equal(groundworkDone(cwd, 'foundation'), false); // no ## heading
   w(cwd, 'docs/DECISIONS.md', '# Decisions\n\n## a decision\n');
   assert.equal(groundworkDone(cwd, 'foundation'), true);
+  assert.equal(groundworkDone(cwd, 'concepts'), false);
+  w(cwd, 'docs/CONCEPTS.md');
+  assert.equal(groundworkDone(cwd, 'concepts'), true);
   assert.equal(groundworkDone(cwd, 'prototype'), false);
   w(cwd, 'project/map.md');
-  w(cwd, 'docs/GLOSSARY.md');
-  assert.equal(groundworkDone(cwd, 'prototype'), false); // map+glossary but no sign-off
+  assert.equal(groundworkDone(cwd, 'prototype'), false); // map but no sign-off
   w(cwd, 'project/prototype.md');
   assert.equal(groundworkDone(cwd, 'prototype'), true);
 });
@@ -128,12 +138,14 @@ test('gate: groundwork chain', () => {
   assert.equal(gate(cwd, 'foundation').pass, false);
   w(cwd, 'docs/PRODUCT.md');
   assert.equal(gate(cwd, 'foundation').pass, true);
-  assert.equal(gate(cwd, 'prototype').pass, false);
+  assert.equal(gate(cwd, 'concepts').pass, false);
   w(cwd, 'docs/DECISIONS.md', '# Decisions\n\n## a decision\n');
+  assert.equal(gate(cwd, 'concepts').pass, true);
+  assert.equal(gate(cwd, 'prototype').pass, false);
+  w(cwd, 'docs/CONCEPTS.md');
   assert.equal(gate(cwd, 'prototype').pass, true);
   assert.equal(gate(cwd, 'stories').pass, false);
   w(cwd, 'project/map.md');
-  w(cwd, 'docs/GLOSSARY.md');
   w(cwd, 'project/prototype.md');
   assert.equal(gate(cwd, 'stories').pass, true);
   assert.equal(gate(cwd, 'milestone-brief', { milestone: 1 }).pass, false);
@@ -389,4 +401,29 @@ test('saveConfig leaves no .tmp file behind', () => {
   const cwd = tmp();
   initConfig(cwd);
   assert.equal(fs.existsSync(path.join(cwd, 'project/config.json.tmp')), false);
+});
+
+test('audit: flags a DATA.md entity missing from CONCEPTS.md', () => {
+  const cwd = tmp();
+  initConfig(cwd);
+  w(cwd, 'docs/CONCEPTS.md', '# Concepts\n\nTeam — a group of people.\n');
+  w(cwd, 'docs/DATA.md', '# Data\n\n## Team\nname: string\n\n## Invoice\namount: number\n');
+  const r = audit(cwd);
+  assert.ok(r.findings.some((f) => /Invoice/.test(f) && /CONCEPTS/.test(f)));
+  assert.ok(!r.findings.some((f) => /"Team"/.test(f)));
+});
+
+test('audit: warns on a stale work file for a completed stage', () => {
+  const cwd = tmp();
+  initConfig(cwd);
+  w(cwd, 'docs/PRODUCT.md');            // vision done
+  w(cwd, 'project/work/vision.md', '# wm');
+  assert.ok(audit(cwd).warnings.some((x) => /work\/vision\.md/.test(x) && /done/.test(x)));
+  // a work file for an unfinished stage does NOT warn
+  w(cwd, 'project/work/prototype.md', '# wm');
+  assert.ok(!audit(cwd).warnings.some((x) => /work\/prototype\.md/.test(x)));
+  // a milestone work file whose stage is done warns
+  w(cwd, 'project/milestones/m1/ux-refine.md');
+  w(cwd, 'project/work/m1-ux-refine.md', '# wm');
+  assert.ok(audit(cwd).warnings.some((x) => /work\/m1-ux-refine\.md/.test(x)));
 });

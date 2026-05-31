@@ -14,12 +14,12 @@ export const LOCAL_REPOS_FILE = 'project/repos.local.json';
 export const SESSION_FILE = 'project/.session.json';
 export const LEGACY_STATE_FILE = 'project/state.json';
 
-export const GROUNDWORK_STAGES = ['setup', 'vision', 'foundation', 'prototype', 'stories'];
+export const GROUNDWORK_STAGES = ['setup', 'vision', 'foundation', 'concepts', 'prototype', 'stories'];
 export const MILESTONE_STAGES = ['milestone-brief', 'ux-refine', 'tracer', 'features', 'review', 'finalize'];
 export const FEATURE_STAGES = ['plan', 'build'];
 
 export const STAGE_EFFORT = {
-  setup: 'low', vision: 'high', foundation: 'medium', prototype: 'high', stories: 'medium',
+  setup: 'low', vision: 'high', foundation: 'medium', concepts: 'high', prototype: 'high', stories: 'medium',
   'milestone-brief': 'medium', 'ux-refine': 'high', tracer: 'high', features: 'high',
   review: 'high', finalize: 'low', plan: 'medium', build: 'medium',
 };
@@ -209,10 +209,10 @@ export function groundworkDone(cwd, stage) {
     case 'foundation':
       return exists(cwd, `${docHome}/DECISIONS.md`)
         && /^##\s/m.test(read(cwd, `${docHome}/DECISIONS.md`));
+    case 'concepts': return exists(cwd, `${docHome}/CONCEPTS.md`);
     case 'prototype':
       return exists(cwd, 'project/prototype.md')
-        && exists(cwd, 'project/map.md')
-        && exists(cwd, `${docHome}/GLOSSARY.md`);
+        && exists(cwd, 'project/map.md');
     case 'stories': return exists(cwd, 'project/stories.md');
     default: return false;
   }
@@ -247,8 +247,9 @@ export function gate(cwd, stage, { milestone, feature } = {}) {
     case 'setup': break;
     case 'vision': need(gw('setup'), 'setup not done — no project/config.json'); break;
     case 'foundation': need(gw('vision'), 'vision not done — docs/PRODUCT.md missing'); break;
-    case 'prototype': need(gw('foundation'), 'foundation not done — no decisions logged in docs/DECISIONS.md'); break;
-    case 'stories': need(gw('prototype'), 'prototype not done — project/prototype.md / project/map.md / docs/GLOSSARY.md missing'); break;
+    case 'concepts': need(gw('foundation'), 'foundation not done — no decisions logged in docs/DECISIONS.md'); break;
+    case 'prototype': need(gw('concepts'), 'concepts not done — docs/CONCEPTS.md missing'); break;
+    case 'stories': need(gw('prototype'), 'prototype not done — project/prototype.md / project/map.md missing'); break;
     case 'milestone-brief': need(gw('stories'), 'stories not done — project/stories.md missing'); break;
     case 'ux-refine': need(ms('milestone-brief'), `milestone ${milestone}: milestone-brief not done`); break;
     case 'tracer':
@@ -506,6 +507,29 @@ export function audit(cwd = process.cwd()) {
     for (const kw of MECHANISM_KEYWORDS) {
       if (lower.includes(kw)) {
         warnings.push(`${rel}: mentions "${kw}" — product-scope docs should name capabilities, not mechanisms`);
+      }
+    }
+  }
+  if (exists(cwd, `${docHome}/DATA.md`) && exists(cwd, `${docHome}/CONCEPTS.md`)) {
+    const concepts = read(cwd, `${docHome}/CONCEPTS.md`).toLowerCase();
+    const heads = [...read(cwd, `${docHome}/DATA.md`).matchAll(/^##\s+(.+?)\s*$/gm)].map((m) => m[1]);
+    for (const ent of heads) {
+      const name = clean(ent).toLowerCase();
+      if (name && !concepts.includes(name)) {
+        findings.push(`docs/DATA.md entity "${clean(ent)}" is not defined in docs/CONCEPTS.md — update concepts first`);
+      }
+    }
+  }
+  const workDir = path.join(cwd, 'project/work');
+  if (fs.existsSync(workDir)) {
+    for (const file of fs.readdirSync(workDir)) {
+      if (!file.endsWith('.md')) continue;
+      const base = file.slice(0, -3);
+      const mm = /^m(\d+)-(.+)$/.exec(base);
+      const stage = mm ? mm[2] : base;
+      const done = mm ? milestoneStageDone(cwd, Number(mm[1]), stage) : groundworkDone(cwd, stage);
+      if (done) {
+        warnings.push(`project/work/${file}: stage "${stage}" is done — drain durable facts to their canonical home and delete this work file`);
       }
     }
   }
