@@ -510,6 +510,19 @@ export function audit(cwd = process.cwd()) {
       }
     }
   }
+  const workDir = path.join(cwd, 'project/work');
+  if (fs.existsSync(workDir)) {
+    for (const file of fs.readdirSync(workDir)) {
+      if (!file.endsWith('.md')) continue;
+      const base = file.slice(0, -3);
+      const mm = /^m(\d+)-(.+)$/.exec(base);
+      const stage = mm ? mm[2] : base;
+      const done = mm ? milestoneStageDone(cwd, Number(mm[1]), stage) : groundworkDone(cwd, stage);
+      if (done) {
+        warnings.push(`project/work/${file}: stage "${stage}" is done — drain durable facts to their canonical home and delete this work file`);
+      }
+    }
+  }
   if (exists(cwd, 'project/notes.md') && read(cwd, 'project/notes.md').trim() !== '') {
     warnings.push('project/notes.md is not empty — drain durable entries to their canonical home');
   }

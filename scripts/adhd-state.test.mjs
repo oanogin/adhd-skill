@@ -402,3 +402,18 @@ test('saveConfig leaves no .tmp file behind', () => {
   initConfig(cwd);
   assert.equal(fs.existsSync(path.join(cwd, 'project/config.json.tmp')), false);
 });
+
+test('audit: warns on a stale work file for a completed stage', () => {
+  const cwd = tmp();
+  initConfig(cwd);
+  w(cwd, 'docs/PRODUCT.md');            // vision done
+  w(cwd, 'project/work/vision.md', '# wm');
+  assert.ok(audit(cwd).warnings.some((x) => /work\/vision\.md/.test(x) && /done/.test(x)));
+  // a work file for an unfinished stage does NOT warn
+  w(cwd, 'project/work/prototype.md', '# wm');
+  assert.ok(!audit(cwd).warnings.some((x) => /work\/prototype\.md/.test(x)));
+  // a milestone work file whose stage is done warns
+  w(cwd, 'project/milestones/m1/ux-refine.md');
+  w(cwd, 'project/work/m1-ux-refine.md', '# wm');
+  assert.ok(audit(cwd).warnings.some((x) => /work\/m1-ux-refine\.md/.test(x)));
+});
