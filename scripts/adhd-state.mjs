@@ -14,12 +14,12 @@ export const LOCAL_REPOS_FILE = 'project/repos.local.json';
 export const SESSION_FILE = 'project/.session.json';
 export const LEGACY_STATE_FILE = 'project/state.json';
 
-export const GROUNDWORK_STAGES = ['setup', 'vision', 'foundation', 'prototype', 'stories'];
+export const GROUNDWORK_STAGES = ['setup', 'vision', 'foundation', 'concepts', 'prototype', 'stories'];
 export const MILESTONE_STAGES = ['milestone-brief', 'ux-refine', 'tracer', 'features', 'review', 'finalize'];
 export const FEATURE_STAGES = ['plan', 'build'];
 
 export const STAGE_EFFORT = {
-  setup: 'low', vision: 'high', foundation: 'medium', prototype: 'high', stories: 'medium',
+  setup: 'low', vision: 'high', foundation: 'medium', concepts: 'high', prototype: 'high', stories: 'medium',
   'milestone-brief': 'medium', 'ux-refine': 'high', tracer: 'high', features: 'high',
   review: 'high', finalize: 'low', plan: 'medium', build: 'medium',
 };
@@ -209,10 +209,10 @@ export function groundworkDone(cwd, stage) {
     case 'foundation':
       return exists(cwd, `${docHome}/DECISIONS.md`)
         && /^##\s/m.test(read(cwd, `${docHome}/DECISIONS.md`));
+    case 'concepts': return exists(cwd, `${docHome}/CONCEPTS.md`);
     case 'prototype':
       return exists(cwd, 'project/prototype.md')
-        && exists(cwd, 'project/map.md')
-        && exists(cwd, `${docHome}/GLOSSARY.md`);
+        && exists(cwd, 'project/map.md');
     case 'stories': return exists(cwd, 'project/stories.md');
     default: return false;
   }
@@ -247,8 +247,9 @@ export function gate(cwd, stage, { milestone, feature } = {}) {
     case 'setup': break;
     case 'vision': need(gw('setup'), 'setup not done — no project/config.json'); break;
     case 'foundation': need(gw('vision'), 'vision not done — docs/PRODUCT.md missing'); break;
-    case 'prototype': need(gw('foundation'), 'foundation not done — no decisions logged in docs/DECISIONS.md'); break;
-    case 'stories': need(gw('prototype'), 'prototype not done — project/prototype.md / project/map.md / docs/GLOSSARY.md missing'); break;
+    case 'concepts': need(gw('foundation'), 'foundation not done — no decisions logged in docs/DECISIONS.md'); break;
+    case 'prototype': need(gw('concepts'), 'concepts not done — docs/CONCEPTS.md missing'); break;
+    case 'stories': need(gw('prototype'), 'prototype not done — project/prototype.md / project/map.md missing'); break;
     case 'milestone-brief': need(gw('stories'), 'stories not done — project/stories.md missing'); break;
     case 'ux-refine': need(ms('milestone-brief'), `milestone ${milestone}: milestone-brief not done`); break;
     case 'tracer':
