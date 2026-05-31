@@ -27,15 +27,19 @@ re-scaffolding.
    `project/config.json`. Then run
    `node {{scripts_path}}/adhd-state.mjs preflight-confirm` to record in `config.json`
    that both required dependencies were confirmed in step 1.
-4. **Configure `.gitignore`.** Append `.superpowers/`, `project/repos.local.json`, and
-   `project/.session.json` to `.gitignore` (create the file if it does not exist). Do
-   NOT gitignore `.impeccable/` — it is tracked. Do NOT gitignore `project/` itself — it
-   holds the project's tracked, durable state (every `.md` artifact and `config.json`)
-   and must be committed; only the two per-user/ephemeral files
-   `project/repos.local.json` and `project/.session.json` are ignored.
+4. **Configure `.gitignore`.** Append `.superpowers/`, `project/repos.local.json`,
+   `project/.session.json`, and `project/work/` to `.gitignore` (create the file if it
+   does not exist). Do NOT gitignore `.impeccable/` — it is tracked. Do NOT gitignore
+   `project/` itself — only the per-user/ephemeral files (`project/repos.local.json`,
+   `project/.session.json`) and the transient working-memory dir (`project/work/`) are
+   ignored.
 5. **Seed `.ruler/`.** If `.ruler/` is empty, add a short `.ruler/00-adhd.md` note
    stating that this project is run by the `adhd` conductor and that
    `project/notes.md` is read first at the start of every session.
+6. **Recommend `autoCompact: false` (Claude Code only).** Tell the user that turning off
+   auto-compaction in Claude Code settings lets them control when to `/clear`, while the
+   working-memory files (`project/work/<task>.md`) and canonical artifacts carry state
+   across it. It is a recommendation, not a requirement — `adhd` works either way.
 
 ## Output
 Setup produces the canonical layout defined in `SKILL.md`:
@@ -44,8 +48,9 @@ Setup produces the canonical layout defined in `SKILL.md`:
 - `docs/` — with `DECISIONS.md` (`# Decisions` heading only).
 - `project/` — with `config.json` and an empty `notes.md`.
 - `project/milestones/` — empty, ready for per-milestone subdirectories.
-- `.gitignore` — extended with `.superpowers/`, `project/repos.local.json`, and
-  `project/.session.json` (`.impeccable/` stays tracked; `project/` itself stays tracked).
+- `.gitignore` — extended with `.superpowers/`, `project/repos.local.json`,
+  `project/.session.json`, and `project/work/` (`.impeccable/` stays tracked;
+  `project/` itself stays tracked).
 
 The project's state IS its files: every `.md` artifact under `project/` and `docs/`,
 plus `project/config.json`. A stage is done the moment its artifact exists — nothing
