@@ -67,8 +67,7 @@ mode, register code repos, and set the prototype topology; for an existing proje
 ## On completion
 1. Write the output file(s) above — the stage is done the moment `project/config.json`
    exists.
-2. `node {{scripts_path}}/adhd-state.mjs session-add setup`
-3. `node {{scripts_path}}/context-watch.mjs --next vision` — if it advises a fresh
-   session, run `node {{scripts_path}}/handoff-prompt.mjs` and give the user the prompt.
-4. Drain `project/notes.md`: migrate any durable entry to its canonical home; healthy = empty.
-5. Tell the user the next runnable stage is `vision`.
+2. If the session is getting long, start a fresh one: run
+   `node {{scripts_path}}/handoff-prompt.mjs` and give the user the resume prompt.
+3. Drain `project/notes.md`: migrate any durable entry to its canonical home; healthy = empty.
+4. Tell the user the next runnable stage is `vision`.

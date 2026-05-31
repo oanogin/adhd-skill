@@ -35,8 +35,8 @@ clear to write files. No file mutation happens before this line appears.
 
 ## Closing note
 
-The `node` scripts — `adhd-state.mjs`, `context-watch.mjs`, and
-`handoff-prompt.mjs` — run identically on every agent; they are plain Node.js
+The `node` scripts — `adhd-state.mjs` and `handoff-prompt.mjs` — run
+identically on every agent; they are plain Node.js
 and depend on nothing agent-specific. Only the tool names and the
 skill-invocation form differ between agents. Everything else in `adhd` —
 stages, gates, the canonical layout, `config.json` ownership — is the same.

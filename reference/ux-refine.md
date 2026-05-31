@@ -67,11 +67,9 @@ If the gate reports `milestone-brief` is not done, HALT and tell the user to run
 ## On completion
 1. Write the output file(s) above — the stage is done the moment `m{{N}}/ux-refine.md`
    exists.
-2. `node {{scripts_path}}/adhd-state.mjs session-add ux-refine`
-3. `node {{scripts_path}}/context-watch.mjs --next <stage>` — `--next tracer` for a
-   production-track milestone, `--next review` for a prototype-only one. If it advises a
-   fresh session, run `node {{scripts_path}}/handoff-prompt.mjs` and give the user the prompt.
-4. Drain `project/notes.md` and `project/work/m{{N}}-ux-refine.md`: migrate durable facts
+2. If the session is getting long, start a fresh one: run
+   `node {{scripts_path}}/handoff-prompt.mjs` and give the user the resume prompt.
+3. Drain `project/notes.md` and `project/work/m{{N}}-ux-refine.md`: migrate durable facts
    to their canonical home, then delete the work file. `notes.md` healthy = empty.
-5. Tell the user the next runnable stage: `tracer` for a production-track milestone, or
+4. Tell the user the next runnable stage: `tracer` for a production-track milestone, or
    `review` for a prototype-only milestone.

@@ -39,9 +39,8 @@ that take the feature through to working, verified code.
 ## On completion
 1. Write the output file(s) above — the feature is planned the moment
    `m{{N}}/plans/{{feature}}.md` exists.
-2. `node {{scripts_path}}/adhd-state.mjs session-add plan`
-3. `node {{scripts_path}}/context-watch.mjs --next build` — if it advises a fresh
-   session, run `node {{scripts_path}}/handoff-prompt.mjs` and give the user the prompt.
-4. Drain `project/notes.md`: migrate any durable entry to its canonical home; healthy = empty.
-5. Tell the user the next runnable stage is `build` for this feature — or `plan` for
+2. If the session is getting long, start a fresh one: run
+   `node {{scripts_path}}/handoff-prompt.mjs` and give the user the resume prompt.
+3. Drain `project/notes.md`: migrate any durable entry to its canonical home; healthy = empty.
+4. Tell the user the next runnable stage is `build` for this feature — or `plan` for
    the next feature; `node {{scripts_path}}/adhd-state.mjs next --milestone {{N}}` names it.

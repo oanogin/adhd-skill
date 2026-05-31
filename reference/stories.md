@@ -53,10 +53,9 @@ missing, HALT and tell the user to run `adhd prototype` first.
 ## On completion
 1. Write the output file — the stage is done the moment `project/stories.md` exists.
    `stories` is re-runnable: simply edit the file again to amend the backlog.
-2. `node {{scripts_path}}/adhd-state.mjs session-add stories`
-3. `node {{scripts_path}}/context-watch.mjs --next milestone-brief` — if it advises a
-   fresh session, run `node {{scripts_path}}/handoff-prompt.mjs` and give the user the prompt.
-4. Drain `project/notes.md`: migrate any durable entry to its canonical home; healthy = empty.
-5. On the first run, the groundwork is complete — tell the user the next runnable stage
+2. If the session is getting long, start a fresh one: run
+   `node {{scripts_path}}/handoff-prompt.mjs` and give the user the resume prompt.
+3. Drain `project/notes.md`: migrate any durable entry to its canonical home; healthy = empty.
+4. On the first run, the groundwork is complete — tell the user the next runnable stage
    is `milestone-brief` for milestone 1. On a mid-project amend, point them back to the
    per-milestone stage they were in.
