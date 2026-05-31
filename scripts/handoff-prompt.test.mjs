@@ -45,5 +45,6 @@ test('handoffPrompt leads with the active work file and inlines checklist + log'
   assert.match(out, /project\/work\/concepts\.md` FIRST/);
   assert.match(out, /draw ER diagram/);
   assert.match(out, /stuck on cardinality/);
+  assert.doesNotMatch(out, /entities/);
   assert.match(out, /Run: adhd concepts/);
 });

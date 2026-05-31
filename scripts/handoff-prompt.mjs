@@ -20,8 +20,13 @@ function summarizeWork(body) {
   const lines = body.split('\n');
   const open = lines.filter((l) => /^\s*- \[ \]/.test(l)).map((l) => l.trim());
   const logIdx = lines.findIndex((l) => /^##\s+log\b/i.test(l));
-  const logLines = (logIdx >= 0 ? lines.slice(logIdx + 1) : [])
-    .map((l) => l.trim()).filter(Boolean).slice(-3);
+  let logLines = [];
+  if (logIdx >= 0) {
+    const rest = lines.slice(logIdx + 1);
+    const nextHead = rest.findIndex((l) => /^##\s/.test(l));
+    const section = nextHead >= 0 ? rest.slice(0, nextHead) : rest;
+    logLines = section.map((l) => l.trim()).filter(Boolean).slice(-3);
+  }
   return { open, logLines };
 }
 
