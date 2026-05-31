@@ -26,7 +26,10 @@ If the gate reports `milestone-brief` is not done, HALT and tell the user to run
 `adhd milestone-brief --milestone {{N}}` first.
 
 ## Procedure
-1. **Refine each surface in the milestone.** For every surface listed in
+1. **Start working memory.** This high-effort stage may span sessions. Create
+   `project/work/m{{N}}-ux-refine.md` (`## Left to do` + `## Log`) and append as you
+   work — see SKILL.md, "Working memory".
+2. **Refine each surface in the milestone.** For every surface listed in
    `m{{N}}/brief.md`, start from its project-wide spec in `project/surfaces/<name>.md` and
    the existing prototype, then deepen it for this milestone. Route by `kind`:
    - **`ui`** — `impeccable` for the UI detail (layout, components, visual language,
@@ -39,19 +42,19 @@ If the gate reports `milestone-brief` is not done, HALT and tell the user to run
    Write each refined spec to `project/milestones/m{{N}}/surfaces/<name>.md`. OVERRIDE the
    sub-skill output paths to that canonical target. Include this milestone's security and
    error cases — field validation, empty/error states, edge inputs.
-2. **Upgrade the milestone's slice of the prototype.** Update the `ui` surfaces this
+3. **Upgrade the milestone's slice of the prototype.** Update the `ui` surfaces this
    milestone touches in the existing prototype app — deeper Hi-Fi detail on mock data,
    matching the design system via `impeccable`. Resolve the prototype app location from
    `prototypeTopology` in `project/config.json` (see SKILL.md, "Prototype topology");
    resolve any repo path via `node {{scripts_path}}/adhd-state.mjs workspace-list`; HALT
    if a needed repo is unbound. Do not touch surfaces outside this milestone, and do not
    alter the whole-product flow/navigation.
-3. **Get sign-off.** Start the dev server, give the user the URL, and state what to click
+4. **Get sign-off.** Start the dev server, give the user the URL, and state what to click
    through — this milestone's refined surfaces. Capture feedback verbatim. If they want
    changes, revise and re-assemble; do not patch silently. Repeat until the user signs off.
-4. **Write `m{{N}}/ux-refine.md`** — what was refined, the user's sign-off, and every
+5. **Write `m{{N}}/ux-refine.md`** — what was refined, the user's sign-off, and every
    change request and how it was resolved.
-5. **Respect the commit gate.** The prototype app is code — never `git commit` it without
+6. **Respect the commit gate.** The prototype app is code — never `git commit` it without
    the user's explicit "ok".
 
 ## Output
@@ -68,6 +71,7 @@ If the gate reports `milestone-brief` is not done, HALT and tell the user to run
 3. `node {{scripts_path}}/context-watch.mjs --next <stage>` — `--next tracer` for a
    production-track milestone, `--next review` for a prototype-only one. If it advises a
    fresh session, run `node {{scripts_path}}/handoff-prompt.mjs` and give the user the prompt.
-4. Drain `project/notes.md`: migrate any durable entry to its canonical home; healthy = empty.
+4. Drain `project/notes.md` and `project/work/m{{N}}-ux-refine.md`: migrate durable facts
+   to their canonical home, then delete the work file. `notes.md` healthy = empty.
 5. Tell the user the next runnable stage: `tracer` for a production-track milestone, or
    `review` for a prototype-only milestone.
