@@ -7,12 +7,18 @@ import { loadConfig, nextStage, statusReport } from './adhd-state.mjs';
 // Resolve the working-memory file (if any) for the stage we are resuming into.
 function activeWorkFile(cwd, next) {
   const dir = path.join(cwd, 'project/work');
-  if (!fs.existsSync(dir)) return null;
+  if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) return null;
   const files = fs.readdirSync(dir).filter((f) => f.endsWith('.md'));
   const stage = next.stage === 'next-milestone' ? 'milestone-brief' : next.stage;
   const want = next.milestone ? `m${next.milestone}-${stage}.md` : `${stage}.md`;
   if (files.includes(want)) return want;
-  return files.find((f) => f.slice(0, -3).replace(/^m\d+-/, '') === stage) ?? null;
+  // fallback: match the stage segment, scoped to the correct milestone
+  return files.find((f) => {
+    const base = f.slice(0, -3);
+    const mm = /^m(\d+)-(.+)$/.exec(base);
+    if (next.milestone) return Boolean(mm) && Number(mm[1]) === next.milestone && mm[2] === stage;
+    return !mm && base === stage;
+  }) ?? null;
 }
 
 // Extract the open checklist items and the last few log lines from a work file.
@@ -60,7 +66,7 @@ export function handoffPrompt(cwd = process.cwd()) {
     lines.push(`${n++}. Read \`project/notes.md\` FIRST — it is the scratchpad from the previous session.`);
   }
   lines.push(`${n++}. Current position: ${where}`);
-  lines.push(`${n++}. Run: adhd ${runArg}`);
+  lines.push(`${n++}. Run: adhd ${runArg}${next.milestone ? ` --milestone ${next.milestone}` : ''}`);
   lines.push(
     '',
     'State summary:',
