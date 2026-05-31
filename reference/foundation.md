@@ -44,7 +44,7 @@ user to run `adhd vision` first.
 1. Write the output file(s) above — foundation is done once `docs/DECISIONS.md` carries
    at least one logged decision (a `## ` entry).
 2. `node {{scripts_path}}/adhd-state.mjs session-add foundation`
-3. `node {{scripts_path}}/context-watch.mjs --next prototype` — if it advises a fresh
+3. `node {{scripts_path}}/context-watch.mjs --next concepts` — if it advises a fresh
    session, run `node {{scripts_path}}/handoff-prompt.mjs` and give the user the prompt.
 4. Drain `project/notes.md`: migrate any durable entry to its canonical home; healthy = empty.
-5. Tell the user the next runnable stage is `prototype`.
+5. Tell the user the next runnable stage is `concepts`.
