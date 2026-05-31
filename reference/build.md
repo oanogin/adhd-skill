@@ -59,12 +59,9 @@ DAG order is not optional.
 ## On completion
 1. Write the code and update the feature's `Build`/`Verified` cells in
    `m{{N}}/features.md`.
-2. `node {{scripts_path}}/adhd-state.mjs session-add build`
-3. `node {{scripts_path}}/context-watch.mjs --next <stage>` — `--next plan` or
-   `--next build` when more features remain, `--next review` when this was the last. If
-   it advises a fresh session, run `node {{scripts_path}}/handoff-prompt.mjs` and give
-   the user the prompt.
-4. Drain `project/notes.md`: migrate any durable entry to its canonical home; healthy = empty.
-5. Tell the user the next runnable stage — `node {{scripts_path}}/adhd-state.mjs next
+2. If the session is getting long, start a fresh one: run
+   `node {{scripts_path}}/handoff-prompt.mjs` and give the user the resume prompt.
+3. Drain `project/notes.md`: migrate any durable entry to its canonical home; healthy = empty.
+4. Tell the user the next runnable stage — `node {{scripts_path}}/adhd-state.mjs next
    --milestone {{N}}` names it: the next feature's `plan`/`build`, or `review` once all
    features are built.

@@ -111,9 +111,8 @@ the whole-product flow are made by `ux-refine`, not here.
 ## On completion
 1. Write the output file(s) above — the stage is done the moment `project/prototype.md`
    exists (with `project/map.md` also present).
-2. `node {{scripts_path}}/adhd-state.mjs session-add prototype`
-3. `node {{scripts_path}}/context-watch.mjs --next stories` — if it advises a fresh
-   session, run `node {{scripts_path}}/handoff-prompt.mjs` and give the user the prompt.
-4. Drain `project/notes.md` and `project/work/prototype.md`: migrate durable facts to
+2. If the session is getting long, start a fresh one: run
+   `node {{scripts_path}}/handoff-prompt.mjs` and give the user the resume prompt.
+3. Drain `project/notes.md` and `project/work/prototype.md`: migrate durable facts to
    their canonical home, then delete the work file. `notes.md` healthy = empty.
-5. Tell the user the next runnable stage is `stories`.
+4. Tell the user the next runnable stage is `stories`.

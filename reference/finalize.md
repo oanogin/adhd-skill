@@ -45,8 +45,7 @@ new milestone can be started before this one finalizes; they progress in paralle
 ## On completion
 1. Write the output file(s) above — the stage is done the moment `m{{N}}/summary.md`
    exists.
-2. `node {{scripts_path}}/adhd-state.mjs session-add finalize`
-3. `node {{scripts_path}}/context-watch.mjs --next milestone-brief` — if it advises a
-   fresh session, run `node {{scripts_path}}/handoff-prompt.mjs` and give the user the prompt.
-4. Milestone {{N}} is complete. Tell the user the next runnable stage is
+2. If the session is getting long, start a fresh one: run
+   `node {{scripts_path}}/handoff-prompt.mjs` and give the user the resume prompt.
+3. Milestone {{N}} is complete. Tell the user the next runnable stage is
    `milestone-brief` for the next milestone (a new `m<N>/` folder).

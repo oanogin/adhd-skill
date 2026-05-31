@@ -11,19 +11,11 @@ import { fileURLToPath } from 'node:url';
 export const CONFIG_VERSION = 3;
 export const CONFIG_FILE = 'project/config.json';
 export const LOCAL_REPOS_FILE = 'project/repos.local.json';
-export const SESSION_FILE = 'project/.session.json';
 export const LEGACY_STATE_FILE = 'project/state.json';
 
 export const GROUNDWORK_STAGES = ['setup', 'vision', 'foundation', 'concepts', 'prototype', 'stories'];
 export const MILESTONE_STAGES = ['milestone-brief', 'ux-refine', 'tracer', 'features', 'review', 'finalize'];
 export const FEATURE_STAGES = ['plan', 'build'];
-
-export const STAGE_EFFORT = {
-  setup: 'low', vision: 'high', foundation: 'medium', concepts: 'high', prototype: 'high', stories: 'medium',
-  'milestone-brief': 'medium', 'ux-refine': 'high', tracer: 'high', features: 'high',
-  review: 'high', finalize: 'low', plan: 'medium', build: 'medium',
-};
-export const EFFORT_WEIGHT = { low: 1, medium: 2, high: 3, 'extra-high': 4 };
 
 export const SURFACE_KINDS = ['ui', 'api', 'lib'];
 export const MODES = ['single', 'multi'];
@@ -33,7 +25,6 @@ export const PROTOTYPE_TOPOLOGIES = ['colocated', 'standalone'];
 // ---- paths & io ----
 function configPath(cwd) { return path.join(cwd, CONFIG_FILE); }
 function localReposPath(cwd) { return path.join(cwd, LOCAL_REPOS_FILE); }
-function sessionPath(cwd) { return path.join(cwd, SESSION_FILE); }
 function exists(cwd, rel) { return fs.existsSync(path.join(cwd, rel)); }
 function read(cwd, rel) { return fs.readFileSync(path.join(cwd, rel), 'utf-8'); }
 function isGitRepo(p) { return fs.existsSync(path.join(p, '.git')); }
@@ -99,26 +90,6 @@ function loadLocalRepos(cwd) {
   catch (e) { throw new Error(`${LOCAL_REPOS_FILE} is corrupt or not valid JSON: ${e.message}`); }
 }
 function saveLocalRepos(cwd, obj) { writeJSON(localReposPath(cwd), obj); }
-
-// ---- session scratch (gitignored, ephemeral) ----
-export function loadSession(cwd = process.cwd()) {
-  const p = sessionPath(cwd);
-  if (!fs.existsSync(p)) return { startedAt: null, stagesRun: [] };
-  try { return JSON.parse(fs.readFileSync(p, 'utf-8')); }
-  catch { return { startedAt: null, stagesRun: [] }; }
-}
-export function sessionAdd(cwd = process.cwd(), stage) {
-  const s = loadSession(cwd);
-  if (!s.startedAt) s.startedAt = new Date().toISOString();
-  s.stagesRun.push(stage);
-  writeJSON(sessionPath(cwd), s);
-  return s;
-}
-export function sessionReset(cwd = process.cwd()) {
-  const s = { startedAt: new Date().toISOString(), stagesRun: [] };
-  writeJSON(sessionPath(cwd), s);
-  return s;
-}
 
 // ---- markdown parsing ----
 // Parse the first markdown table in `text` -> { header: [lowercased], rows: [[cells]] }.
@@ -611,14 +582,6 @@ function main(argv) {
       console.log(r.migrated ? 'migrated project/state.json -> project/config.json' : `nothing to migrate (${r.reason})`);
       break;
     }
-    case 'session-add':
-      sessionAdd(cwd, rest[0]);
-      console.log(`session-add ${rest[0]}`);
-      break;
-    case 'session-reset':
-      sessionReset(cwd);
-      console.log('session reset');
-      break;
     case 'preflight-confirm':
       confirmPreflight(cwd);
       console.log('preflight confirmed: required skills recorded');
@@ -670,7 +633,7 @@ function main(argv) {
       break;
     }
     default:
-      console.error('Usage: adhd-state.mjs <init|read|status|next|gate|validate|audit|migrate|session-add|session-reset|preflight-confirm|workspace-mode|workspace-add|workspace-remove|workspace-list|repo-bind|repo-unbind|prototype-topology|prototype-home>');
+      console.error('Usage: adhd-state.mjs <init|read|status|next|gate|validate|audit|migrate|preflight-confirm|workspace-mode|workspace-add|workspace-remove|workspace-list|repo-bind|repo-unbind|prototype-topology|prototype-home>');
       process.exitCode = 1;
   }
 }

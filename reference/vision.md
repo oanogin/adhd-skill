@@ -49,9 +49,8 @@ If the gate reports `setup` is missing, HALT and tell the user to run
 
 ## On completion
 1. Write the output file(s) above — the stage is done the moment `docs/PRODUCT.md` exists.
-2. `node {{scripts_path}}/adhd-state.mjs session-add vision`
-3. `node {{scripts_path}}/context-watch.mjs --next foundation` — if it advises a fresh
-   session, run `node {{scripts_path}}/handoff-prompt.mjs` and give the user the prompt.
-4. Drain `project/notes.md` and `project/work/vision.md`: migrate durable facts to their
+2. If the session is getting long, start a fresh one: run
+   `node {{scripts_path}}/handoff-prompt.mjs` and give the user the resume prompt.
+3. Drain `project/notes.md` and `project/work/vision.md`: migrate durable facts to their
    canonical home, then delete the work file. `notes.md` healthy = empty.
-5. Tell the user the next runnable stage is `foundation`.
+4. Tell the user the next runnable stage is `foundation`.

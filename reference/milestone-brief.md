@@ -58,8 +58,7 @@ brief *is* the milestone's record.
 ## On completion
 1. Write the output file — milestone `{{N}}` exists and the stage is done the moment
    `m{{N}}/brief.md` exists.
-2. `node {{scripts_path}}/adhd-state.mjs session-add milestone-brief`
-3. `node {{scripts_path}}/context-watch.mjs --next ux-refine` — if it advises a fresh
-   session, run `node {{scripts_path}}/handoff-prompt.mjs` and give the user the prompt.
-4. Drain `project/notes.md`: migrate any durable entry to its canonical home; healthy = empty.
-5. Tell the user the next runnable stage is `ux-refine` for milestone {{N}}.
+2. If the session is getting long, start a fresh one: run
+   `node {{scripts_path}}/handoff-prompt.mjs` and give the user the resume prompt.
+3. Drain `project/notes.md`: migrate any durable entry to its canonical home; healthy = empty.
+4. Tell the user the next runnable stage is `ux-refine` for milestone {{N}}.

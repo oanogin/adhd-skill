@@ -155,7 +155,6 @@ docs/
 project/
   config.json                the only non-doc file — mode, repos, prototype topology, preflight
   repos.local.json           gitignored — per-user repo→path bindings (multi mode)
-  .session.json              gitignored — ephemeral context-watch scratch
   notes.md                   transient scratchpad (healthy = empty)
   work/<stage>.md            gitignored — per-task working memory (high-effort stages);
                              milestone form `m<N>-<stage>.md`; deleted on completion
@@ -415,9 +414,9 @@ If `project/config.json` does not exist, the only runnable stage is `setup`.
   info across the markdown; `adhd-state.mjs validate` covers fast, structural sanity
   (legacy state, config version, repo bindings, DAG cycles).
 - **Effort hints** — each stage carries a suggested reasoning effort; surface it to the user.
-- **Context watch** — after each stage run `context-watch.mjs`; if it advises a fresh
-  session, run `handoff-prompt.mjs` and give the user the resume prompt. On high-effort
-  stages the auto working-memory file (see "Working memory") makes that handoff seamless.
+- **Fresh sessions** — when a session gets long, start a fresh one: run
+  `handoff-prompt.mjs` and give the user the resume prompt. You control compaction
+  (`autoCompact: false` recommended); the work-file + handoff make resume clean.
 - **Handoff prompts** — on a session switch, the resume prompt always says "read
   `project/notes.md` first".
 - **Small steps** — every stage and feature is bounded. If a step will not fit cleanly,
@@ -482,7 +481,6 @@ These are operational slips, not gate-skipping (gate rationalizations are tabled
 ## Scripts
 
 ```bash
-node {{scripts_path}}/adhd-state.mjs <init|read|status|next|gate|validate|audit(→verify)|migrate|session-add|session-reset|preflight-confirm|workspace-mode|workspace-add|workspace-remove|workspace-list|repo-bind|repo-unbind|prototype-topology|prototype-home>
-node {{scripts_path}}/context-watch.mjs [--next <stage>]
+node {{scripts_path}}/adhd-state.mjs <init|read|status|next|gate|validate|audit(→verify)|migrate|preflight-confirm|workspace-mode|workspace-add|workspace-remove|workspace-list|repo-bind|repo-unbind|prototype-topology|prototype-home>
 node {{scripts_path}}/handoff-prompt.mjs
 ```

@@ -71,9 +71,8 @@ The tracer code itself is also produced, committed only after the user's explici
 
 ## On completion
 1. Write the output file(s) above — tracer is done the moment `m{{N}}/tracer.md` exists.
-2. `node {{scripts_path}}/adhd-state.mjs session-add tracer`
-3. `node {{scripts_path}}/context-watch.mjs --next features` — if it advises a fresh
-   session, run `node {{scripts_path}}/handoff-prompt.mjs` and give the user the prompt.
-4. Drain `project/notes.md` and `project/work/m{{N}}-tracer.md`: migrate durable facts to
+2. If the session is getting long, start a fresh one: run
+   `node {{scripts_path}}/handoff-prompt.mjs` and give the user the resume prompt.
+3. Drain `project/notes.md` and `project/work/m{{N}}-tracer.md`: migrate durable facts to
    their canonical home, then delete the work file. `notes.md` healthy = empty.
-5. Tell the user the next runnable stage is `features` for milestone {{N}}.
+4. Tell the user the next runnable stage is `features` for milestone {{N}}.

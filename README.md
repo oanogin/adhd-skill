@@ -182,7 +182,6 @@ docs/
 project/
   config.json            the only non-doc file — mode, repos, prototype topology
   repos.local.json       gitignored — per-user repo→path bindings (multi mode)
-  .session.json          gitignored — ephemeral context-watch scratch
   notes.md               transient scratchpad — healthy when empty
   work/<task>.md         gitignored — per-task working memory (high-effort stages), deleted on completion
   prototype.md           whole-product prototype sign-off (the prototype stage's done artifact)
@@ -216,8 +215,8 @@ not by hand. Everything else is plain markdown you (and `adhd`) edit directly.
   structural sanity.
 - **notes.md** — a scratchpad read first every session; durable facts get
   migrated to their real home (`DECISIONS.md`, `CONCEPTS.md`, a surface spec).
-- **Context watch** — `adhd` flags when to start a fresh session and emits a
-  ready-to-paste resume prompt.
+- **Fresh sessions** — when a session gets long, `adhd` emits a ready-to-paste resume
+  prompt (`handoff-prompt.mjs`); set `autoCompact: false` so you control when to `/clear`.
 - **Working memory** — high-effort stages keep a transient `project/work/<task>.md`
   (checklist + log) so a session that ends mid-stage resumes cleanly. It is drained and
   deleted on completion, never a source of truth. Recommended: set `autoCompact: false`
@@ -233,4 +232,4 @@ Codex and Cursor are supported. See `reference/codex-tools.md` and
 - `SKILL.md` — router: stage table, gates, rules.
 - `reference/<stage>.md` — per-stage playbook, loaded on demand.
 - `scripts/` — `adhd-state.mjs` (read/derive + `config.json` CLI),
-  `context-watch.mjs`, `handoff-prompt.mjs`.
+  `handoff-prompt.mjs`.
