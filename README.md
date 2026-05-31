@@ -81,7 +81,7 @@ milestone.
 
 ```
 GROUNDWORK
-  setup → vision → foundation → prototype → stories
+  setup → vision → foundation → concepts → prototype → stories
                                (whole-product Hi-Fi clickable prototype, signed off)
 
 PER-MILESTONE LOOP
@@ -105,7 +105,8 @@ again.
 | setup | scaffold layout, init `config.json` | folder tree |
 | vision | product, users, usage | `docs/PRODUCT.md` |
 | foundation | the firm tech baseline — no full arch | `docs/DECISIONS.md` |
-| prototype | whole-product UX+UI, wired clickable prototype + sitemap + glossary + sign-off | `project/prototype.md`, `project/map.md`, `docs/GLOSSARY.md`, `project/surfaces/*` |
+| concepts | ubiquitous language — entities, ER relationships, helicopter view | `docs/CONCEPTS.md` |
+| prototype | whole-product UX+UI, wired clickable prototype + sitemap + sign-off | `project/prototype.md`, `project/map.md`, `project/surfaces/*` |
 | stories | story backlog, derived from the prototype — the living "spaceship" | `project/stories.md` |
 | milestone-brief | choose stories, confirm surfaces, set track, lock security/errors | `m<N>/brief.md` |
 | ux-refine | deepen this milestone's slice of the prototype + sign-off | `m<N>/surfaces/*`, `m<N>/ux-refine.md` |
@@ -174,13 +175,14 @@ when its artifact file exists.
 ```
 .ruler/                  agent instructions
 docs/
-  PRODUCT.md  DESIGN.md  GLOSSARY.md  DECISIONS.md
+  PRODUCT.md  DESIGN.md  CONCEPTS.md  DECISIONS.md
   DATA.md                data model — created lazily, only once a milestone persists data
 project/
   config.json            the only non-doc file — mode, repos, prototype topology
   repos.local.json       gitignored — per-user repo→path bindings (multi mode)
   .session.json          gitignored — ephemeral context-watch scratch
   notes.md               transient scratchpad — healthy when empty
+  work/<task>.md         gitignored — per-task working memory (high-effort stages), deleted on completion
   prototype.md           whole-product prototype sign-off (the prototype stage's done artifact)
   map.md                 surface catalog + domains + deployables (prototype output)
   surfaces/<name>.md     project-wide surface specs (prototype output)
@@ -210,9 +212,13 @@ not by hand. Everything else is plain markdown you (and `adhd`) edit directly.
 - **Single source of truth** — `adhd audit` checks the `.md` artifacts for drift,
   orphans, and misplaced info.
 - **notes.md** — a scratchpad read first every session; durable facts get
-  migrated to their real home (`DECISIONS.md`, `GLOSSARY.md`, a surface spec).
+  migrated to their real home (`DECISIONS.md`, `CONCEPTS.md`, a surface spec).
 - **Context watch** — `adhd` flags when to start a fresh session and emits a
   ready-to-paste resume prompt.
+- **Working memory** — high-effort stages keep a transient `project/work/<task>.md`
+  (checklist + log) so a session that ends mid-stage resumes cleanly. It is drained and
+  deleted on completion, never a source of truth. Recommended: set `autoCompact: false`
+  in Claude Code so you control when to `/clear` while the files carry state.
 
 ## Other agents
 
