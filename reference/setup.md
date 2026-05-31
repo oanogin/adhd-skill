@@ -28,11 +28,10 @@ re-scaffolding.
    `node {{scripts_path}}/adhd-state.mjs preflight-confirm` to record in `config.json`
    that both required dependencies were confirmed in step 1.
 4. **Configure `.gitignore`.** Append `.superpowers/`, `project/repos.local.json`,
-   `project/.session.json`, and `project/work/` to `.gitignore` (create the file if it
-   does not exist). Do NOT gitignore `.impeccable/` — it is tracked. Do NOT gitignore
-   `project/` itself — only the per-user/ephemeral files (`project/repos.local.json`,
-   `project/.session.json`) and the transient working-memory dir (`project/work/`) are
-   ignored.
+   and `project/work/` to `.gitignore` (create the file if it does not exist).
+   Do NOT gitignore `.impeccable/` — it is tracked. Do NOT gitignore `project/` itself
+   — only the per-user/ephemeral file (`project/repos.local.json`) and the transient
+   working-memory dir (`project/work/`) are ignored.
 5. **Seed `.ruler/`.** If `.ruler/` is empty, add a short `.ruler/00-adhd.md` note
    stating that this project is run by the `adhd` conductor and that
    `project/notes.md` is read first at the start of every session.
@@ -49,8 +48,7 @@ Setup produces the canonical layout defined in `SKILL.md`:
 - `project/` — with `config.json` and an empty `notes.md`.
 - `project/milestones/` — empty, ready for per-milestone subdirectories.
 - `.gitignore` — extended with `.superpowers/`, `project/repos.local.json`,
-  `project/.session.json`, and `project/work/` (`.impeccable/` stays tracked;
-  `project/` itself stays tracked).
+  and `project/work/` (`.impeccable/` stays tracked; `project/` itself stays tracked).
 
 The project's state IS its files: every `.md` artifact under `project/` and `docs/`,
 plus `project/config.json`. A stage is done the moment its artifact exists — nothing
