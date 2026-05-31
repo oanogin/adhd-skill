@@ -482,7 +482,7 @@ These are operational slips, not gate-skipping (gate rationalizations are tabled
 ## Scripts
 
 ```bash
-node {{scripts_path}}/adhd-state.mjs <init|read|status|next|gate|validate|audit|migrate|session-add|session-reset|preflight-confirm|workspace-mode|workspace-add|workspace-remove|workspace-list|repo-bind|repo-unbind|prototype-topology|prototype-home>
+node {{scripts_path}}/adhd-state.mjs <init|read|status|next|gate|validate|audit(→verify)|migrate|session-add|session-reset|preflight-confirm|workspace-mode|workspace-add|workspace-remove|workspace-list|repo-bind|repo-unbind|prototype-topology|prototype-home>
 node {{scripts_path}}/context-watch.mjs [--next <stage>]
 node {{scripts_path}}/handoff-prompt.mjs
 ```
