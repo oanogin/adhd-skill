@@ -34,7 +34,7 @@ both built and verified — if a feature is built but not verified, run
 4. **Check story and feature coverage.** Verify every story chosen in `m{{N}}/brief.md`
    is actually delivered by the milestone's features, and — for a cross-domain milestone
    — that each participating domain's work was addressed. Nothing chosen should be
-   silently skipped. Run `node {{scripts_path}}/adhd-state.mjs audit` and resolve findings.
+   silently skipped. Run the `verify` pass (see [reference/verify.md](verify.md)) and resolve findings.
 5. **Write findings to `m{{N}}/review.md`.** Record each as an actionable item: the
    issue, the surface or feature it affects, a severity, and the fix.
 6. **File and fix defects before closing.** Defects found in review are fixed before

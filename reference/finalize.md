@@ -26,9 +26,10 @@ If the gate reports `review` is not done, HALT and tell the user to run
    `docs/CONCEPTS.md`. On a **production-track** milestone, update `docs/DATA.md` to the
    current field-level state of every entity this milestone added or changed (create
    `docs/DATA.md` if this is the first milestone to persist data). `DATA.md` entities are
-   `## ` headings; every one must be defined in `docs/CONCEPTS.md` — if not, update
-   `concepts` first. Run `node {{scripts_path}}/adhd-state.mjs audit` and resolve any
-   findings.
+   `## ` headings; every one must be defined in `docs/CONCEPTS.md` — if an entity is
+   missing from `docs/CONCEPTS.md`, STOP and run `adhd concepts` — do not inline-edit
+   `CONCEPTS.md` here. Run the `verify` pass (see [reference/verify.md](verify.md)) and
+   resolve any findings.
 3. **Write `m{{N}}/summary.md`** — what the milestone delivered: stories completed,
    features built, surfaces shipped, key decisions made, and anything explicitly
    carried forward to a future milestone.
@@ -39,7 +40,7 @@ new milestone can be started before this one finalizes; they progress in paralle
 
 ## Output
 - `project/milestones/m{{N}}/summary.md` — the milestone summary.
-- canonical docs updated; `project/notes.md` empty; `audit` clean.
+- canonical docs updated; `project/notes.md` empty; `verify` findings resolved.
 
 ## On completion
 1. Write the output file(s) above — the stage is done the moment `m{{N}}/summary.md`
