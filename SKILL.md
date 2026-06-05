@@ -36,8 +36,9 @@ the skill was placed.
 
 `adhd` hard-depends on two things, with no fallback and no degraded mode:
 
-- the **`superpowers` plugin** — `adhd` invokes `brainstorming` (prototype stage),
-  `writing-plans` (plan stage), and `executing-plans` (build stage) from it.
+- the **`superpowers` plugin** — `adhd` invokes `brainstorming` (stories, prototype,
+  and evolve stages), `writing-plans` (plan stage), and `executing-plans` (build stage)
+  from it.
   The whole plugin is required, not just those three: other superpowers skills
   (e.g. `subagent-driven-development`, `systematic-debugging`) are useful during
   the build stage too.
@@ -102,12 +103,16 @@ In `multi` mode every `adhd` artifact still lives in the orchestration repo's
 ## Groundwork and per-milestone work
 
 `adhd` has two phases. **Groundwork** (`setup → vision → foundation → concepts →
-prototype → stories`) establishes the product and its structure. It front-loads the
-**whole-product UX**: `prototype` builds a Hi-Fi, clickable, mock-data app for the entire
-product before any milestone exists, and `stories` is then *derived from* that prototype.
-It is mostly run once — except `concepts`, `prototype`, and `stories`, which are
-**living**: re-run `concepts` to evolve the ubiquitous language, `prototype` to evolve
-the whole-product flow, and `stories` to add or change stories. There is still
+stories → prototype`) establishes the product and its structure. `stories` is derived
+from `concepts` — it is the scope spec and soft roadmap carved out of the ubiquitous
+language. `prototype` is the terminal groundwork stage: it builds a Hi-Fi, clickable,
+mock-data app for the entire product, realising the story backlog and filling the
+`Surfaces` column for every story (a story with an empty `Surfaces` cell cannot be
+selected at `milestone-brief`). It is mostly run once — except `concepts`, `stories`,
+and `prototype`, which are **living**: re-run `concepts` to evolve the ubiquitous
+language, `stories` to add or change stories, and `prototype` to evolve the
+whole-product flow. All three can be re-run post-groundwork through the on-demand
+`evolve` conductor, which sequences their re-runs in the right order. There is still
 **no pre-planned roadmap** — `adhd` keeps no list of future milestones — but the
 whole-product prototype is the shared **soft roadmap** the milestones are carved out of.
 
@@ -119,8 +124,9 @@ be in flight at once (see "Working in parallel"). Each runs its own per-mileston
 ## Working memory (high-effort stages)
 
 A long stage can outlive one session. To survive compaction and make handoff seamless,
-every **high-effort** stage (`vision`, `concepts`, `prototype`, `ux-refine`, `tracer`,
-`features`, `review`) creates a working-memory file as its first procedure step (a
+every **high-effort** stage (`vision`, `concepts`, `prototype`, `evolve`,
+`ux-refine`, `tracer`, `features`, `review`) creates a working-memory file as its first
+procedure step (a
 discipline the stage follows, not a script-enforced step):
 `project/work/<stage>.md` for groundwork, `project/work/m<N>-<stage>.md` for a milestone
 stage. Medium/low stages (including `build` — its plan already is the memory) create
@@ -207,10 +213,13 @@ project/
   notes.md                   transient scratchpad (healthy = empty)
   work/<stage>.md            gitignored — per-task working memory (high-effort stages);
                              milestone form `m<N>-<stage>.md`; deleted on completion
+  work/evolve.md             gitignored — transient impact plan for the evolve conductor;
+                             deleted (drained) when evolve is done
   prototype.md               Prototype sign-off — whole-product UX flow & rules (done artifact)
   map.md                     surface catalog + domains + deployables (Prototype output)
   surfaces/<name>.md         project-wide surface spec (Prototype output)
-  stories.md                 Stories — the living story backlog, derived from the prototype
+  stories.md                 Stories — the living story backlog (derived from concepts);
+                             includes a `Surfaces` column filled by the `prototype` stage
   milestones/m<N>/
     brief.md                 Milestone Brief — chosen stories, surfaces, track, security/errors
     surfaces/<name>.md       per-milestone refined surface spec
@@ -230,8 +239,9 @@ project/
 | `vision` | groundwork | high | `docs/PRODUCT.md` | none | [reference/vision.md](reference/vision.md) |
 | `foundation` | groundwork | medium | a logged decision in `docs/DECISIONS.md` | none | [reference/foundation.md](reference/foundation.md) |
 | `concepts` | groundwork (living) | high | `docs/CONCEPTS.md` | brainstorming | [reference/concepts.md](reference/concepts.md) |
+| `stories` | groundwork (living) | medium | `project/stories.md` (derived from concepts; includes `Surfaces` column) | brainstorming | [reference/stories.md](reference/stories.md) |
 | `prototype` | groundwork (living) | high | `project/prototype.md` + `project/map.md` + prototype app | brainstorming + impeccable | [reference/prototype.md](reference/prototype.md) |
-| `stories` | groundwork (living) | medium | `project/stories.md` | none | [reference/stories.md](reference/stories.md) |
+| `evolve` | groundwork (on-demand conductor) | high | — (done when `project/work/evolve.md` drained/deleted) | brainstorming | [reference/evolve.md](reference/evolve.md) |
 | `milestone-brief` | per-milestone | medium | `m<N>/brief.md` | none | [reference/milestone-brief.md](reference/milestone-brief.md) |
 | `ux-refine` | per-milestone | high | `m<N>/ux-refine.md` + `surfaces/*` + prototype slice | impeccable (+ brainstorming) | [reference/ux-refine.md](reference/ux-refine.md) |
 | `tracer` | per-milestone (production) | high | `m<N>/tracer.md` + code | none | [reference/tracer.md](reference/tracer.md) |
@@ -241,8 +251,9 @@ project/
 | `review` | per-milestone | high | `m<N>/review.md` | none | [reference/review.md](reference/review.md) |
 | `finalize` | per-milestone | low | `m<N>/summary.md` | none | [reference/finalize.md](reference/finalize.md) |
 
-Flow: groundwork runs `setup → vision → foundation → concepts → prototype → stories`
-(`concepts`, `prototype`, and `stories` stay re-runnable). Then per milestone:
+Flow: groundwork runs `setup → vision → foundation → concepts → stories → prototype`
+(`concepts`, `stories`, and `prototype` stay re-runnable; `evolve` is the on-demand
+conductor that sequences their re-runs post-groundwork). Then per milestone:
 `milestone-brief → ux-refine`. A
 **prototype-only** milestone (`infra: none`) then goes straight to `review → finalize`.
 A **production-track** milestone instead continues `tracer → features`, then works
@@ -420,6 +431,12 @@ These are not stages — they have no gates and no place in the stage flow:
   read-only sub-agent reports drift, contradictions, and determinism issues and proposes
   edits for your approval. Replaces the old script content-audit. See
   [reference/verify.md](reference/verify.md).
+- `evolve` — the single front door for every post-groundwork change to concepts,
+  stories, or the whole-product prototype. It is an on-demand conductor (gate =
+  groundwork complete / prototype done) that sequences re-runs of the living stages
+  in the right order. It has no canonical artifact: done means its work file
+  `project/work/evolve.md` is drained and deleted. See
+  [reference/evolve.md](reference/evolve.md).
 
 The CLI also exposes `migrate` (convert a legacy `state.json` to `config.json`).
 Content/consistency auditing is the agent-driven `verify` command (see
@@ -433,8 +450,9 @@ special commands.
    `adhd-state.mjs validate`; print both. State where the project sits in the flow
    and restate user intent in one line. If `validate` reports blockers, name the
    fix and HALT. Otherwise name the next runnable stage. Stop.
-2. **First word is a stage or a management command** — the 13 stages are in the
-   table above; `workspace`, `adopt`, and `verify` are management commands. Load the matching
+2. **First word is a stage or a management command** — the 14 stages are in the
+   table above; `workspace`, `adopt`, `verify`, and `evolve` are management/on-demand
+   commands. Load the matching
    `reference/<name>.md` and follow it exactly. The reference owns the gate check
    (stages), the procedure, and the completion steps.
 3. **First word matches nothing** — treat the whole input as a task description.
@@ -532,6 +550,8 @@ These are operational slips, not gate-skipping (gate rationalizations are tabled
 | Leaving a `project/work/<task>.md` behind after a stage is done. | It is transient scratch. Drain durable facts to their canonical home and delete it — the `verify` pass flags stale work files. |
 | Starting implementation without the `## Gate` confirmed. | Seed the `## Gate` block, clarify with the user, and run `adhd-state.mjs work-gate <stage>` before any output/implementation. Pre-checking or inventing the verbatim ok defeats the gate. |
 | Putting fields, schema, or surfaces into `docs/CONCEPTS.md`. | `CONCEPTS.md` is conceptual (entities + relationships + helicopter behavior). Fields live in `docs/DATA.md`; surfaces/placement live in `project/map.md`. |
+| Selecting a story with an empty `Surfaces` cell into a milestone brief. | The `Surfaces` column is filled by the `prototype` stage. Run `adhd evolve` to draw the surface first, then re-select. |
+| Making a post-groundwork change to concepts, stories, or the prototype outside `evolve`. | All such changes must be routed through `adhd evolve` — it is the single front door that sequences the living stages in the right order. |
 
 ## Scripts
 
