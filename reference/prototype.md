@@ -1,17 +1,19 @@
 # adhd — Prototype
 
 **Effort:** high
-**Gate:** the `concepts` stage is done — `docs/CONCEPTS.md` exists.
+**Gate:** the `stories` stage is done — `project/stories.md` exists.
 **Output:** `project/map.md`, `project/surfaces/<name>.md` (per `ui` surface), the wired
 clickable whole-product prototype app, and `project/prototype.md` (the sign-off, written
-last). Reads `docs/CONCEPTS.md` as input.
+last). Reads `project/stories.md` and `docs/CONCEPTS.md` as input.
 **Sub-skill:** `superpowers:brainstorming` + `impeccable`.
 
-`prototype` front-loads the **whole product's UX** as one Hi-Fi, clickable, mock-data
-app — built before any stories are written and before any milestone exists. It is how
-the vision is translated into something the user and the team can see, click, and agree
-on. It establishes *what* is being built and *how* it should behave, and it becomes the
-shared **soft roadmap**: milestones are later carved out of a product already visible.
+`prototype` **realizes the story backlog** as one Hi-Fi, clickable, mock-data app —
+built after `stories` so that every story in `project/stories.md` is realized by at
+least one surface. It is how the vision is translated into something the user and the
+team can see, click, and agree on. It establishes *what* is being built and *how* it
+should behave, and it becomes the shared **soft roadmap**: milestones are later carved
+out of a product already visible. A story with an empty `Surfaces` cell cannot be
+selected at `milestone-brief`; filling those cells is the primary goal of this stage.
 
 This stage **absorbs the old `map` stage** — it produces the sitemap/surface catalog as
 its first step, then builds the prototype from it. It is **mock-data only**: no backend,
@@ -27,8 +29,8 @@ Run `node {{scripts_path}}/adhd-state.mjs gate prototype`.
 If it reports missing items, HALT. Tell the user exactly which predecessor stage to run.
 No skip, no override — this is the skill's central discipline.
 
-If the gate reports `concepts` is not done, HALT and tell the user to run
-`adhd concepts` first.
+If the gate reports `stories` is not done, HALT and tell the user to run
+`adhd stories` first.
 
 ## Procedure
 
@@ -40,11 +42,24 @@ whole-product scenarios first (step 4, brainstorming), then per-surface
 without a confirmed `shape` brief.
 
 1. **Start working memory + seed the gate.** This high-effort stage may span sessions.
-   Create `project/work/prototype.md` with `## Gate` + `## Left to do` + `## Log` and
-   append as you work — see SKILL.md, "Working memory". Seed the `## Gate` block with
-   `requirements-confirmed` (the whole-product flow, step 4) plus one line per `ui` surface
-   you will build (step 5). Each item is confirmed only when the user signs off and you
-   record their verbatim ok — gate-checked with `adhd-state.mjs work-gate prototype`.
+   Create `project/work/prototype.md` with `## Gate` + `## Story changes` + `## Left to do`
+   + `## Log` and append as you work — see SKILL.md, "Working memory". Seed the `## Gate`
+   block with `requirements-confirmed` (the whole-product flow, step 4) plus one line per
+   `ui` surface you will build (step 5). Each item is confirmed only when the user signs off
+   and you record their verbatim ok — gate-checked with
+   `adhd-state.mjs work-gate prototype`.
+
+   **`## Story changes` block convention:** any NEW stories or SPLITS of existing stories
+   discovered while building the prototype go into `## Story changes` in the work file
+   first — one row per story using the same `ID | Story | Value | Depends on | Size`
+   format as `project/stories.md` (the `Surfaces` cell is filled as surfaces are built).
+   They are drained into `project/stories.md` on stage completion. The stage is NOT done
+   while `## Story changes` holds unreconciled rows — the `verify` pass flags this.
+
+   **Scope-creep / split rule:** splitting a story that is already PICKED into an
+   in-flight or shipped milestone yields BACKLOG rows in `## Story changes` — they are
+   picked up by a future `milestone-brief`. They are NEVER bolted onto the running
+   milestone.
 2. **Author the sitemap (absorbs `map`).** Write `project/map.md`: a flat surface
    catalog listing every surface the product is expected to have — `ui`
    screens/workspaces, `api` contracts, `lib` modules. Give each surface a one-line
@@ -120,9 +135,15 @@ without a confirmed `shape` brief.
       `node {{scripts_path}}/adhd-state.mjs work-gate prototype --item <surface>`; if it
       reports `missing`, HALT and re-clarify. Only on `pass` build the surface Hi-Fi on
       mock data at the resolved location, matching the design system.
-   4. Do not start the next surface until this one is shaped (confirmed) and built. If the
-      user redirects during shape, re-shape and re-confirm — never push past unconfirmed
-      direction.
+   4. **Write the surface name into `project/stories.md`.** The moment this surface is
+      built (or as soon as you determine which stories it realizes), open
+      `project/stories.md` and append the surface name to the `Surfaces` cell of every
+      story it realizes. A story whose `Surfaces` cell remains empty is NOT implementable
+      and CANNOT be selected at `milestone-brief`. This write is mandatory — do it now,
+      not at the end of the stage.
+   5. Do not start the next surface until this one is shaped (confirmed), built, and its
+      stories' `Surfaces` cells written. If the user redirects during shape, re-shape and
+      re-confirm — never push past unconfirmed direction.
 6. **Wire the clickable whole-product prototype.** Assemble every `ui` surface into ONE
    runnable app — navigation, routing, shared mock state — clickable end to end. Use
    `impeccable craft` so the assembly matches the design system. Back `api`/`lib` surfaces
@@ -154,9 +175,14 @@ the whole-product flow are made by `ux-refine`, not here.
 
 ## On completion
 1. Write the output file(s) above — the stage is done the moment `project/prototype.md`
-   exists (with `project/map.md` also present).
-2. If the session is getting long, start a fresh one: run
+   exists (with `project/map.md` also present) AND `## Story changes` holds no
+   unreconciled rows.
+2. **Drain `## Story changes`.** Before deleting the work file, copy every row from
+   `## Story changes` in `project/work/prototype.md` into `project/stories.md` (append or
+   merge by ID). Leave `## Story changes` empty. The stage is NOT done until this drain
+   is complete.
+3. If the session is getting long, start a fresh one: run
    `node {{scripts_path}}/handoff-prompt.mjs` and give the user the resume prompt.
-3. Drain `project/notes.md` and `project/work/prototype.md`: migrate durable facts to
+4. Drain `project/notes.md` and `project/work/prototype.md`: migrate durable facts to
    their canonical home, then delete the work file. `notes.md` healthy = empty.
-4. Tell the user the next runnable stage is `stories`.
+5. Tell the user the groundwork is complete — the next runnable stage is `milestone-brief`.
