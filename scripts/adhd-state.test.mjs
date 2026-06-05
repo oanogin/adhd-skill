@@ -493,6 +493,19 @@ test('validate blocks a brief selecting a story with empty Surfaces', () => {
     `expected an empty-Surfaces blocker, got: ${JSON.stringify(r.blockers)}`);
 });
 
+test('evolve gates on groundwork complete and needs no milestone', () => {
+  const cwd = tmp();
+  w(cwd, 'project/config.json', JSON.stringify(defaultConfig()));
+  assert.equal(gate(cwd, 'evolve').pass, false); // groundwork not done
+  w(cwd, 'docs/PRODUCT.md');
+  w(cwd, 'docs/DECISIONS.md', '## d');
+  w(cwd, 'docs/CONCEPTS.md');
+  w(cwd, 'project/stories.md', '| ID | Story | Surfaces |\n|--|--|--|\n| S1 | a | Dash |');
+  w(cwd, 'project/map.md');
+  w(cwd, 'project/prototype.md');
+  assert.equal(gate(cwd, 'evolve').pass, true);
+});
+
 test('briefStoryIds matches story IDs as whole words in brief.md', () => {
   const cwd = tmp();
   w(cwd, 'project/stories.md',

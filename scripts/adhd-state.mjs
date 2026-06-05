@@ -278,6 +278,7 @@ export function gate(cwd, stage, { milestone, feature } = {}) {
       }
       break;
     case 'finalize': need(ms('review'), `milestone ${milestone}: review not done`); break;
+    case 'evolve': need(gw('prototype'), 'groundwork not complete — prototype not done (project/prototype.md / project/map.md)'); break;
     default: return { pass: false, missing: [`unknown stage: ${stage}`] };
   }
   return { pass: missing.length === 0, missing };
