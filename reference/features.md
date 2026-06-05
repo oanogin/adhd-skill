@@ -35,8 +35,8 @@ If the gate reports `tracer` is not done, HALT and tell the user to run
    feature wires a surface to its backend. Reconcile against `m{{N}}/tracer.md`: where
    the tracer's backend reality contradicted the signed-off prototype, the **prototype
    is corrected first** — a milestone-slice fix via `adhd ux-refine --milestone {{N}}`,
-   or, if the whole-product flow or rules are wrong, by re-running the groundwork
-   `adhd prototype` stage — then the features are written to match reality.
+   or, if the whole-product flow or rules are wrong, by running `adhd evolve` — then
+   the features are written to match reality.
 3. **Write `m{{N}}/features.md`** as a table with exactly these columns:
 
    `| ID | Feature | Story | Domain | Repo | Depends on | Build | Verified |`

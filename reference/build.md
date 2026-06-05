@@ -43,8 +43,8 @@ DAG order is not optional.
 4. **Respect the commit gate.** NEVER `git commit` without the user's explicit "ok" /
    "lgtm" — in the target repo as much as the orchestration repo. Present the work,
    wait for confirmation, then commit.
-5. **Park new ideas.** A new story idea raised mid-build is filed to `project/stories.md`
-   (re-run `stories`), never bolted onto the running milestone.
+5. **Park new ideas.** A new story idea raised mid-build is filed via `adhd evolve`,
+   never bolted onto the running milestone.
 - **New entity → update `concepts` first.** If this stage surfaces a product entity not
   already in `docs/CONCEPTS.md`, stop and re-run `adhd concepts` to add it (entity +
   relationships + any state rule) before continuing. The concepts file is the single

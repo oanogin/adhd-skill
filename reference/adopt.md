@@ -2,7 +2,7 @@
 
 **Effort:** high
 **Purpose:** bring an existing, already-built project under `adhd`. Substitutes for
-the groundwork loop (`vision → foundation → concepts → prototype → stories`).
+the groundwork loop (`vision → foundation → concepts → stories → prototype`).
 **Not a stage:** no gate. Run it once, instead of the groundwork stages, when the
 project already exists.
 
@@ -46,12 +46,14 @@ milestone or a `docs/DECISIONS.md` entry. `adopt` does not block on it.
      (a Mermaid `erDiagram`), and a helicopter view of how the system works. This is the
      `concepts` artifact; draft it from the existing data model and architecture docs.
    - `project/surfaces/<name>.md` — a spec per `ui` surface, read off the existing UI.
+   - `project/stories.md` — the story backlog
+     (`ID | Story | Value | Depends on | Size | Surfaces`), derived from the existing
+     product. Fill the `Surfaces` column from the existing UI — each story should name
+     the surface(s) it realizes.
    - `project/prototype.md` — the `prototype` artifact. The existing built UI *is* the
      whole-product UX reference, so record what it covers and treat it as signed off;
      no new prototype app is built. (`prototype` is done once `project/prototype.md` and
      `project/map.md` exist.)
-   - `project/stories.md` — the story backlog (`ID | Story | Value | Depends on | Size`),
-     derived from the existing product.
    There is no roadmap artifact: milestones are formed just-in-time at `milestone-brief`,
    so `adopt` does not produce one.
 4. **Never invent.** Where the source docs do not cover something, flag the gap and ask
@@ -69,3 +71,5 @@ milestone or a `docs/DECISIONS.md` entry. `adopt` does not block on it.
 2. The project now resumes at the per-milestone loop exactly as a groundwork-loaded
    project would. Tell the user the next runnable stage is `milestone-brief` for
    milestone 1.
+3. For any future changes to concepts, stories, the prototype, or the data model —
+   use `adhd evolve`. It is the single front door for every post-groundwork change.

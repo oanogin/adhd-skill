@@ -15,7 +15,7 @@ this milestone touches. It is **mock-data only**, like the prototype it refines.
 **Hard rule — do not change the whole-product flow or rules here.** `ux-refine` adds
 depth to a milestone's surfaces; it never rewires the product's overall flow, navigation
 model, or governing rules. If a milestone reveals that the whole-product flow itself is
-wrong, STOP and re-run the groundwork `prototype` stage to evolve it — then return here.
+wrong, STOP and run `adhd evolve` to evolve it — then return here.
 
 ## Gate check
 Run `node {{scripts_path}}/adhd-state.mjs gate ux-refine --milestone {{N}}`.

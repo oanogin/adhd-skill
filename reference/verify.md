@@ -6,7 +6,7 @@ reads the `.md` artifacts, reports drift, contradictions, and determinism proble
 proposes edits for the user to approve. It replaces the old script `audit`: judgment
 about *content* belongs to a reading agent, not a regex.
 **Not a stage:** no gate. Run it anytime; it is recommended at `finalize` and after
-re-running `concepts` or `prototype`.
+running `evolve` (or after re-running any individual groundwork stage).
 
 ## How it runs
 
@@ -50,6 +50,15 @@ with clean eyes and does not pollute the conductor's context:
    a surface spec, `.ruler/`).
 8. **Prototype / surface drift.** Surfaces or the prototype that contradict the
    signed-off whole-product flow or the current `CONCEPTS.md`.
+9. **Undrained story changes.** `project/work/prototype.md` has an undrained
+   `## Story changes` block while the `prototype` stage is done — story changes were
+   written during a prototype run but never folded into `project/stories.md`.
+10. **Empty Surfaces cell.** An `m<N>/brief.md` references a story whose `Surfaces`
+    cell is empty in `project/stories.md` — the story was never drawn in the prototype
+    and is therefore not implementable (mirrors the `adhd-state.mjs validate` blocker).
+11. **Abandoned evolve work file.** `project/work/evolve.md` still exists — either an
+    `evolve` cascade was abandoned mid-way, or all `## Impact plan` items are checked
+    but the file was not deleted as required by the `evolve` on-completion steps.
 
 ## Output
 
