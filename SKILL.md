@@ -460,7 +460,7 @@ special commands.
    fits the task, gate-aware:
    - route the task to the stage that addresses it (e.g. "this milestone's screen
      needs deeper UI" → `ux-refine` for that milestone; "the product flow is wrong" →
-     re-run the groundwork `prototype` stage);
+     `evolve`, which sequences the `prototype` re-run);
    - if the task implies skipping ahead, name the gate blocking it instead of
      running it;
    - if it is a new story idea raised mid-project, file it to `stories.md` and
@@ -546,7 +546,7 @@ These are operational slips, not gate-skipping (gate rationalizations are tabled
 | Bolting a mid-project story idea onto the current milestone. | File it to `stories.md` and let a future `milestone-brief` pick it up. Soft-warn if it would expand the current milestone. |
 | Building a feature before its `Depends on` features. | The DAG order is enforced by the `build` gate — build the dependency features first. |
 | Building a `ui` surface's production code into the prototype app (or vice versa). | Under `standalone` topology they are different repos. The `prototype`/`ux-refine` stages write the prototype app; `build` writes the feature's production `repo`. |
-| Changing the whole-product flow or rules inside `ux-refine`. | `ux-refine` only refines the current milestone's slice. To change the whole-product flow, re-run the groundwork `prototype` stage. |
+| Changing the whole-product flow or rules inside `ux-refine`. | `ux-refine` only refines the current milestone's slice. To change the whole-product flow, run `adhd evolve` (it sequences the `prototype` re-run). |
 | Leaving a `project/work/<task>.md` behind after a stage is done. | It is transient scratch. Drain durable facts to their canonical home and delete it — the `verify` pass flags stale work files. |
 | Starting implementation without the `## Gate` confirmed. | Seed the `## Gate` block, clarify with the user, and run `adhd-state.mjs work-gate <stage>` before any output/implementation. Pre-checking or inventing the verbatim ok defeats the gate. |
 | Putting fields, schema, or surfaces into `docs/CONCEPTS.md`. | `CONCEPTS.md` is conceptual (entities + relationships + helicopter behavior). Fields live in `docs/DATA.md`; surfaces/placement live in `project/map.md`. |

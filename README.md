@@ -157,8 +157,8 @@ real `infra` is **production-track**: after `ux-refine`, `tracer` settles the da
 and proves backend reality, `features` decomposes the work into a dependency DAG, and
 `build` builds the production app to match the prototype. When reality contradicts the
 prototype, the prototype is updated first — a milestone-slice fix via `ux-refine`, a
-whole-product flow fix by re-running the groundwork `prototype` stage — and the
-production app moves to match. (The milestone **track** value `prototype` is a different
+whole-product flow fix via `adhd evolve` (which sequences the groundwork `prototype`
+re-run) — and the production app moves to match. (The milestone **track** value `prototype` is a different
 thing from the groundwork **stage** named `prototype`.)
 
 Where the two apps live in the repo is a tech decision, logged in `docs/DECISIONS.md`.
