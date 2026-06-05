@@ -266,6 +266,61 @@ export function gate(cwd, stage, { milestone, feature } = {}) {
   return { pass: missing.length === 0, missing };
 }
 
+// ---- work-file confirmation gate ----
+// Every high-effort stage's work file (`project/work/<stage>.md`, or
+// `project/work/m<N>-<stage>.md` for a milestone stage) carries a `## Gate`
+// block: the required user confirmations that must be recorded before the stage
+// produces its output artifact or starts implementation. A gate item counts as
+// satisfied only when it is checked `[x]` AND records the user's verbatim
+// confirmation in parentheses. The work file is the transient, gitignored
+// intra-stage ledger — fabrication is possible (the agent writes it) but a skip
+// becomes an explicit, auditable line rather than a silent freelance.
+export function workFileRel(stage, milestone) {
+  return milestone != null
+    ? path.join('project/work', `m${milestone}-${stage}.md`)
+    : path.join('project/work', `${stage}.md`);
+}
+
+// Parse the `## Gate` block -> [{ id, checked, confirmed, confirmation }].
+export function parseGateItems(text) {
+  const items = [];
+  let inGate = false;
+  for (const line of text.split('\n')) {
+    if (/^##\s+/.test(line)) { inGate = /^##\s+gate\b/i.test(line); continue; }
+    if (!inGate) continue;
+    const m = /^\s*-\s*\[([ xX])\]\s*(.+?)\s*$/.exec(line);
+    if (!m) continue;
+    const checked = m[1].toLowerCase() === 'x';
+    const body = m[2];
+    const idM = /^(.+?)(?:\s+[—–-]{1,2}\s+|\s*::\s*|:\s+)/.exec(body);
+    const id = (idM ? idM[1] : body).trim();
+    const conf = /\(([^)]*\S[^)]*)\)/.exec(body);
+    items.push({ id, checked, confirmed: checked && Boolean(conf), confirmation: conf ? conf[1].trim() : null });
+  }
+  return items;
+}
+
+export function workGate(cwd, stage, { milestone, item } = {}) {
+  const rel = workFileRel(stage, milestone);
+  if (!exists(cwd, rel)) {
+    return { pass: false, missing: [`work file not found: ${rel} — create it with a ## Gate block (see SKILL.md, "Working memory")`] };
+  }
+  const items = parseGateItems(read(cwd, rel));
+  if (items.length === 0) {
+    return { pass: false, missing: [`no ## Gate items in ${rel} — seed the gate block; at minimum "requirements-confirmed"`] };
+  }
+  const targets = item != null ? items.filter((g) => g.id === item) : items;
+  if (item != null && targets.length === 0) {
+    return { pass: false, missing: [`no gate item "${item}" in ${rel}`] };
+  }
+  const missing = [];
+  for (const g of targets) {
+    if (!g.checked) missing.push(`gate item "${g.id}" not checked — confirm with the user, then mark [x] with their verbatim ok`);
+    else if (!g.confirmed) missing.push(`gate item "${g.id}" checked but missing the user's verbatim confirmation in (parentheses)`);
+  }
+  return { pass: missing.length === 0, missing };
+}
+
 // ---- next stage ----
 export function nextStage(cwd = process.cwd(), { milestone } = {}) {
   if (!loadConfig(cwd)) return { stage: 'setup', milestone: null, feature: null };
@@ -536,6 +591,7 @@ function parseFlags(args) {
     else if (args[i] === '--kind') flags.kind = args[++i];
     else if (args[i] === '--remote') flags.remote = args[++i];
     else if (args[i] === '--subpath') flags.subpath = args[++i];
+    else if (args[i] === '--item') flags.item = args[++i];
     else rest.push(args[i]);
   }
   return { flags, rest };
@@ -562,6 +618,18 @@ function main(argv) {
     case 'gate': {
       const [stage] = rest;
       const result = gate(cwd, stage, flags);
+      console.log(JSON.stringify(result, null, 2));
+      if (!result.pass) process.exitCode = 1;
+      break;
+    }
+    case 'work-gate': {
+      const [stage] = rest;
+      if (!stage) {
+        console.error('Usage: adhd-state.mjs work-gate <stage> [--milestone N] [--item <id>]');
+        process.exitCode = 1;
+        break;
+      }
+      const result = workGate(cwd, stage, flags);
       console.log(JSON.stringify(result, null, 2));
       if (!result.pass) process.exitCode = 1;
       break;
@@ -633,7 +701,7 @@ function main(argv) {
       break;
     }
     default:
-      console.error('Usage: adhd-state.mjs <init|read|status|next|gate|validate|audit|migrate|preflight-confirm|workspace-mode|workspace-add|workspace-remove|workspace-list|repo-bind|repo-unbind|prototype-topology|prototype-home>');
+      console.error('Usage: adhd-state.mjs <init|read|status|next|gate|work-gate|validate|audit|migrate|preflight-confirm|workspace-mode|workspace-add|workspace-remove|workspace-list|repo-bind|repo-unbind|prototype-topology|prototype-home>');
       process.exitCode = 1;
   }
 }

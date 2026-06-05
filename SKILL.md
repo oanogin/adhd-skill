@@ -126,9 +126,10 @@ discipline the stage follows, not a script-enforced step):
 stage. Medium/low stages (including `build` — its plan already is the memory) create
 none.
 
-The file has two light zones:
+The file has three light zones:
 
 ```
+## Gate            ← required user confirmations; machine-checked before implementation
 ## Left to do      ← checklist; unchecked items are the resume pointer
 ## Log             ← free-form, newest last: what was done / what failed / decisions
 ```
@@ -139,6 +140,54 @@ completion, drain durable facts to their canonical home (`DECISIONS.md`, `CONCEP
 `DATA.md`, a surface spec, `.ruler/`) and **delete** the file. `project/work/` is
 gitignored; the `verify` pass flags any work file whose stage is already done.
 `handoff-prompt.mjs` reads the active work file and leads the resume prompt with it.
+
+### The `## Gate` zone — confirm before you implement (hard rule)
+
+Every work file carries a `## Gate` block: the requirements/direction the user must
+**confirm before the stage produces its output artifact or writes any implementation.**
+This is the discipline that stops an agent from charging into the wrong work and forces
+the clarification step that is otherwise skipped (especially on Codex / Cursor).
+
+Each gate item is one line, satisfied **only** when it is checked AND records the user's
+verbatim ok in parentheses:
+
+```
+## Gate
+- [ ] requirements-confirmed — user confirmed scope/direction before implementation
+- [ ] <item> — <what this item confirms>
+```
+
+→ once the user confirms:
+
+```
+- [x] requirements-confirmed — scope/direction confirmed (yes, that's right — go)
+- [x] <item> — confirmed (<user's verbatim words>)
+```
+
+**Rule, every high-effort stage:**
+
+1. **Seed** the `## Gate` block as the first procedure step (when you create the work
+   file). It MUST contain at least `requirements-confirmed`. A stage with a per-item loop
+   (e.g. `prototype` per `ui` surface) adds one gate line per item.
+2. **Clarify, then confirm.** Gather the requirements with the user. Mark an item `[x]`
+   with their verbatim ok ONLY after they actually confirm — never pre-check, never
+   invent the words.
+3. **Check the gate before implementing.** Before the implementation/output-producing
+   steps, run:
+   ```bash
+   node {{scripts_path}}/adhd-state.mjs work-gate <stage> [--milestone N] [--item <id>]
+   ```
+   It returns `pass` only when the targeted gate items are checked **and** carry the
+   verbatim confirmation. If it reports `missing`, **HALT** — go back and clarify. No
+   skip. Fail-closed: a missing work file, an absent `## Gate` block, or a bare `[x]`
+   without the parenthetical all fail.
+
+The gate lives in the transient work file (gitignored, deleted on completion), so it
+never pollutes the stable docs. The durable record of *what was decided* still migrates
+to its canonical home on completion, as usual. Honest limit: the agent writes the
+checkbox, so this cannot make confirmation physically impossible to fake — it makes a
+skip an **explicit, auditable** line instead of a silent freelance, and on a compliant
+harness it reliably forces the real clarification.
 
 ## Canonical layout
 
@@ -419,6 +468,11 @@ If `project/config.json` does not exist, the only runnable stage is `setup`.
   (`autoCompact: false` recommended); the work-file + handoff make resume clean.
 - **Handoff prompts** — on a session switch, the resume prompt always says "read
   `project/notes.md` first".
+- **Confirm before implementing (work-file gate)** — every high-effort stage records
+  the user's confirmed requirements in its work file's `## Gate` block and verifies them
+  with `adhd-state.mjs work-gate <stage>` BEFORE producing its output artifact or writing
+  implementation. If the gate reports `missing`, HALT and clarify. No skip. See "Working
+  memory → The `## Gate` zone".
 - **Small steps** — every stage and feature is bounded. If a step will not fit cleanly,
   split it before starting.
 - **Commit gate** — NEVER run `git commit` without the user's explicit "ok" / "lgtm".
@@ -476,11 +530,12 @@ These are operational slips, not gate-skipping (gate rationalizations are tabled
 | Building a `ui` surface's production code into the prototype app (or vice versa). | Under `standalone` topology they are different repos. The `prototype`/`ux-refine` stages write the prototype app; `build` writes the feature's production `repo`. |
 | Changing the whole-product flow or rules inside `ux-refine`. | `ux-refine` only refines the current milestone's slice. To change the whole-product flow, re-run the groundwork `prototype` stage. |
 | Leaving a `project/work/<task>.md` behind after a stage is done. | It is transient scratch. Drain durable facts to their canonical home and delete it — the `verify` pass flags stale work files. |
+| Starting implementation without the `## Gate` confirmed. | Seed the `## Gate` block, clarify with the user, and run `adhd-state.mjs work-gate <stage>` before any output/implementation. Pre-checking or inventing the verbatim ok defeats the gate. |
 | Putting fields, schema, or surfaces into `docs/CONCEPTS.md`. | `CONCEPTS.md` is conceptual (entities + relationships + helicopter behavior). Fields live in `docs/DATA.md`; surfaces/placement live in `project/map.md`. |
 
 ## Scripts
 
 ```bash
-node {{scripts_path}}/adhd-state.mjs <init|read|status|next|gate|validate|audit(→verify)|migrate|preflight-confirm|workspace-mode|workspace-add|workspace-remove|workspace-list|repo-bind|repo-unbind|prototype-topology|prototype-home>
+node {{scripts_path}}/adhd-state.mjs <init|read|status|next|gate|work-gate|validate|audit(→verify)|migrate|preflight-confirm|workspace-mode|workspace-add|workspace-remove|workspace-list|repo-bind|repo-unbind|prototype-topology|prototype-home>
 node {{scripts_path}}/handoff-prompt.mjs
 ```

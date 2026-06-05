@@ -22,9 +22,13 @@ If the gate reports `tracer` is not done, HALT and tell the user to run
 `ux-refine` straight to `review`.
 
 ## Procedure
-1. **Start working memory.** This high-effort stage may span sessions. Create
-   `project/work/m{{N}}-features.md` (`## Left to do` + `## Log`) and append as you
-   work — see SKILL.md, "Working memory".
+1. **Start working memory + seed the gate.** This high-effort stage may span sessions.
+   Create `project/work/m{{N}}-features.md` with `## Gate` + `## Left to do` + `## Log`
+   and append as you work — see SKILL.md, "Working memory". Seed `## Gate` with
+   `requirements-confirmed`; clarify the decomposition scope/direction with the user and
+   check it with their verbatim ok, then
+   `node {{scripts_path}}/adhd-state.mjs work-gate features --milestone {{N}}` must pass
+   before you write this stage's output artifact.
 2. **Decompose each chosen story into features.** For every story in the milestone,
    break the work into features — each one small, concrete, and living in exactly one
    domain (one repo). A backend feature is a per-domain slice of the story; a frontend

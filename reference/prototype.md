@@ -31,9 +31,20 @@ If the gate reports `concepts` is not done, HALT and tell the user to run
 `adhd concepts` first.
 
 ## Procedure
-1. **Start working memory.** This high-effort stage may span sessions. Create
-   `project/work/prototype.md` (`## Left to do` + `## Log`) and append as you work — see
-   SKILL.md, "Working memory".
+
+`impeccable` does the UI work via its named commands: `teach`/`document` (set up
+`docs/PRODUCT.md` + `docs/DESIGN.md` context), `shape <surface>` (clarify + plan a
+surface's UX/UI into a user-confirmed brief), `craft <surface>` (build it). The flow is:
+whole-product scenarios first (step 4, brainstorming), then per-surface
+`shape → confirm → craft`, one surface at a time (step 5). Never `craft` a surface
+without a confirmed `shape` brief.
+
+1. **Start working memory + seed the gate.** This high-effort stage may span sessions.
+   Create `project/work/prototype.md` with `## Gate` + `## Left to do` + `## Log` and
+   append as you work — see SKILL.md, "Working memory". Seed the `## Gate` block with
+   `requirements-confirmed` (the whole-product flow, step 4) plus one line per `ui` surface
+   you will build (step 5). Each item is confirmed only when the user signs off and you
+   record their verbatim ok — gate-checked with `adhd-state.mjs work-gate prototype`.
 2. **Author the sitemap (absorbs `map`).** Write `project/map.md`: a flat surface
    catalog listing every surface the product is expected to have — `ui`
    screens/workspaces, `api` contracts, `lib` modules. Give each surface a one-line
@@ -61,24 +72,57 @@ If the gate reports `concepts` is not done, HALT and tell the user to run
    prototype app) and which domains each carries as a **Deployables** section. In
    `single` mode skip the domains table; still note the prototype and production apps as
    deployables. The prototype app is one deployable, never a surface's home.
-4. **Design the whole-product UX flow.** Invoke `superpowers:brainstorming` to design
-   how the `ui` surfaces connect into one coherent product flow — entry points,
-   navigation, the journeys that span surfaces, and the rules that govern them. Write
-   each `ui` surface's spec (flows, states, interactions) to
-   `project/surfaces/<name>.md`. OVERRIDE the sub-skill output paths to that canonical
-   target. For `api`/`lib` surfaces, capture behaviour/contract or responsibility/
-   interface in the same `project/surfaces/<name>.md` — `impeccable` is not invoked for
-   those.
+4. **Design the whole-product flow FIRST — scenario level.** Invoke
+   `superpowers:brainstorming` to design how the `ui` surfaces connect into one coherent
+   product: entry points, navigation, the scenarios/journeys that span surfaces, and the
+   rules that govern them. Stay at **flow altitude** — this pass decides *which surfaces
+   exist and how they connect*, NOT the pixel-level detail of any one surface (that is
+   step 5, per surface). Walk the user through the scenarios and **get explicit
+   confirmation of the whole-product flow before descending to surfaces.** Record that
+   confirmation by checking `requirements-confirmed` in the work file's `## Gate` with the
+   user's verbatim ok; `work-gate prototype --item requirements-confirmed` must pass before
+   step 5. Write the
+   cross-surface flow and, per `ui` surface, a thin spec stub (purpose, where it sits in
+   the flow, key states) to `project/surfaces/<name>.md`; each is deepened into a full
+   spec in step 5. OVERRIDE the sub-skill output paths to that canonical target. For
+   `api`/`lib` surfaces, capture behaviour/contract or responsibility/interface in the
+   same `project/surfaces/<name>.md` — `impeccable` is not invoked for those, and they
+   have no per-surface build loop.
    The whole-product flow's **navigation and interaction rules** live here; the
    **entity/state rules** they build on live in `docs/CONCEPTS.md` — reference them,
    do not restate them.
-5. **Build the `ui` surfaces Hi-Fi.** Invoke `impeccable` for each `ui` surface; build
-   it Hi-Fi on mock data, matching the design system (`impeccable` reads `docs/PRODUCT.md`
-   and `docs/DESIGN.md`). Resolve the prototype app location from `prototypeTopology` in
-   `project/config.json` (see SKILL.md, "Prototype topology"): under `colocated` build at
-   `/p/<path>`; under `standalone` build into the project-wide prototype app at
-   `config.json`'s `prototype` pointer. Resolve any repo path via
-   `node {{scripts_path}}/adhd-state.mjs workspace-list`; HALT if a needed repo is unbound.
+5. **Build the `ui` surfaces Hi-Fi — one surface at a time.** Work the `ui` surfaces in
+   flow order, **one at a time**; never batch-design or batch-build them. `impeccable`
+   drives every surface — use its **named commands**, do not freelance planning or
+   styling:
+
+   - **Context preflight (once, before the first surface).** `impeccable` reads
+     `docs/PRODUCT.md` and `docs/DESIGN.md`. `docs/PRODUCT.md` exists from `vision`. If
+     `docs/DESIGN.md` is missing, run `impeccable document` when prototype code already
+     exists, else `impeccable teach`, before shaping any surface.
+   - **Resolve the build location (once).** Read `prototypeTopology` from
+     `project/config.json` (see SKILL.md, "Prototype topology"): `colocated` → build at
+     `/p/<path>`; `standalone` → build into the project-wide prototype app at
+     `config.json`'s `prototype` pointer. Resolve any repo path via
+     `node {{scripts_path}}/adhd-state.mjs workspace-list`; HALT if a needed repo is unbound.
+
+   Then for **each** `ui` surface:
+   1. **Clarify this surface's requirements with the user** — its purpose, the scenarios
+      it serves (from step 4), key states, the interactions it must support, and what is
+      explicitly out of scope. Do not touch any other surface now.
+   2. **`impeccable shape <surface>`** — plan the surface's UX/UI. This produces a shape
+      brief. **WAIT for the user's explicit confirmation of that brief before writing any
+      code.** No `craft` without a confirmed brief — this is `impeccable`'s own gate and
+      the checkpoint that stops the build from running in the wrong direction. On
+      confirmation, check this surface's `## Gate` line with the user's verbatim ok and
+      fold the confirmed brief into `project/surfaces/<name>.md`.
+   3. **Gate-check, then `impeccable craft <surface>`** — run
+      `node {{scripts_path}}/adhd-state.mjs work-gate prototype --item <surface>`; if it
+      reports `missing`, HALT and re-clarify. Only on `pass` build the surface Hi-Fi on
+      mock data at the resolved location, matching the design system.
+   4. Do not start the next surface until this one is shaped (confirmed) and built. If the
+      user redirects during shape, re-shape and re-confirm — never push past unconfirmed
+      direction.
 6. **Wire the clickable whole-product prototype.** Assemble every `ui` surface into ONE
    runnable app — navigation, routing, shared mock state — clickable end to end. Use
    `impeccable craft` so the assembly matches the design system. Back `api`/`lib` surfaces

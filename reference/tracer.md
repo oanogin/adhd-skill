@@ -22,9 +22,13 @@ The clickable prototype is signed off; the UX is validated. `tracer` now proves 
 into features and built. It runs only on production-track milestones.
 
 ## Procedure
-1. **Start working memory.** This high-effort stage may span sessions. Create
-   `project/work/m{{N}}-tracer.md` (`## Left to do` + `## Log`) and append as you work —
-   see SKILL.md, "Working memory".
+1. **Start working memory + seed the gate.** This high-effort stage may span sessions.
+   Create `project/work/m{{N}}-tracer.md` with `## Gate` + `## Left to do` + `## Log` and
+   append as you work — see SKILL.md, "Working memory". Seed `## Gate` with
+   `requirements-confirmed`; clarify scope/direction with the user and check it with their
+   verbatim ok, then
+   `node {{scripts_path}}/adhd-state.mjs work-gate tracer --milestone {{N}}` must pass
+   before you write this stage's output artifact or any code.
 2. **Settle the infra mechanism — latest responsible moment.** Read the milestone's
    `infra` need from `m{{N}}/brief.md`. For each capability it requires that has no
    mechanism chosen yet, decide the mechanism now, with the user, and log it in

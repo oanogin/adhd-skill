@@ -17,9 +17,13 @@ both built and verified — if a feature is built but not verified, run
 `adhd build` for it and complete its verification first.
 
 ## Procedure
-1. **Start working memory.** This high-effort stage may span sessions. Create
-   `project/work/m{{N}}-review.md` (`## Left to do` + `## Log`) and append as you work —
-   see SKILL.md, "Working memory".
+1. **Start working memory + seed the gate.** This high-effort stage may span sessions.
+   Create `project/work/m{{N}}-review.md` with `## Gate` + `## Left to do` + `## Log` and
+   append as you work — see SKILL.md, "Working memory". Seed `## Gate` with
+   `requirements-confirmed`; confirm the review scope/approach with the user and check it
+   with their verbatim ok, then
+   `node {{scripts_path}}/adhd-state.mjs work-gate review --milestone {{N}}` must pass
+   before you write this stage's output artifact.
 2. **Run a fresh-session audit.** Review is a clean-eyes pass once the milestone is
    complete — the signed-off prototype for a prototype-only milestone, or the built
    production app for a production-track one. Start it in a fresh session so the audit
