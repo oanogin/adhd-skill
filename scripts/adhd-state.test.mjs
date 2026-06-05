@@ -7,7 +7,7 @@ import path from 'node:path';
 import {
   defaultConfig, loadConfig, saveConfig, initConfig, CONFIG_VERSION,
   GROUNDWORK_STAGES, MILESTONE_STAGES, FEATURE_STAGES, SURFACE_KINDS, MODES, PROTOTYPE_TOPOLOGIES,
-  parseTable, parseStories, parseFeatures, milestoneTrack, milestoneDirs,
+  parseTable, parseStories, parseFeatures, milestoneTrack, milestoneDirs, briefStoryIds,
   groundworkDone, milestoneStageDone, gate, nextStage, statusReport,
   validate, migrate,
   setMode, addRepo, removeRepo, bindRepo, unbindRepo, listRepos,
@@ -462,4 +462,25 @@ test('workGate: milestone work file resolves m<N> path', () => {
   const cwd = tmp();
   w(cwd, 'project/work/m3-ux-refine.md', '## Gate\n- [x] requirements-confirmed — (ok)\n');
   assert.equal(workGate(cwd, 'ux-refine', { milestone: 3 }).pass, true);
+});
+
+test('parseStories reads the Surfaces column', () => {
+  const cwd = tmp();
+  w(cwd, 'project/stories.md',
+    '| ID | Story | Depends on | Surfaces |\n|--|--|--|--|\n' +
+    '| S1 | a | | Dashboard, Settings |\n' +
+    '| S2 | b | S1 | |');
+  const s = parseStories(cwd);
+  assert.deepEqual(s[0].surfaces, ['Dashboard', 'Settings']);
+  assert.deepEqual(s[1].surfaces, []);
+});
+
+test('briefStoryIds matches story IDs as whole words in brief.md', () => {
+  const cwd = tmp();
+  w(cwd, 'project/stories.md',
+    '| ID | Story | Surfaces |\n|--|--|--|\n| S1 | a | Dash |\n| S2 | b | |\n| LEGAL | c | Page |');
+  w(cwd, 'project/milestones/m1/brief.md',
+    '# Milestone 1 — x\nChosen stories: S1 and LEGAL. Note: S22 is a separate id.');
+  const ids = briefStoryIds(cwd, 1);
+  assert.deepEqual([...ids].sort(), ['LEGAL', 'S1']);
 });

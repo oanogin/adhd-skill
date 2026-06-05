@@ -119,10 +119,12 @@ export function parseStories(cwd) {
   const { header, rows } = parseTable(read(cwd, 'project/stories.md'));
   const idC = header.indexOf('id');
   const depC = header.indexOf('depends on');
+  const surfC = header.indexOf('surfaces');
   if (idC < 0) return [];
   return rows.map((r) => ({
     id: clean(r[idC]),
     dependsOn: depC >= 0 ? clean(r[depC]).split(',').map((s) => s.trim()).filter(Boolean) : [],
+    surfaces: surfC >= 0 ? clean(r[surfC]).split(',').map((s) => s.trim()).filter(Boolean) : [],
   })).filter((s) => s.id);
 }
 
@@ -161,6 +163,21 @@ export function milestoneTrack(cwd, m) {
   if (!exists(cwd, rel)) return null;
   const mt = read(cwd, rel).match(/track:\s*`?(production|prototype)/i);
   return mt ? mt[1].toLowerCase() : 'production';
+}
+
+// Story IDs (from stories.md) that appear as whole words in m<N>/brief.md.
+// Used to enforce the empty-Surfaces selection gate without mandating a brief format.
+export function briefStoryIds(cwd, m) {
+  const rel = milestoneRel(m, 'brief.md');
+  if (!exists(cwd, rel)) return new Set();
+  const text = read(cwd, rel);
+  const ids = (parseStories(cwd) ?? []).map((s) => s.id);
+  const found = new Set();
+  for (const id of ids) {
+    const re = new RegExp(`(?<![\\w-])${id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w-])`);
+    if (re.test(text)) found.add(id);
+  }
+  return found;
 }
 
 function milestoneTitle(cwd, m) {
