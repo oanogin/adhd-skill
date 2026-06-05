@@ -488,6 +488,16 @@ export function validate(cwd = process.cwd()) {
     const cyc = findCycle(feats);
     if (cyc) blockers.push(`milestone ${m}: feature dependency cycle: ${cyc.join(' → ')}`);
   }
+  // empty-Surfaces selection gate: a brief may not pick a story with no Surfaces.
+  const stories = parseStories(cwd) ?? [];
+  const surfacesById = Object.fromEntries(stories.map((s) => [s.id, s.surfaces]));
+  for (const m of milestoneDirs(cwd)) {
+    for (const id of briefStoryIds(cwd, m)) {
+      if ((surfacesById[id] ?? []).length === 0) {
+        blockers.push(`milestone ${m}: brief selects story "${id}" which has empty Surfaces in project/stories.md — run \`adhd evolve\` to prototype it first`);
+      }
+    }
+  }
   if (exists(cwd, 'project/notes.md') && read(cwd, 'project/notes.md').trim() !== '') {
     warnings.push('project/notes.md is not empty — drain durable entries to their canonical home');
   }

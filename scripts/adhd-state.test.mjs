@@ -475,6 +475,24 @@ test('parseStories reads the Surfaces column', () => {
   assert.deepEqual(s[1].surfaces, []);
 });
 
+test('validate blocks a brief selecting a story with empty Surfaces', () => {
+  const cwd = tmp();
+  // satisfy groundwork so validate's order check is clean
+  w(cwd, 'project/config.json', JSON.stringify(defaultConfig()));
+  w(cwd, 'docs/PRODUCT.md');
+  w(cwd, 'docs/DECISIONS.md', '## d');
+  w(cwd, 'docs/CONCEPTS.md');
+  w(cwd, 'project/map.md');
+  w(cwd, 'project/prototype.md');
+  w(cwd, 'project/stories.md',
+    '| ID | Story | Surfaces |\n|--|--|--|\n| S1 | a | Dash |\n| S2 | b | |');
+  w(cwd, 'project/milestones/m1/brief.md', '# Milestone 1 — x\nStories: S1, S2.');
+  const r = validate(cwd);
+  assert.equal(r.ok, false);
+  assert.ok(r.blockers.some((b) => /S2/.test(b) && /surfaces/i.test(b)),
+    `expected an empty-Surfaces blocker, got: ${JSON.stringify(r.blockers)}`);
+});
+
 test('briefStoryIds matches story IDs as whole words in brief.md', () => {
   const cwd = tmp();
   w(cwd, 'project/stories.md',
