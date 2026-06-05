@@ -16,8 +16,9 @@ each stage.
 
 `adhd` hard-depends on two things. No fallback, no degraded mode:
 
-- the **`superpowers` plugin** — `adhd` invokes `brainstorming` (prototype stage),
-  `writing-plans` (plan stage), and `executing-plans` (build stage) from it. The
+- the **`superpowers` plugin** — `adhd` invokes `brainstorming` (`stories`, `prototype`,
+  and `evolve` stages), `writing-plans` (plan stage), and `executing-plans` (build stage)
+  from it. The
   whole plugin is required, not just those three: other superpowers skills
   (`subagent-driven-development`, `systematic-debugging`, and so on) are useful
   during the build stage too.
@@ -49,6 +50,8 @@ Three management commands sit outside the stage flow:
   groundwork docs from the project's existing documentation).
 - `/adhd verify` — agent-driven consistency & quality audit of the project's docs
   (reports drift and proposes fixes for your approval).
+- `/adhd evolve` — change-intake conductor: brainstorm a new idea or update, plan
+  the artifact updates across living stages, and drive the re-runs.
 
 You can also describe a task in plain words — `/adhd <free text>` — and `adhd`
 picks the stage or command that fits, respecting the gates.
@@ -74,17 +77,19 @@ surfaces' detail.
 ## The flow
 
 Groundwork establishes the product and its structure (mostly once — `concepts`,
-`prototype`, and `stories` stay re-runnable). It front-loads the **whole-product UX**: `prototype` builds
-a Hi-Fi, clickable, mock-data app for the entire product, and `stories` is derived from
-it. There is no pre-planned roadmap — but that whole-product prototype is the shared
-**soft roadmap** a milestone is carved from, just-in-time, at `milestone-brief`. The
+`stories`, and `prototype` stay re-runnable). It front-loads the **whole-product UX**:
+`stories` is the scope spec and story backlog derived from `concepts`; `prototype`
+realizes that backlog into a Hi-Fi, clickable, mock-data app for the entire product and
+fills the `Surfaces` column on each story. There is no pre-planned roadmap — but that
+whole-product prototype is the shared **soft roadmap** a milestone is carved from,
+just-in-time, at `milestone-brief`, with the story backlog as the forward list. The
 per-milestone loop then repeats; the per-feature loop repeats inside a production-track
 milestone.
 
 ```
 GROUNDWORK
-  setup → vision → foundation → concepts → prototype → stories
-                               (whole-product Hi-Fi clickable prototype, signed off)
+  setup → vision → foundation → concepts → stories → prototype
+                               (stories: scope backlog; prototype: whole-product Hi-Fi clickable app, signed off)
 
 PER-MILESTONE LOOP
   milestone-brief   (choose stories from the backlog; set the track)
@@ -108,8 +113,9 @@ again.
 | vision | product, users, usage | `docs/PRODUCT.md` |
 | foundation | the firm tech baseline — no full arch | `docs/DECISIONS.md` |
 | concepts | ubiquitous language — entities, ER relationships, helicopter view | `docs/CONCEPTS.md` |
-| prototype | whole-product UX+UI, wired clickable prototype + sitemap + sign-off | `project/prototype.md`, `project/map.md`, `project/surfaces/*` |
-| stories | story backlog, derived from the prototype — the living "spaceship" | `project/stories.md` |
+| stories | story backlog, derived from concepts — each story includes a `Surfaces` column | `project/stories.md` |
+| prototype | realizes the story backlog into the whole-product Hi-Fi clickable app; fills `Surfaces` column; sitemap + sign-off | `project/prototype.md`, `project/map.md`, `project/surfaces/*` |
+| evolve | change conductor — brainstorm a new idea/update, plan and drive the artifact updates | — (mutates living artifacts) |
 | milestone-brief | choose stories, confirm surfaces, set track, lock security/errors | `m<N>/brief.md` |
 | ux-refine | deepen this milestone's slice of the prototype + sign-off | `m<N>/surfaces/*`, `m<N>/ux-refine.md` |
 | tracer | settle the data store; one thin slice through the real backend | `m<N>/tracer.md` + code |
@@ -187,7 +193,7 @@ project/
   prototype.md           whole-product prototype sign-off (the prototype stage's done artifact)
   map.md                 surface catalog + domains + deployables (prototype output)
   surfaces/<name>.md     project-wide surface specs (prototype output)
-  stories.md             the living story backlog, derived from the prototype
+  stories.md             the living story backlog, derived from concepts (includes Surfaces column)
   milestones/m<N>/        brief, surfaces/, ux-refine, tracer, features (the DAG), plans/, review, summary
 ```
 
@@ -197,14 +203,17 @@ not by hand. Everything else is plain markdown you (and `adhd`) edit directly.
 ## Rules worth knowing
 
 - **Commit gate** — `adhd` never runs `git commit` without your explicit "ok".
-- **Milestone discipline** — a new story idea raised mid-project is filed to
-  `stories.md` (the living backlog), to be picked up by a future `milestone-brief` —
-  not bolted onto the milestone in flight.
+- **Milestone discipline** — the front door for a mid-project change or new idea is
+  `/adhd evolve` (brainstorm, plan, drive artifact updates). A new story filed to
+  `stories.md` is picked up by a future `milestone-brief` — not bolted onto the milestone
+  in flight. A story with an empty `Surfaces` column cannot be selected into a milestone.
 - **Product before tech** — the scope artifacts (`docs/PRODUCT.md`, `project/stories.md`,
   `project/map.md`) describe *what the product does* in capability terms — never a stack,
-  framework, database, or architecture. (The prototype *app* is the exception — real code
-  on the framework chosen at `foundation` — but the `map.md` sitemap stays
-  capability-level.) The firm tech baseline lives in `docs/DECISIONS.md` (`foundation`).
+  framework, database, or architecture. (`Surfaces` names in `stories.md` are
+  capability-level surface names, not technical routes.) The prototype *app* is the
+  exception — real code on the framework chosen at `foundation` — but the `map.md`
+  sitemap stays capability-level. The firm tech baseline lives in `docs/DECISIONS.md`
+  (`foundation`).
 - **Tech, just-in-time** — `foundation` records only the firm, known-from-the-start
   baseline; every other stack decision is made by the milestone that first needs it. A
   milestone can declare `infra: none` and ship as a fully-working UX prototype on mock
