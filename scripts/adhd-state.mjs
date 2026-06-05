@@ -13,7 +13,7 @@ export const CONFIG_FILE = 'project/config.json';
 export const LOCAL_REPOS_FILE = 'project/repos.local.json';
 export const LEGACY_STATE_FILE = 'project/state.json';
 
-export const GROUNDWORK_STAGES = ['setup', 'vision', 'foundation', 'concepts', 'prototype', 'stories'];
+export const GROUNDWORK_STAGES = ['setup', 'vision', 'foundation', 'concepts', 'stories', 'prototype'];
 export const MILESTONE_STAGES = ['milestone-brief', 'ux-refine', 'tracer', 'features', 'review', 'finalize'];
 export const FEATURE_STAGES = ['plan', 'build'];
 
@@ -219,9 +219,9 @@ export function gate(cwd, stage, { milestone, feature } = {}) {
     case 'vision': need(gw('setup'), 'setup not done — no project/config.json'); break;
     case 'foundation': need(gw('vision'), 'vision not done — docs/PRODUCT.md missing'); break;
     case 'concepts': need(gw('foundation'), 'foundation not done — no decisions logged in docs/DECISIONS.md'); break;
-    case 'prototype': need(gw('concepts'), 'concepts not done — docs/CONCEPTS.md missing'); break;
-    case 'stories': need(gw('prototype'), 'prototype not done — project/prototype.md / project/map.md missing'); break;
-    case 'milestone-brief': need(gw('stories'), 'stories not done — project/stories.md missing'); break;
+    case 'stories': need(gw('concepts'), 'concepts not done — docs/CONCEPTS.md missing'); break;
+    case 'prototype': need(gw('stories'), 'stories not done — project/stories.md missing'); break;
+    case 'milestone-brief': need(gw('prototype'), 'prototype not done — project/prototype.md / project/map.md missing'); break;
     case 'ux-refine': need(ms('milestone-brief'), `milestone ${milestone}: milestone-brief not done`); break;
     case 'tracer':
       need(ms('ux-refine'), `milestone ${milestone}: ux-refine not done`);

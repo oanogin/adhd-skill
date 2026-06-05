@@ -50,7 +50,7 @@ test('defaultConfig: version 3, single, colocated', () => {
 });
 
 test('stage lists', () => {
-  assert.deepEqual(GROUNDWORK_STAGES, ['setup', 'vision', 'foundation', 'concepts', 'prototype', 'stories']);
+  assert.deepEqual(GROUNDWORK_STAGES, ['setup', 'vision', 'foundation', 'concepts', 'stories', 'prototype']);
   assert.deepEqual(MILESTONE_STAGES, ['milestone-brief', 'ux-refine', 'tracer', 'features', 'review', 'finalize']);
   assert.deepEqual(FEATURE_STAGES, ['plan', 'build']);
   assert.deepEqual(SURFACE_KINDS, ['ui', 'api', 'lib']);
@@ -58,10 +58,11 @@ test('stage lists', () => {
   assert.deepEqual(PROTOTYPE_TOPOLOGIES, ['colocated', 'standalone']);
 });
 
-test('concepts is a groundwork stage between foundation and prototype', () => {
+test('concepts → stories → prototype groundwork order', () => {
   const i = GROUNDWORK_STAGES.indexOf('concepts');
-  assert.equal(GROUNDWORK_STAGES[i - 1], 'foundation');
-  assert.equal(GROUNDWORK_STAGES[i + 1], 'prototype');
+  assert.equal(GROUNDWORK_STAGES[i + 1], 'stories');
+  assert.equal(GROUNDWORK_STAGES[i + 2], 'prototype');
+  assert.equal(GROUNDWORK_STAGES.at(-1), 'prototype');
 });
 
 test('initConfig writes config.json and is idempotent', () => {
@@ -139,15 +140,19 @@ test('gate: groundwork chain', () => {
   assert.equal(gate(cwd, 'concepts').pass, false);
   w(cwd, 'docs/DECISIONS.md', '# Decisions\n\n## a decision\n');
   assert.equal(gate(cwd, 'concepts').pass, true);
-  assert.equal(gate(cwd, 'prototype').pass, false);
+  // concepts done -> stories runnable; prototype NOT yet (stories.md absent)
   w(cwd, 'docs/CONCEPTS.md');
+  assert.equal(gate(cwd, 'concepts').pass, true);
+  assert.equal(gate(cwd, 'stories').pass, true);
+  assert.equal(gate(cwd, 'prototype').pass, false);
+  // stories done -> prototype runnable
+  w(cwd, 'project/stories.md', '| ID | Story | Depends on | Surfaces |\n|--|--|--|--|\n| S1 | a | | |');
   assert.equal(gate(cwd, 'prototype').pass, true);
-  assert.equal(gate(cwd, 'stories').pass, false);
+  // milestone-brief NOT yet (prototype.md/map.md absent)
+  assert.equal(gate(cwd, 'milestone-brief', { milestone: 1 }).pass, false);
+  // prototype done -> milestone-brief runnable
   w(cwd, 'project/map.md');
   w(cwd, 'project/prototype.md');
-  assert.equal(gate(cwd, 'stories').pass, true);
-  assert.equal(gate(cwd, 'milestone-brief', { milestone: 1 }).pass, false);
-  w(cwd, 'project/stories.md', '| ID | Story |\n|--|--|\n| S1 | a |');
   assert.equal(gate(cwd, 'milestone-brief', { milestone: 1 }).pass, true);
 });
 
