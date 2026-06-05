@@ -12,6 +12,7 @@ import {
   validate, migrate,
   setMode, addRepo, removeRepo, bindRepo, unbindRepo, listRepos,
   setPrototypeTopology, setPrototypeHome, confirmPreflight,
+  workFileRel, parseGateItems, workGate,
 } from './adhd-state.mjs';
 
 function tmp() { return fs.mkdtempSync(path.join(os.tmpdir(), 'adhd-')); }
@@ -366,3 +367,94 @@ test('saveConfig leaves no .tmp file behind', () => {
   assert.equal(fs.existsSync(path.join(cwd, 'project/config.json.tmp')), false);
 });
 
+
+// ---- work-file confirmation gate ----
+
+test('workFileRel: groundwork vs milestone path', () => {
+  assert.equal(workFileRel('prototype'), 'project/work/prototype.md');
+  assert.equal(workFileRel('ux-refine', 2), 'project/work/m2-ux-refine.md');
+});
+
+test('parseGateItems: only reads under ## Gate, parses id/checked/confirmed', () => {
+  const md = [
+    '## Left to do',
+    '- [ ] not a gate item',
+    '',
+    '## Gate',
+    '- [ ] requirements-confirmed — user confirmed direction',
+    '- [x] dashboard — shape brief confirmed (ok, ship it)',
+    '- [x] settings — confirmed',
+    '',
+    '## Log',
+    '- [x] decoy — should be ignored (nope)',
+  ].join('\n');
+  const items = parseGateItems(md);
+  assert.deepEqual(items.map((i) => i.id), ['requirements-confirmed', 'dashboard', 'settings']);
+  assert.equal(items[0].checked, false);
+  assert.equal(items[1].confirmed, true);
+  assert.equal(items[1].confirmation, 'ok, ship it');
+  // checked but no verbatim parenthetical -> not confirmed
+  assert.equal(items[2].checked, true);
+  assert.equal(items[2].confirmed, false);
+});
+
+test('workGate: missing work file fails closed', () => {
+  const cwd = tmp();
+  const r = workGate(cwd, 'prototype');
+  assert.equal(r.pass, false);
+  assert.match(r.missing[0], /work file not found/);
+});
+
+test('workGate: empty / absent gate block fails closed', () => {
+  const cwd = tmp();
+  w(cwd, 'project/work/prototype.md', '## Left to do\n- [ ] stuff\n');
+  const r = workGate(cwd, 'prototype');
+  assert.equal(r.pass, false);
+  assert.match(r.missing[0], /no ## Gate items/);
+});
+
+test('workGate: unchecked and unconfirmed items reported', () => {
+  const cwd = tmp();
+  w(cwd, 'project/work/prototype.md', [
+    '## Gate',
+    '- [ ] requirements-confirmed — pending',
+    '- [x] dashboard — confirmed',
+  ].join('\n'));
+  const r = workGate(cwd, 'prototype');
+  assert.equal(r.pass, false);
+  assert.equal(r.missing.length, 2);
+  assert.match(r.missing[0], /not checked/);
+  assert.match(r.missing[1], /missing the user's verbatim/);
+});
+
+test('workGate: all items checked + confirmed passes', () => {
+  const cwd = tmp();
+  w(cwd, 'project/work/prototype.md', [
+    '## Gate',
+    '- [x] requirements-confirmed — (yes go ahead)',
+    '- [x] dashboard — (looks good)',
+  ].join('\n'));
+  const r = workGate(cwd, 'prototype');
+  assert.equal(r.pass, true);
+  assert.deepEqual(r.missing, []);
+});
+
+test('workGate: --item checks a single surface', () => {
+  const cwd = tmp();
+  w(cwd, 'project/work/prototype.md', [
+    '## Gate',
+    '- [ ] requirements-confirmed — pending',
+    '- [x] dashboard — (confirmed ok)',
+  ].join('\n'));
+  assert.equal(workGate(cwd, 'prototype', { item: 'dashboard' }).pass, true);
+  assert.equal(workGate(cwd, 'prototype', { item: 'requirements-confirmed' }).pass, false);
+  const unknown = workGate(cwd, 'prototype', { item: 'nope' });
+  assert.equal(unknown.pass, false);
+  assert.match(unknown.missing[0], /no gate item "nope"/);
+});
+
+test('workGate: milestone work file resolves m<N> path', () => {
+  const cwd = tmp();
+  w(cwd, 'project/work/m3-ux-refine.md', '## Gate\n- [x] requirements-confirmed — (ok)\n');
+  assert.equal(workGate(cwd, 'ux-refine', { milestone: 3 }).pass, true);
+});

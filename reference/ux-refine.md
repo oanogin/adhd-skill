@@ -26,9 +26,13 @@ If the gate reports `milestone-brief` is not done, HALT and tell the user to run
 `adhd milestone-brief --milestone {{N}}` first.
 
 ## Procedure
-1. **Start working memory.** This high-effort stage may span sessions. Create
-   `project/work/m{{N}}-ux-refine.md` (`## Left to do` + `## Log`) and append as you
-   work — see SKILL.md, "Working memory".
+1. **Start working memory + seed the gate.** This high-effort stage may span sessions.
+   Create `project/work/m{{N}}-ux-refine.md` with `## Gate` + `## Left to do` + `## Log`
+   and append as you work — see SKILL.md, "Working memory". Seed `## Gate` with
+   `requirements-confirmed` plus one line per surface you refine; clarify with the user and
+   check each with their verbatim ok, then
+   `node {{scripts_path}}/adhd-state.mjs work-gate ux-refine --milestone {{N}}` must pass
+   before you write this stage's output artifact (and per surface before you build it).
 2. **Refine each surface in the milestone.** For every surface listed in
    `m{{N}}/brief.md`, start from its project-wide spec in `project/surfaces/<name>.md` and
    the existing prototype, then deepen it for this milestone. Route by `kind`:
