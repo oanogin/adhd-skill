@@ -1,8 +1,8 @@
 # adhd — Milestone Brief
 
 **Effort:** medium
-**Gate:** `project/stories.md` exists — the Stories stage is done (which in turn
-required the whole-product `prototype` and the rest of groundwork).
+**Gate:** the `prototype` stage is done — `project/prototype.md` and `project/map.md`
+exist (which in turn required `stories` and the rest of groundwork).
 **Output:** `project/milestones/m{{N}}/brief.md`.
 **Sub-skill:** none.
 
@@ -16,8 +16,8 @@ Run `node {{scripts_path}}/adhd-state.mjs gate milestone-brief --milestone {{N}}
 If it reports missing items, HALT. Tell the user exactly which predecessor stage to run.
 No skip, no override — this is the skill's central discipline.
 
-If the gate reports `project/stories.md` is missing, HALT and tell the user to run
-`adhd stories` first.
+If the gate reports `project/prototype.md` or `project/map.md` is missing, HALT and
+tell the user to run `adhd prototype` first.
 
 ## Procedure
 The whole stage writes one file — `m{{N}}/brief.md`. There are no state commands; the
@@ -26,8 +26,12 @@ brief *is* the milestone's record.
 1. **Choose the stories.** With the user, pick the stories from `project/stories.md`
    that this milestone will deliver — the smallest set that is genuinely valuable to
    real users, not a tech demo and not the whole spaceship. Respect story dependencies:
-   a story cannot land before the stories it depends on. List the chosen story IDs in
-   `brief.md`, with a one-line title for the milestone.
+   a story cannot land before the stories it depends on. **A story whose `Surfaces` cell
+   in `project/stories.md` is empty may NOT be chosen** — its surfaces have not been
+   prototyped yet. If a wanted story has no `Surfaces` entry, STOP and run
+   `adhd evolve` to prototype it first; `adhd-state.mjs validate` enforces this
+   structurally and will block a brief that selects an empty-`Surfaces` story. List the
+   chosen story IDs in `brief.md`, with a one-line title for the milestone.
 2. **Identify the surfaces touched.** From `project/map.md`, list the surfaces this
    milestone's stories add or change. Keep `ui` surfaces **workspace-sized** — one
    coherent workspace you would demo as a unit, not one per screen-area; the milestone's

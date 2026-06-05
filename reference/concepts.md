@@ -65,4 +65,4 @@ evolves — and always before continuing work that introduced a new entity.
    `node {{scripts_path}}/handoff-prompt.mjs` and give the user the resume prompt.
 3. Drain `project/notes.md` and `project/work/concepts.md`: migrate durable facts to
    their canonical home, then delete the work file. `notes.md` healthy = empty.
-4. Tell the user the next runnable stage is `prototype`.
+4. Tell the user the next runnable stage is `stories`.
