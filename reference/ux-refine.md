@@ -73,7 +73,7 @@ If the gate reports `milestone-brief` is not done, HALT and tell the user to run
    exists.
 2. If the session is getting long, start a fresh one: run
    `node {{scripts_path}}/handoff-prompt.mjs` and give the user the resume prompt.
-3. Drain `project/notes.md` and `project/work/m{{N}}-ux-refine.md`: migrate durable facts
-   to their canonical home, then delete the work file. `notes.md` healthy = empty.
+3. Drain `project/work/m{{N}}-ux-refine.md`: migrate durable facts to their canonical home,
+   then delete the work file.
 4. Tell the user the next runnable stage: `tracer` for a production-track milestone, or
    `review` for a prototype-only milestone.

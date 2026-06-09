@@ -45,18 +45,15 @@ with clean eyes and does not pollute the conductor's context:
 6. **Stale work files.** Any `project/work/*.md` whose stage is already complete (its
    artifact exists) is stale — its durable facts should have been drained to their
    canonical home and the file deleted.
-7. **notes.md drained.** `project/notes.md` should be empty; flag any durable entry that
-   belongs in a canonical home (`docs/DECISIONS.md`, `docs/CONCEPTS.md`, `docs/DATA.md`,
-   a surface spec, `.ruler/`).
-8. **Prototype / surface drift.** Surfaces or the prototype that contradict the
+7. **Prototype / surface drift.** Surfaces or the prototype that contradict the
    signed-off whole-product flow or the current `CONCEPTS.md`.
-9. **Undrained story changes.** `project/work/prototype.md` has an undrained
+8. **Undrained story changes.** `project/work/prototype.md` has an undrained
    `## Story changes` block while the `prototype` stage is done — story changes were
    written during a prototype run but never folded into `project/stories.md`.
-10. **Empty Surfaces cell.** An `m<N>/brief.md` references a story whose `Surfaces`
-    cell is empty in `project/stories.md` — the story was never drawn in the prototype
-    and is therefore not implementable (mirrors the `adhd-state.mjs validate` blocker).
-11. **Abandoned evolve work file.** `project/work/evolve.md` still exists — either an
+9. **Empty Surfaces cell.** An `m<N>/brief.md` references a story whose `Surfaces`
+   cell is empty in `project/stories.md` — the story was never drawn in the prototype
+   and is therefore not implementable (mirrors the `adhd-state.mjs validate` blocker).
+10. **Abandoned evolve work file.** `project/work/evolve.md` still exists — either an
     `evolve` cascade was abandoned mid-way, or all `## Impact plan` items are checked
     but the file was not deleted as required by the `evolve` on-completion steps.
 

@@ -67,7 +67,7 @@ None of its own. `evolve` leaves the living artifacts —
 1. The stage is **done** when every `## Impact plan` item is checked AND
    `project/work/evolve.md` is drained and deleted.
 2. Drain durable facts to their canonical homes first — nothing informational should
-   remain only in the work file. `project/notes.md` healthy = empty.
+   remain only in the work file.
 3. Delete `project/work/evolve.md`. The `verify` pass flags a leftover `evolve.md`.
 4. Tell the user the relevant next step — for example: run `milestone-brief` to schedule
    a newly-prototyped story into an upcoming milestone.

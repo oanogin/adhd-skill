@@ -183,6 +183,6 @@ the whole-product flow are made by `ux-refine`, not here.
    is complete.
 3. If the session is getting long, start a fresh one: run
    `node {{scripts_path}}/handoff-prompt.mjs` and give the user the resume prompt.
-4. Drain `project/notes.md` and `project/work/prototype.md`: migrate durable facts to
-   their canonical home, then delete the work file. `notes.md` healthy = empty.
+4. Drain `project/work/prototype.md`: migrate durable facts to their canonical home,
+   then delete the work file.
 5. Tell the user the groundwork is complete — the next runnable stage is `milestone-brief`.

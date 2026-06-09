@@ -204,6 +204,29 @@ test('gate: review needs every feature built and verified (production)', () => {
   assert.equal(gate(cwd, 'review', { milestone: 1 }).pass, true);
 });
 
+test('gate: advises when project/parking.md is non-empty, never blocks', () => {
+  const cwd = tmp();
+  initConfig(cwd); // setup done -> vision gate passes
+  let g = gate(cwd, 'vision');
+  assert.equal(g.pass, true);
+  assert.deepEqual(g.notes ?? [], []);
+  w(cwd, 'project/parking.md', '   \n');
+  g = gate(cwd, 'vision');
+  assert.equal(g.pass, true);
+  assert.deepEqual(g.notes, []);
+  w(cwd, 'project/parking.md', '# Parking lot\n\nOffline-first cache idea\n');
+  g = gate(cwd, 'vision');
+  assert.equal(g.pass, true);
+  assert.ok(g.notes.some((nte) => /parking\.md/.test(nte)));
+});
+
+test('validate: does not warn on a non-empty notes.md', () => {
+  const cwd = tmp();
+  initConfig(cwd);
+  w(cwd, 'project/notes.md', 'leftover scratch');
+  assert.ok(!validate(cwd).warnings.some((x) => /notes\.md/.test(x)));
+});
+
 test('nextStage walks groundwork then a milestone', () => {
   const cwd = tmp();
   assert.equal(nextStage(cwd).stage, 'setup');

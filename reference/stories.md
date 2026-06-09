@@ -58,7 +58,6 @@ user to run `adhd concepts` first.
    `stories` is re-runnable: simply edit the file again to amend the backlog.
 2. If the session is getting long, start a fresh one: run
    `node {{scripts_path}}/handoff-prompt.mjs` and give the user the resume prompt.
-3. Drain `project/notes.md`: migrate any durable entry to its canonical home; healthy = empty.
-4. On the first run, the groundwork is complete — tell the user the next runnable stage
+3. On the first run, the groundwork is complete — tell the user the next runnable stage
    is `prototype`. On a mid-project amend, point them back to the per-milestone stage
    they were in.

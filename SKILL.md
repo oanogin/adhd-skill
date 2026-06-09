@@ -37,7 +37,7 @@ the skill was placed.
 `adhd` hard-depends on two things, with no fallback and no degraded mode:
 
 - the **`superpowers` plugin** — `adhd` invokes `brainstorming` (stories, prototype,
-  and evolve stages), `writing-plans` (plan stage), and `executing-plans` (build stage)
+  evolve, and park), `writing-plans` (plan stage), and `executing-plans` (build stage)
   from it.
   The whole plugin is required, not just those three: other superpowers skills
   (e.g. `subagent-driven-development`, `systematic-debugging`) are useful during
@@ -71,8 +71,8 @@ See `reference/codex-tools.md` and `reference/cursor-tools.md` for tool-name map
 - **A stage is done the moment its artifact file exists.** `vision` is done when
   `docs/PRODUCT.md` exists; `ux-refine` for milestone 2 is done when `m2/ux-refine.md`
   exists. There is no status field. So: never create a stage's artifact file until the
-  stage is genuinely complete — write drafts to `notes.md`, create the canonical file
-  last.
+  stage is genuinely complete — write drafts to the stage's `project/work/<stage>.md`,
+  create the canonical file last.
 - **`project/config.json`** is the only non-doc file — the irreducible config: `mode`,
   the `repos` registry, `prototypeTopology` + `prototype`, `preflight`. Mutate it only
   through `adhd-state.mjs` config subcommands.
@@ -123,14 +123,17 @@ be in flight at once (see "Working in parallel"). Each runs its own per-mileston
 
 ## Working memory (high-effort stages)
 
-A long stage can outlive one session. To survive compaction and make handoff seamless,
-every **high-effort** stage (`vision`, `concepts`, `prototype`, `evolve`,
-`ux-refine`, `tracer`, `features`, `review`) creates a working-memory file as its first
-procedure step (a
-discipline the stage follows, not a script-enforced step):
-`project/work/<stage>.md` for groundwork, `project/work/m<N>-<stage>.md` for a milestone
-stage. Medium/low stages (including `build` — its plan already is the memory) create
-none.
+`adhd` keeps two non-canonical stores. **Transient working memory** lives in
+`project/work/*.md` — high-effort stages get a `project/work/<stage>.md` (milestone form
+`project/work/m<N>-<stage>.md`), and any ad-hoc, session-scoped task may get a
+freely-named `project/work/<task>.md`. All of `project/work/` is gitignored; each file is
+drained to its canonical home and deleted when the work is done. **Durable not-yet-actionable
+info** lives in `project/parking.md` — see "The parking lot" below. Medium/low stages
+(including `build` — its plan already is the memory) create no work file.
+
+Every high-effort stage (`vision`, `concepts`, `prototype`, `evolve`, `ux-refine`,
+`tracer`, `features`, `review`) creates its work file as its first procedure step (a
+discipline the stage follows, not a script-enforced step).
 
 The file has three light zones:
 
@@ -141,11 +144,23 @@ The file has three light zones:
 ```
 
 Write to it as the work proceeds, so a session that ends mid-stage resumes cleanly.
-It is **transient scratch — never a source of truth**, exactly like `notes.md`. On stage
+It is **transient scratch — never a source of truth**. On stage
 completion, drain durable facts to their canonical home (`DECISIONS.md`, `CONCEPTS.md`,
 `DATA.md`, a surface spec, `.ruler/`) and **delete** the file. `project/work/` is
 gitignored; the `verify` pass flags any work file whose stage is already done.
 `handoff-prompt.mjs` reads the active work file and leads the resume prompt with it.
+
+### The parking lot — durable, not-yet-actionable info
+
+`project/parking.md` is the durable, committed buffer for ideas and details that are
+clarified but **not yet ready to implement** — arch sketches, deferred decisions, things
+to discuss later. Unlike the transient stores, it is never drained to empty and survives
+across sessions: an item lives there precisely because it is still pending, and the user
+removes it once it is implemented. It is free-form (prose, mermaid, code) and **user-owned**:
+the agent never writes to it on a standing rule — the only agent write path is the
+user-invoked `adhd park` command. Before starting any stage or feature, read
+`project/parking.md` if it is non-empty and fold anything relevant into the current work;
+`adhd-state.mjs gate` prints a non-blocking `note:` when it has content.
 
 ### The `## Gate` zone — confirm before you implement (hard rule)
 
@@ -210,7 +225,7 @@ docs/
 project/
   config.json                the only non-doc file — mode, repos, prototype topology, preflight
   repos.local.json           gitignored — per-user repo→path bindings (multi mode)
-  notes.md                   transient scratchpad (healthy = empty)
+  parking.md                 durable, user-owned buffer for not-yet-actionable ideas (committed)
   work/<stage>.md            gitignored — per-task working memory (high-effort stages);
                              milestone form `m<N>-<stage>.md`; deleted on completion
   work/evolve.md             gitignored — transient impact plan for the evolve conductor;
@@ -437,6 +452,9 @@ These are not stages — they have no gates and no place in the stage flow:
   in the right order. It has no canonical artifact: done means its work file
   `project/work/evolve.md` is drained and deleted. See
   [reference/evolve.md](reference/evolve.md).
+- `park` — capture a not-yet-actionable idea or detail into the durable parking lot
+  `project/parking.md`, after a full brainstorming clarify. No gate; callable anytime;
+  it captures only and never implements. See [reference/park.md](reference/park.md).
 
 The CLI also exposes `migrate` (convert a legacy `state.json` to `config.json`).
 Content/consistency auditing is the agent-driven `verify` command (see
@@ -451,7 +469,7 @@ special commands.
    and restate user intent in one line. If `validate` reports blockers, name the
    fix and HALT. Otherwise name the next runnable stage. Stop.
 2. **First word is a stage or a management command** — the 14 stages are in the
-   table above; `workspace`, `adopt`, `verify`, and `evolve` are management/on-demand
+   table above; `workspace`, `adopt`, `verify`, `evolve`, and `park` are management/on-demand
    commands. Load the matching
    `reference/<name>.md` and follow it exactly. The reference owns the gate check
    (stages), the procedure, and the completion steps.
@@ -484,8 +502,8 @@ If `project/config.json` does not exist, the only runnable stage is `setup`.
 - **Fresh sessions** — when a session gets long, start a fresh one: run
   `handoff-prompt.mjs` and give the user the resume prompt. You control compaction
   (`autoCompact: false` recommended); the work-file + handoff make resume clean.
-- **Handoff prompts** — on a session switch, the resume prompt always says "read
-  `project/notes.md` first".
+- **Handoff prompts** — on a session switch, the resume prompt leads with the active
+  work file (if any) and points at `project/parking.md`.
 - **Confirm before implementing (work-file gate)** — every high-effort stage records
   the user's confirmed requirements in its work file's `## Gate` block and verifies them
   with `adhd-state.mjs work-gate <stage>` BEFORE producing its output artifact or writing
@@ -514,9 +532,10 @@ If `project/config.json` does not exist, the only runnable stage is `setup`.
   other stack/architecture decision is made by the milestone that first needs the
   capability, never earlier, and logged in `docs/DECISIONS.md`. The data model lives in
   `docs/DATA.md`, created lazily the first time a milestone persists real data.
-- **notes.md discipline** — `project/notes.md` is a transient scratchpad, read first
-  every session, healthy when empty. Migrate anything durable to its canonical home
-  (`DECISIONS.md`, `CONCEPTS.md`, `DATA.md`, a surface spec, `.ruler/`).
+- **Parking lot discipline** — `project/parking.md` is the durable, user-owned buffer
+  for not-yet-actionable ideas; read it at the start of each stage and fold anything
+  relevant in. The agent writes it only via `adhd park`. Work-file scratch
+  (`project/work/<stage>.md`) is transient: drain and delete on stage completion.
 
 ## Sub-skill output routing
 
@@ -536,10 +555,10 @@ These are operational slips, not gate-skipping (gate rationalizations are tabled
 | Mistake | Fix |
 |---|---|
 | Hand-editing `project/config.json`. | It is owned by `adhd-state.mjs`. Mutate it only through the config subcommands. |
-| Creating a stage's artifact file before the stage's work is complete. | Existence = done. Draft in `notes.md`; create the canonical file last. |
+| Creating a stage's artifact file before the stage's work is complete. | Existence = done. Draft in the stage's `project/work/<stage>.md`; create the canonical file last. |
 | Running a stage from memory, skipping its `reference/<stage>.md`. | Always load the reference file — it owns the gate check, procedure, and completion steps. |
 | Letting sub-skills write to their default `docs/superpowers/` paths. | Pass the canonical target on every invocation — project-wide specs to `project/surfaces/`, milestone specs to `project/milestones/m<N>/surfaces/`, plans to `.../plans/`. |
-| Treating `project/notes.md` as durable storage. | It is a transient scratchpad. Migrate durable facts to `DECISIONS.md`, `CONCEPTS.md`, a surface spec, or `.ruler/`. Healthy `notes.md` is empty. |
+| Treating `project/parking.md` as a dumping ground the agent fills. | It is user-owned. The agent writes it only via `adhd park`. Items are pending-until-implemented; the user removes them when done. |
 | Invoking `impeccable` for an `api` or `lib` surface. | `impeccable` runs only for `ui` surfaces. `api` → contract design; `lib` → spec only. |
 | Breaking the `features.md` column layout. | `adhd-state.mjs` parses that table for the build-order gate — keep `ID | Feature | Story | Domain | Repo | Depends on | Build | Verified`. |
 | In `multi` mode, writing `project/` or `docs/` artifacts into a code repo. | All `adhd` artifacts live in the orchestration repo. Only the code-writing stages (`prototype`, `ux-refine`, `tracer`, `build`) touch a registered code repo, and only to write code. |

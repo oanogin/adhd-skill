@@ -77,6 +77,6 @@ The tracer code itself is also produced, committed only after the user's explici
 1. Write the output file(s) above — tracer is done the moment `m{{N}}/tracer.md` exists.
 2. If the session is getting long, start a fresh one: run
    `node {{scripts_path}}/handoff-prompt.mjs` and give the user the resume prompt.
-3. Drain `project/notes.md` and `project/work/m{{N}}-tracer.md`: migrate durable facts to
-   their canonical home, then delete the work file. `notes.md` healthy = empty.
+3. Drain `project/work/m{{N}}-tracer.md`: migrate durable facts to their canonical home,
+   then delete the work file.
 4. Tell the user the next runnable stage is `features` for milestone {{N}}.

@@ -61,9 +61,9 @@ export function handoffPrompt(cwd = process.cwd()) {
       lines.push('   Last progress:');
       for (const l of logLines) lines.push(`     ${l}`);
     }
-    lines.push(`${n++}. Then read \`project/notes.md\` — the previous session's scratchpad.`);
+    lines.push(`${n++}. Then check \`project/parking.md\` — durable parked ideas/details not yet implemented.`);
   } else {
-    lines.push(`${n++}. Read \`project/notes.md\` FIRST — it is the scratchpad from the previous session.`);
+    lines.push(`${n++}. Check \`project/parking.md\` FIRST — durable parked ideas/details not yet implemented.`);
   }
   lines.push(`${n++}. Current position: ${where}`);
   lines.push(`${n++}. Run: adhd ${runArg}${next.milestone ? ` --milestone ${next.milestone}` : ''}`);

@@ -281,7 +281,11 @@ export function gate(cwd, stage, { milestone, feature } = {}) {
     case 'evolve': need(gw('prototype'), 'groundwork not complete — prototype not done (project/prototype.md / project/map.md)'); break;
     default: return { pass: false, missing: [`unknown stage: ${stage}`] };
   }
-  return { pass: missing.length === 0, missing };
+  const notes = [];
+  if (exists(cwd, 'project/parking.md') && read(cwd, 'project/parking.md').trim() !== '') {
+    notes.push('project/parking.md has content — read it before proceeding');
+  }
+  return { pass: missing.length === 0, missing, notes };
 }
 
 // ---- work-file confirmation gate ----
@@ -499,9 +503,6 @@ export function validate(cwd = process.cwd()) {
       }
     }
   }
-  if (exists(cwd, 'project/notes.md') && read(cwd, 'project/notes.md').trim() !== '') {
-    warnings.push('project/notes.md is not empty — drain durable entries to their canonical home');
-  }
   return { ok: blockers.length === 0, blockers, warnings };
 }
 
@@ -647,6 +648,7 @@ function main(argv) {
       const [stage] = rest;
       const result = gate(cwd, stage, flags);
       console.log(JSON.stringify(result, null, 2));
+      for (const nte of result.notes ?? []) console.log(`note: ${nte}`);
       if (!result.pass) process.exitCode = 1;
       break;
     }

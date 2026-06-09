@@ -188,7 +188,7 @@ docs/
 project/
   config.json            the only non-doc file — mode, repos, prototype topology
   repos.local.json       gitignored — per-user repo→path bindings (multi mode)
-  notes.md               transient scratchpad — healthy when empty
+  parking.md             durable, user-owned buffer for not-yet-actionable ideas (committed)
   work/<task>.md         gitignored — per-task working memory (high-effort stages), deleted on completion
   prototype.md           whole-product prototype sign-off (the prototype stage's done artifact)
   map.md                 surface catalog + domains + deployables (prototype output)
@@ -222,8 +222,10 @@ not by hand. Everything else is plain markdown you (and `adhd`) edit directly.
 - **Single source of truth** — `adhd verify` (an agent-driven pass) checks the `.md`
   artifacts for drift, orphans, and misplaced info; `adhd-state.mjs validate` covers fast
   structural sanity.
-- **notes.md** — a scratchpad read first every session; durable facts get
-  migrated to their real home (`DECISIONS.md`, `CONCEPTS.md`, a surface spec).
+- **parking.md** — a durable, committed buffer you own, for ideas/details not yet ready
+  to build (arch sketches, deferred decisions, "discuss later"). Free-form; an item stays
+  until you implement it, then you remove it. Capture into it with `/adhd park`; every
+  stage and feature surfaces it at its gate-check.
 - **Fresh sessions** — when a session gets long, `adhd` emits a ready-to-paste resume
   prompt (`handoff-prompt.mjs`); set `autoCompact: false` so you control when to `/clear`.
 - **Working memory** — high-effort stages keep a transient `project/work/<task>.md`

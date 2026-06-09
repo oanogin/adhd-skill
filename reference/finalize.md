@@ -18,9 +18,9 @@ If the gate reports `review` is not done, HALT and tell the user to run
 `adhd review --milestone {{N}}` first.
 
 ## Procedure
-1. **Drain and migrate `project/notes.md`.** It must end empty — migrate every durable
-   entry to its canonical home (`docs/DECISIONS.md`, `docs/CONCEPTS.md`,
-   `docs/DATA.md`, a surface spec, `.ruler/`).
+1. **Drain and migrate any `project/work/*.md`.** Migrate every durable fact to its
+   canonical home, then delete the work file — the milestone's record is the current
+   set of docs, not a drift of scratch files.
 2. **Update the canonical docs to the milestone's reality.** Reflect what the milestone
    actually changed: decisions in `docs/DECISIONS.md`, refined concepts in
    `docs/CONCEPTS.md`. On a **production-track** milestone, update `docs/DATA.md` to the
@@ -40,7 +40,7 @@ new milestone can be started before this one finalizes; they progress in paralle
 
 ## Output
 - `project/milestones/m{{N}}/summary.md` — the milestone summary.
-- canonical docs updated; `project/notes.md` empty; `verify` findings resolved.
+- canonical docs updated; no stale `project/work/*.md` left; `verify` findings resolved.
 
 ## On completion
 1. Write the output file(s) above — the stage is done the moment `m{{N}}/summary.md`

@@ -21,7 +21,8 @@ re-scaffolding.
    not give installation instructions; installing them is the user's job. Do not
    mutate any file until both are confirmed.
 2. **Create the canonical directory tree.** Create `.ruler/`, `docs/`, `project/`,
-   and `project/milestones/`. Create an empty `project/notes.md`. Create
+   and `project/milestones/`. Create `project/parking.md` containing only a
+   single `# Parking lot` heading. Create
    `docs/DECISIONS.md` containing only a single `# Decisions` heading.
 3. **Initialise config.** Run `node {{scripts_path}}/adhd-state.mjs init` to create
    `project/config.json`. Then run
@@ -34,7 +35,7 @@ re-scaffolding.
    working-memory dir (`project/work/`) are ignored.
 5. **Seed `.ruler/`.** If `.ruler/` is empty, add a short `.ruler/00-adhd.md` note
    stating that this project is run by the `adhd` conductor and that
-   `project/notes.md` is read first at the start of every session.
+   `project/parking.md` (durable parked ideas) is checked at the start of every stage.
 6. **Recommend `autoCompact: false` (Claude Code only).** Tell the user that turning off
    auto-compaction in Claude Code settings lets them control when to `/clear`, while the
    working-memory files (`project/work/<task>.md`) and canonical artifacts carry state
@@ -45,7 +46,7 @@ Setup produces the canonical layout defined in `SKILL.md`:
 
 - `.ruler/` — agent instructions (with the seed `00-adhd.md` note if it was empty).
 - `docs/` — with `DECISIONS.md` (`# Decisions` heading only).
-- `project/` — with `config.json` and an empty `notes.md`.
+- `project/` — with `config.json` and a `parking.md` (just a `# Parking lot` heading).
 - `project/milestones/` — empty, ready for per-milestone subdirectories.
 - `.gitignore` — extended with `.superpowers/`, `project/repos.local.json`,
   and `project/work/` (`.impeccable/` stays tracked; `project/` itself stays tracked).
@@ -67,5 +68,5 @@ mode, register code repos, and set the prototype topology; for an existing proje
    exists.
 2. If the session is getting long, start a fresh one: run
    `node {{scripts_path}}/handoff-prompt.mjs` and give the user the resume prompt.
-3. Drain `project/notes.md`: migrate any durable entry to its canonical home; healthy = empty.
+3. Drain any `project/work/*.md` you created: migrate durable facts to their canonical home, then delete the file.
 4. Tell the user the next runnable stage is `vision`.

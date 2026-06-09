@@ -45,5 +45,4 @@ user to run `adhd vision` first.
    at least one logged decision (a `## ` entry).
 2. If the session is getting long, start a fresh one: run
    `node {{scripts_path}}/handoff-prompt.mjs` and give the user the resume prompt.
-3. Drain `project/notes.md`: migrate any durable entry to its canonical home; healthy = empty.
-4. Tell the user the next runnable stage is `concepts`.
+3. Tell the user the next runnable stage is `concepts`.

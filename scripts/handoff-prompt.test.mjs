@@ -18,12 +18,13 @@ test('handoffPrompt without config.json tells user to run setup', () => {
   assert.match(handoffPrompt(tmp()), /setup/);
 });
 
-test('handoffPrompt names notes.md first, the next stage, and the run command', () => {
+test('handoffPrompt names parking.md, the next stage, and the run command', () => {
   const cwd = tmp();
   initConfig(cwd);
   w(cwd, 'docs/PRODUCT.md'); // setup + vision done -> next is foundation
   const out = handoffPrompt(cwd);
-  assert.match(out, /project\/notes\.md/);
+  assert.match(out, /project\/parking\.md/);
+  assert.doesNotMatch(out, /notes\.md/);
   assert.match(out, /foundation/);
   assert.match(out, /Run: adhd foundation/);
 });

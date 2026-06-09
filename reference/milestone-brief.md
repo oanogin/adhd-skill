@@ -64,5 +64,4 @@ brief *is* the milestone's record.
    `m{{N}}/brief.md` exists.
 2. If the session is getting long, start a fresh one: run
    `node {{scripts_path}}/handoff-prompt.mjs` and give the user the resume prompt.
-3. Drain `project/notes.md`: migrate any durable entry to its canonical home; healthy = empty.
-4. Tell the user the next runnable stage is `ux-refine` for milestone {{N}}.
+3. Tell the user the next runnable stage is `ux-refine` for milestone {{N}}.

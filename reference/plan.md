@@ -41,6 +41,5 @@ that take the feature through to working, verified code.
    `m{{N}}/plans/{{feature}}.md` exists.
 2. If the session is getting long, start a fresh one: run
    `node {{scripts_path}}/handoff-prompt.mjs` and give the user the resume prompt.
-3. Drain `project/notes.md`: migrate any durable entry to its canonical home; healthy = empty.
-4. Tell the user the next runnable stage is `build` for this feature — or `plan` for
+3. Tell the user the next runnable stage is `build` for this feature — or `plan` for
    the next feature; `node {{scripts_path}}/adhd-state.mjs next --milestone {{N}}` names it.

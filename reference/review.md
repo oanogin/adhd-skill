@@ -56,6 +56,6 @@ both built and verified — if a feature is built but not verified, run
 1. Write the output file(s) above — review is done the moment `m{{N}}/review.md` exists.
 2. If the session is getting long, start a fresh one: run
    `node {{scripts_path}}/handoff-prompt.mjs` and give the user the resume prompt.
-3. Drain `project/notes.md` and `project/work/m{{N}}-review.md`: migrate durable facts to
-   their canonical home, then delete the work file. `notes.md` healthy = empty.
+3. Drain `project/work/m{{N}}-review.md`: migrate durable facts to their canonical home,
+   then delete the work file.
 4. Tell the user the next runnable stage is `finalize` for milestone {{N}}.

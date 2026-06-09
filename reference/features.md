@@ -72,7 +72,7 @@ DAG and, later, for per-feature build progress.
 1. Write the output file — the stage is done the moment `m{{N}}/features.md` exists.
 2. If the session is getting long, start a fresh one: run
    `node {{scripts_path}}/handoff-prompt.mjs` and give the user the resume prompt.
-3. Drain `project/notes.md` and `project/work/m{{N}}-features.md`: migrate durable facts
-   to their canonical home, then delete the work file. `notes.md` healthy = empty.
+3. Drain `project/work/m{{N}}-features.md`: migrate durable facts to their canonical home,
+   then delete the work file.
 4. Tell the user the next runnable stage is `plan` for the first feature of the DAG —
    `node {{scripts_path}}/adhd-state.mjs next --milestone {{N}}` names it.
