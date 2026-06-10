@@ -81,7 +81,11 @@ See `reference/codex-tools.md` and `reference/cursor-tools.md` for tool-name map
   `config.json` writers. It does not own the project content.
 
 A project created before this model has a `project/state.json`; run
-`node {{scripts_path}}/adhd-state.mjs migrate` to convert it to `config.json`.
+`node {{scripts_path}}/adhd-state.mjs migrate` to convert it to `config.json`. The same
+command also normalizes a project to the parking-lot model: it scaffolds
+`project/parking.md` if missing and removes a `project/notes.md` that is empty (a
+non-empty `notes.md` is kept so you can drain it to a canonical home first, then delete
+it).
 
 ## Modes
 
@@ -456,7 +460,9 @@ These are not stages — they have no gates and no place in the stage flow:
   `project/parking.md`, after a full brainstorming clarify. No gate; callable anytime;
   it captures only and never implements. See [reference/park.md](reference/park.md).
 
-The CLI also exposes `migrate` (convert a legacy `state.json` to `config.json`).
+The CLI also exposes `migrate` (convert a legacy `state.json` to `config.json`, and
+normalize an old project to the parking-lot model — scaffold `project/parking.md`, drop
+an empty `project/notes.md`, keep a non-empty one for manual draining).
 Content/consistency auditing is the agent-driven `verify` command (see
 [reference/verify.md](reference/verify.md)), not a script. To drop a milestone, delete
 its `m<N>/` folder; to drop a surface or feature, edit the markdown — there are no

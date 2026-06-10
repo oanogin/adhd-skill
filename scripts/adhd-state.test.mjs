@@ -220,11 +220,11 @@ test('gate: advises when project/parking.md is non-empty, never blocks', () => {
   assert.ok(g.notes.some((nte) => /parking\.md/.test(nte)));
 });
 
-test('validate: does not warn on a non-empty notes.md', () => {
+test('validate: no longer emits the old notes.md drain warning', () => {
   const cwd = tmp();
   initConfig(cwd);
   w(cwd, 'project/notes.md', 'leftover scratch');
-  assert.ok(!validate(cwd).warnings.some((x) => /notes\.md/.test(x)));
+  assert.ok(!validate(cwd).warnings.some((x) => /drain durable entries to their canonical home/.test(x)));
 });
 
 test('nextStage walks groundwork then a milestone', () => {
@@ -355,6 +355,45 @@ test('migrate converts a v2 state.json to config.json and removes it', () => {
   assert.equal(c.prototypeTopology, 'standalone');
   assert.equal(c.preflight.skillsConfirmed, true);
   assert.equal(migrate(cwd).migrated, false); // idempotent
+});
+
+test('migrate scaffolds parking.md and deletes an empty notes.md', () => {
+  const cwd = tmp();
+  initConfig(cwd);
+  w(cwd, 'project/notes.md', '   \n');
+  const r = migrate(cwd);
+  assert.equal(r.parkingCreated, true);
+  assert.equal(r.notesDeleted, true);
+  assert.equal(r.migrated, true);
+  assert.equal(fs.existsSync(path.join(cwd, 'project/notes.md')), false);
+  assert.match(fs.readFileSync(path.join(cwd, 'project/parking.md'), 'utf-8'), /# Parking lot/);
+});
+
+test('migrate preserves a non-empty notes.md and reports it kept', () => {
+  const cwd = tmp();
+  initConfig(cwd);
+  w(cwd, 'project/notes.md', 'undrained durable fact');
+  const r = migrate(cwd);
+  assert.equal(r.notesKept, true);
+  assert.equal(r.notesDeleted, false);
+  assert.equal(fs.existsSync(path.join(cwd, 'project/notes.md')), true);
+  assert.equal(fs.existsSync(path.join(cwd, 'project/parking.md')), true);
+});
+
+test('migrate is idempotent once parking.md exists and notes.md is gone', () => {
+  const cwd = tmp();
+  initConfig(cwd);
+  migrate(cwd); // creates parking.md
+  const r = migrate(cwd);
+  assert.equal(r.migrated, false);
+  assert.equal(r.parkingCreated, false);
+});
+
+test('validate warns when a legacy notes.md is present', () => {
+  const cwd = tmp();
+  initConfig(cwd);
+  w(cwd, 'project/notes.md', 'anything');
+  assert.ok(validate(cwd).warnings.some((x) => /notes\.md is legacy/.test(x)));
 });
 
 test('config writers: mode, repos, prototype, preflight', () => {

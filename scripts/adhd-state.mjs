@@ -503,6 +503,9 @@ export function validate(cwd = process.cwd()) {
       }
     }
   }
+  if (exists(cwd, 'project/notes.md')) {
+    warnings.push('project/notes.md is legacy (removed from the model) — drain durable entries to a canonical home, then delete it; `adhd-state.mjs migrate` removes it if empty and scaffolds project/parking.md');
+  }
   return { ok: blockers.length === 0, blockers, warnings };
 }
 
@@ -585,27 +588,51 @@ export function confirmPreflight(cwd = process.cwd()) {
   return config;
 }
 
-// ---- migrate v2 state.json -> v3 config.json ----
+// ---- migrate: v2 state.json -> v3 config.json, and notes.md -> parking.md ----
 export function migrate(cwd = process.cwd()) {
-  if (loadConfig(cwd)) {
-    if (!fs.existsSync(path.join(cwd, LEGACY_STATE_FILE))) return { migrated: false, reason: 'already migrated' };
-  }
+  const result = { migrated: false, stateConverted: false, parkingCreated: false, notesDeleted: false, notesKept: false };
+
+  // 1. Legacy v2 state.json -> v3 config.json (if present).
   const legacy = path.join(cwd, LEGACY_STATE_FILE);
-  if (!fs.existsSync(legacy)) return { migrated: false, reason: 'no legacy state.json' };
-  let old;
-  try { old = JSON.parse(fs.readFileSync(legacy, 'utf-8')); }
-  catch (e) { throw new Error(`legacy state.json is not valid JSON: ${e.message}`); }
-  const config = defaultConfig();
-  config.docHome = old.docHome ?? 'docs';
-  config.mode = old.mode ?? 'single';
-  config.repos = old.repos ?? {};
-  config.prototypeTopology = old.prototypeTopology ?? 'colocated';
-  config.prototype = old.prototype ?? { repo: null, subpath: null };
-  config.preflight = old.preflight ?? { skillsConfirmed: false, confirmedAt: null };
-  if (old.createdAt) config.createdAt = old.createdAt;
-  saveConfig(cwd, config);
-  fs.rmSync(legacy);
-  return { migrated: true };
+  if (fs.existsSync(legacy)) {
+    let old;
+    try { old = JSON.parse(fs.readFileSync(legacy, 'utf-8')); }
+    catch (e) { throw new Error(`legacy state.json is not valid JSON: ${e.message}`); }
+    const config = defaultConfig();
+    config.docHome = old.docHome ?? 'docs';
+    config.mode = old.mode ?? 'single';
+    config.repos = old.repos ?? {};
+    config.prototypeTopology = old.prototypeTopology ?? 'colocated';
+    config.prototype = old.prototype ?? { repo: null, subpath: null };
+    config.preflight = old.preflight ?? { skillsConfirmed: false, confirmedAt: null };
+    if (old.createdAt) config.createdAt = old.createdAt;
+    saveConfig(cwd, config);
+    fs.rmSync(legacy);
+    result.stateConverted = true;
+  }
+
+  // 2. notes.md -> parking.md normalization (only for an adhd project).
+  if (loadConfig(cwd)) {
+    const parking = path.join(cwd, 'project/parking.md');
+    if (!fs.existsSync(parking)) {
+      fs.mkdirSync(path.dirname(parking), { recursive: true });
+      fs.writeFileSync(parking, '# Parking lot\n');
+      result.parkingCreated = true;
+    }
+    const notes = path.join(cwd, 'project/notes.md');
+    if (fs.existsSync(notes)) {
+      if (fs.readFileSync(notes, 'utf-8').trim() === '') {
+        fs.rmSync(notes);
+        result.notesDeleted = true;
+      } else {
+        result.notesKept = true; // non-empty: preserve; the user drains and deletes it
+      }
+    }
+  }
+
+  result.migrated = result.stateConverted || result.parkingCreated || result.notesDeleted;
+  if (!result.migrated && !result.notesKept) result.reason = loadConfig(cwd) ? 'already migrated' : 'no adhd project here';
+  return result;
 }
 
 // ---- CLI ----
@@ -677,7 +704,12 @@ function main(argv) {
       break;
     case 'migrate': {
       const r = migrate(cwd);
-      console.log(r.migrated ? 'migrated project/state.json -> project/config.json' : `nothing to migrate (${r.reason})`);
+      const acts = [];
+      if (r.stateConverted) acts.push('state.json -> config.json');
+      if (r.parkingCreated) acts.push('created project/parking.md');
+      if (r.notesDeleted) acts.push('removed empty project/notes.md');
+      if (r.notesKept) acts.push('kept non-empty project/notes.md — drain it to a canonical home, then delete it');
+      console.log(acts.length ? `migrated: ${acts.join('; ')}` : `nothing to migrate (${r.reason})`);
       break;
     }
     case 'preflight-confirm':
