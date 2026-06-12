@@ -1077,8 +1077,29 @@ function main(argv) {
       console.log(`prototype home = repo:${c.prototype.repo ?? '(orchestration)'} subpath:${c.prototype.subpath ?? '(root)'}`);
       break;
     }
+    case 'contract': {
+      const [name] = rest;
+      if (!name) { console.error('Usage: adhd-state.mjs contract <participant>'); process.exitCode = 1; break; }
+      const r = contract(cwd, name);
+      if (!r.receives.length && !r.sends.length && !r.guards.length) {
+        console.log(`participant "${name}": no arrows in any flow under project/flows/`);
+        break;
+      }
+      console.log(`# Contract: ${name}\n`);
+      if (r.receives.length) console.log('receives:\n' + r.receives.map((l) => `  ${l}`).join('\n'));
+      if (r.sends.length) console.log('sends:\n' + r.sends.map((l) => `  ${l}`).join('\n'));
+      if (r.guards.length) console.log('guards / self:\n' + r.guards.map((l) => `  ${l}`).join('\n'));
+      break;
+    }
+    case 'closure': {
+      if (!rest.length) { console.error('Usage: adhd-state.mjs closure <areaId> [...areaId]'); process.exitCode = 1; break; }
+      const r = closure(cwd, rest);
+      if (!r) { console.error('No capability map found in CONCEPTS.md'); process.exitCode = 1; break; }
+      console.log(JSON.stringify(r, null, 2));
+      break;
+    }
     default:
-      console.error('Usage: adhd-state.mjs <init|read|status|next|gate|work-gate|validate|audit|migrate|preflight-confirm|workspace-mode|workspace-add|workspace-remove|workspace-list|repo-bind|repo-unbind|prototype-topology|prototype-home>');
+      console.error('Usage: adhd-state.mjs <init|read|status|next|gate|work-gate|validate|audit|migrate|preflight-confirm|workspace-mode|workspace-add|workspace-remove|workspace-list|repo-bind|repo-unbind|prototype-topology|prototype-home|contract|closure>');
       process.exitCode = 1;
   }
 }
