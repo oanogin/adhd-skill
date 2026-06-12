@@ -19,6 +19,7 @@ import {
   parseFlowDiagram, parseFlows,
   parseRegistry, PARTICIPANT_KINDS,
   contract,
+  parseCapabilityMap, closure,
 } from './adhd-state.mjs';
 
 function tmp() { return fs.mkdtempSync(path.join(os.tmpdir(), 'adhd-')); }
@@ -892,4 +893,46 @@ test('contract: matches by participant id or label', () => {
   const c = tmp();
   w(c, 'project/flows/invite-redeem.md', FLOW_MD);
   assert.deepEqual(contract(c, 'INV'), contract(c, 'invitation'));
+});
+
+// ---- capability dependency map ----
+
+const CONCEPTS_MD = `# Concepts
+
+## Capability dependency map
+
+\`\`\`mermaid
+flowchart LR
+  ID[Identity]
+  ORG[Organizations]
+  EV[Events]
+  RT[Runtime]
+  INV[Invitations]
+  ID --> ORG
+  ORG --> EV
+  EV --> RT
+  ID --> INV
+  EV -.-> INV
+\`\`\`
+`;
+
+test('parseCapabilityMap: solid and soft edges from CONCEPTS flowchart', () => {
+  const c = tmp();
+  initConfig(c);
+  w(c, 'docs/CONCEPTS.md', CONCEPTS_MD);
+  const m = parseCapabilityMap(c);
+  assert.deepEqual(m.solid, [['ID', 'ORG'], ['ORG', 'EV'], ['EV', 'RT'], ['ID', 'INV']]);
+  assert.deepEqual(m.soft, [['EV', 'INV']]);
+});
+
+test('closure: transitive solid prerequisites + soft in-edges surfaced', () => {
+  const c = tmp();
+  initConfig(c);
+  w(c, 'docs/CONCEPTS.md', CONCEPTS_MD);
+  const r = closure(c, ['RT']);
+  assert.deepEqual(new Set(r.areas), new Set(['RT', 'EV', 'ORG', 'ID']));
+  assert.deepEqual(new Set(r.pulled), new Set(['EV', 'ORG', 'ID']));
+  assert.deepEqual(r.soft, []); // INV's soft edge points INTO INV, which is out of scope
+  const r2 = closure(c, ['INV']);
+  assert.deepEqual(r2.soft, ['EV -.-> INV']); // soft in-edge: decide, never blocks
 });

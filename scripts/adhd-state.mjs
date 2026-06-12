@@ -314,6 +314,46 @@ export function contract(cwd, name) {
   return out;
 }
 
+// ---- capability dependency map (docs/CONCEPTS.md mermaid flowchart) ----
+// Solid edge `A --> B` = hard prerequisite A for dependent B; dashed `A -.-> B`
+// = soft/enhances. The brief stage's mechanical closure layer.
+export function parseCapabilityMap(cwd) {
+  const docHome = loadConfig(cwd)?.docHome ?? 'docs';
+  if (!exists(cwd, `${docHome}/CONCEPTS.md`)) return null;
+  const solid = [], soft = [];
+  let inMermaid = false, isFlowchart = false;
+  for (const raw of read(cwd, `${docHome}/CONCEPTS.md`).split('\n')) {
+    const line = raw.trim();
+    if (line.startsWith('```')) { inMermaid = !inMermaid && /^```mermaid/.test(line); isFlowchart = false; continue; }
+    if (!inMermaid) continue;
+    if (/^(flowchart|graph)\b/.test(line)) { isFlowchart = true; continue; }
+    if (!isFlowchart) continue;
+    let m;
+    if ((m = /^(\w+)(?:\[[^\]]*\])?\s*-\.->\s*(\w+)/.exec(line))) soft.push([m[1], m[2]]);
+    else if ((m = /^(\w+)(?:\[[^\]]*\])?\s*-->\s*(\w+)/.exec(line))) solid.push([m[1], m[2]]);
+  }
+  return { solid, soft };
+}
+
+export function closure(cwd, targets) {
+  const map = parseCapabilityMap(cwd);
+  if (!map) return null;
+  const need = new Set(targets);
+  let grew = true;
+  while (grew) {
+    grew = false;
+    for (const [pre, dep] of map.solid) {
+      if (need.has(dep) && !need.has(pre)) { need.add(pre); grew = true; }
+    }
+  }
+  return {
+    areas: [...need],
+    pulled: [...need].filter((a) => !targets.includes(a)),
+    soft: map.soft.filter(([pre, dep]) => need.has(dep) && !need.has(pre))
+      .map(([pre, dep]) => `${pre} -.-> ${dep}`),
+  };
+}
+
 export function milestoneTrack(cwd, m) {
   const rel = milestoneRel(m, 'brief.md');
   if (!exists(cwd, rel)) return null;
