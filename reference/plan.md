@@ -1,7 +1,8 @@
 # adhd — Plan
 
 **Effort:** medium
-**Gate:** the feature exists in the milestone's DAG, and the `features` stage is done.
+**Gate:** the feature exists in the milestone's DAG (`m{{N}}/features.md` — written by
+the `realize` stage in the flows generation, by `features` in classic).
 **Output:** `project/milestones/m{{N}}/plans/{{feature}}.md`.
 **Sub-skill:** `superpowers:writing-plans`.
 
@@ -22,14 +23,22 @@ If it reports missing items, HALT. Tell the user exactly which predecessor stage
 No skip, no override — this is the skill's central discipline.
 
 If the gate reports the feature does not exist or `features` is not done, HALT and tell
-the user to run `adhd features --milestone {{N}}` first.
+the user to run `adhd realize --milestone {{N}}` (flows generation) or
+`adhd features --milestone {{N}}` (classic) first.
 
 ## Procedure
-1. **Write the implementation plan.** Run `superpowers:writing-plans` for the feature.
-   Read the feature's row in `m{{N}}/features.md` — its story, domain, repo, and the
-   surface it serves — and the relevant surface spec(s) in `m{{N}}/surfaces/`. The plan
-   turns the feature into an ordered set of concrete implementation tasks for the Build
-   stage.
+1. **Write the implementation plan — scoped reads only.** Run
+   `superpowers:writing-plans` for the feature. The feature's context is EXACTLY:
+   its row in `m{{N}}/features.md`; the flow diagram(s) named in its `Feature` cell
+   (`project/flows/<scenario>.md`); `node {{scripts_path}}/adhd-state.mjs contract <P>`
+   for every participant the feature implements; the surface stub
+   (`project/surfaces/<name>.md`) if it serves a `ui` participant; and the target
+   repo's code. **Whole-product reads are forbidden** — do not open `docs/CONCEPTS.md`,
+   `project/stories.md`, or `project/map.md` wholesale; the flow slice IS the context.
+   (Classic-generation projects without flows keep the old inputs: feature row +
+   surface specs.)
+   **Design against the contract:** plan only the current flow's arrows, but shape
+   signatures and schema for the participant's full contract.
 2. **Override the plan output path.** `writing-plans` defaults to
    `docs/superpowers/plans/`. OVERRIDE that: save to the canonical target
    `project/milestones/m{{N}}/plans/{{feature}}.md`. Pass that path when invoking the

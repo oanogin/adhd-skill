@@ -22,9 +22,18 @@ reports unbuilt dependency features, HALT and tell the user to build those first
 DAG order is not optional.
 
 ## Procedure
-1. **Execute the plan task-by-task.** Work through `plans/{{feature}}.md` with
-   `superpowers:executing-plans`, one task at a time. For UI craft within a task use
-   `impeccable craft` so the implementation matches the design system.
+1. **Execute the plan task-by-task — scoped reads only.** Work through
+   `plans/{{feature}}.md` with `superpowers:executing-plans`, one task at a time. The
+   read contract is the same as `plan`'s: feature row + its flow diagram(s) +
+   `node {{scripts_path}}/adhd-state.mjs contract <P>` per implemented participant +
+   surface stub + repo code. Whole-product reads are forbidden. Implement ONLY the
+   current flow's arrows; keep signatures shaped for the full contract. For UI craft
+   within a task use `impeccable craft` so the implementation matches the design system.
+
+   **Code contradicts a diagram → STOP.** Never silently patch either side: a wrong
+   diagram is a spec change — route it through `adhd evolve`; wrong code with a right
+   diagram is `adhd fix`. This and the commit gate are the only user interrupts
+   `build` is allowed.
 
    **A `Size: S` feature has no plan file** — build it directly from its feature row
    and the surface spec(s) it serves, in one small, verifiable pass. If mid-build it
@@ -57,7 +66,9 @@ DAG order is not optional.
 - **New entity → update `concepts` first.** If this stage surfaces a product entity not
   already in `docs/CONCEPTS.md`, stop and re-run `adhd concepts` to add it (entity +
   relationships + any state rule) before continuing. The concepts file is the single
-  source of the ubiquitous language; it must not silently fall behind the build.
+  source of the ubiquitous language; it must not silently fall behind the build. In the
+  flows generation a new entity also means a missing registry row and likely a missing
+  flow — escalate to `adhd evolve`, never freelance the participant.
 
 ## Output
 - working, verified code for the feature — the plan `plans/{{feature}}.md` executed to
