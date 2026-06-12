@@ -68,6 +68,13 @@ with clean eyes and does not pollute the conductor's context:
     element that decisions/tracer notes show in use but that is absent from
     `docs/STACK.md`. `STACK.md` is current state; `DECISIONS.md` is the log — both
     must tell the same story.
+14. **Flow checks (when `project/flows/` exists):** same trigger → contradictory
+    outcomes across flows; participant pairs whose message contracts conflict; state
+    transitions violating `docs/CONCEPTS.md` lifecycles; messages consumed that no flow
+    produces; registry orphans (registered participants no flow uses); flows owned by
+    no milestone brief's `## Flows` list. Structural sanity (mermaid parse, undeclared
+    participants, unknown deps, cycles) is covered by `adhd-state.mjs validate` — do
+    not re-audit it here.
 
 ## Output
 

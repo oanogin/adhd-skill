@@ -1,5 +1,11 @@
 # adhd — Prototype
 
+> **Flows generation:** `prototype` is an **on-demand command**, not a stage. It has
+> no gate role and nothing depends on it. Run it for a milestone slice when a
+> surface's UX is genuinely uncertain (`flows` step 8 points here); the
+> `impeccable` flow below (`shape → confirm → craft`) applies to just that slice.
+> The whole-product procedure below is the classic-generation stage.
+
 **Effort:** high
 **Gate:** the `stories` stage is done — `project/stories.md` exists.
 **Output:** `project/map.md`, `project/surfaces/<name>.md` (per `ui` surface), the wired

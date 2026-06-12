@@ -47,13 +47,25 @@ If the gate reports `foundation` is not done, HALT and tell the user to run
 5. **Determinism pass.** Every term defined once, every relationship stated once, no
    `TBD`, no synonyms. This file is the single, unambiguous home for the product's
    vocabulary and behavior model.
-6. **Write `docs/CONCEPTS.md` last** — its existence is the stage's done signal.
+6. **Author the capability dependency map.** As a required section of `docs/CONCEPTS.md`,
+   write a Mermaid flowchart of the product's capability areas. Each node is a named
+   capability area. A solid edge (`-->`) means hard prerequisite (prerequisite → dependent);
+   a dashed edge (`-.->`) means soft/enhances. Mark areas that are already built (e.g.
+   with a label or comment). An area is **pickable next** when every solid in-edge comes
+   from a built area — this is the pickable-next rule. This map is the soft roadmap from
+   which milestones are selected: the `brief` stage runs
+   `node {{scripts_path}}/adhd-state.mjs closure <areaId>...` over it to compute
+   transitive prerequisites for a candidate area.
+7. **Write `docs/CONCEPTS.md` last** — its existence is the stage's done signal.
 
 ## Output
-- `docs/CONCEPTS.md`, with three zones:
+- `docs/CONCEPTS.md`, with three zones plus the capability map:
   - **Ubiquitous language** — each entity, one plain line of what it represents.
   - **Relationships** — a Mermaid `erDiagram` with conceptual cardinality.
   - **Helicopter view** — actors, core lifecycles/states, governing entity/state rules.
+  - **Capability dependency map** — a Mermaid flowchart of capability areas; solid
+    edges = hard prerequisites, dashed = soft/enhances; built areas marked. This is the
+    soft roadmap milestones are picked off.
 
 ## Re-running
 `concepts` is **re-runnable**. Re-run it whenever the entity set or its behavior model

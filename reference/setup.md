@@ -46,16 +46,24 @@ Setup produces the canonical layout defined in `SKILL.md`:
 
 - `.ruler/` — agent instructions (with the seed `00-adhd.md` note if it was empty).
 - `docs/` — with `DECISIONS.md` (`# Decisions` heading only).
-- `project/` — with `config.json` and a `parking.md` (just a `# Parking lot` heading).
+- `project/` — with `config.json` (`generation: flows`) and a `parking.md` (just a
+  `# Parking lot` heading).
 - `project/milestones/` — empty, ready for per-milestone subdirectories.
+- `project/flows/` — created lazily by the `flows` stage; not scaffolded at setup time.
 - `.gitignore` — extended with `.superpowers/`, `project/repos.local.json`,
   and `project/work/` (`.impeccable/` stays tracked; `project/` itself stays tracked).
 
 The project's state IS its files: every `.md` artifact under `project/` and `docs/`,
 plus `project/config.json`. A stage is done the moment its artifact exists — nothing
 records stage status separately. `config.json` holds only the irreducible non-doc
-config (mode, repos, prototype topology, preflight); mutate it only through the
-`adhd-state.mjs` config subcommands, never by hand.
+config (mode, repos, prototype topology, preflight, generation); mutate it only through
+the `adhd-state.mjs` config subcommands, never by hand.
+
+New projects are `generation: flows`. The **flows-generation groundwork chain** is
+`setup → vision → foundation → concepts`; the **per-milestone chain** is
+`brief → flows → realize → plan/build → review → finalize`. Classic projects keep the
+old groundwork chain (see `reference/classic/` — forthcoming); their `project/stories.md`
+carries a `Surfaces` column that the flows generation does not use.
 
 `setup` always scaffolds in `single` mode with `colocated` prototype topology. For a
 multi-repo product, or one whose prototype app is standalone (its own app or a separate

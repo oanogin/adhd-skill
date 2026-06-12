@@ -1,8 +1,10 @@
 # adhd — Evolve
 
 **Effort:** high
-**Gate:** groundwork complete — the `prototype` stage is done (`project/prototype.md` +
-`project/map.md` exist).
+**Gate:** groundwork complete — classic generation: the `prototype` stage is done
+(`project/prototype.md` + `project/map.md` exist); flows generation: the `concepts`
+stage is done (`docs/CONCEPTS.md` exists). The script is generation-aware:
+`gate evolve` checks the right artifact automatically.
 **Output:** none of its own — it mutates the living groundwork artifacts; "done" = its
 work file is drained and deleted.
 **Sub-skill:** `superpowers:brainstorming`.
@@ -15,8 +17,11 @@ violation — where the spec is already right and the code is wrong: that is
 `adhd fix` (see [fix.md](fix.md)). It is a **living, on-demand conductor**
 (like `verify` or `adopt`), not part of the linear groundwork progression. It does NOT
 produce a canonical artifact of its own; instead it sequences re-runs of the living
-groundwork stages (`concepts`, `stories`, `prototype`, and the lazily-created
-`docs/DATA.md` / `project/map.md`) so the whole set stays internally consistent. It
+groundwork artifacts so the whole set stays internally consistent. In the **flows
+generation** that living set is `concepts → flows` (plus the participant registry in
+`project/map.md` and the `project/stories.md` index); in the **classic generation** it
+is `concepts → stories → prototype` (plus the lazily-created `docs/DATA.md` /
+`project/map.md`). It
 **never creates or starts a milestone** — a new story lands in the backlog with a drawn
 surface; the user then runs `milestone-brief` to schedule it.
 
@@ -24,7 +29,7 @@ surface; the user then runs `milestone-brief` to schedule it.
 
 Run `node {{scripts_path}}/adhd-state.mjs gate evolve`.
 If it reports missing items, HALT. Tell the user exactly which predecessor stage to run
-(e.g. `adhd prototype`).
+(e.g. `adhd prototype` for classic, `adhd concepts` for flows generation).
 No skip, no override — this is the skill's central discipline.
 
 ## Procedure
@@ -40,7 +45,8 @@ No skip, no override — this is the skill's central discipline.
 
 2. **Write the impact plan.** Populate `## Impact plan` in `project/work/evolve.md` with
    an **ordered checklist** of which living artifacts must change and why, in dependency
-   order (`concepts → stories → prototype → data/map …`). Include only the stages the
+   order (flows generation: `concepts → flows → map/stories …`; classic generation:
+   `concepts → stories → prototype → data/map …`). Include only the stages the
    change actually touches. Each checklist item names the stage and the specific mutation
    it must make (e.g. `[ ] concepts — add "Subscription" entity and its lifecycle`).
 
@@ -68,11 +74,20 @@ No skip, no override — this is the skill's central discipline.
    > lands in the backlog with a drawn surface. When the impact plan is fully executed,
    > the user runs `milestone-brief` to schedule it.
 
+   > **Flow change (flows generation).** Correct the diagram first: edit
+   > `project/flows/<scenario>.md`, update the registry/stories index if participants or
+   > stories changed, run `node {{scripts_path}}/adhd-state.mjs validate` plus the flow
+   > checks of the `verify` pass, get the user's sign-off on the diagram diff — then
+   > route the affected code to `adhd fix` (code wrong, diagram right) or a new feature
+   > row in the owning milestone's `features.md` (new work).
+
 ## Output
 
-None of its own. `evolve` leaves the living artifacts —
-`docs/CONCEPTS.md`, `project/stories.md`, `project/prototype.md`, `project/map.md`,
-`docs/DATA.md` (as applicable) — updated and mutually consistent.
+None of its own. `evolve` leaves the living artifacts updated and mutually consistent.
+Flows generation: `docs/CONCEPTS.md`, `project/flows/`, `project/map.md` (participant
+registry), `project/stories.md` (index). Classic generation: `docs/CONCEPTS.md`,
+`project/stories.md`, `project/prototype.md`, `project/map.md`, `docs/DATA.md`
+(as applicable).
 
 ## On completion
 
