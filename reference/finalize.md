@@ -39,8 +39,9 @@ with the user's explicit ok; see [review.md](review.md)).
    carried forward to a future milestone.
 
 There is no "advance" step. Milestones are independent `m<N>/` folders — the next one
-is created simply by running `milestone-brief`, which writes a new `m<N>/brief.md`. A
-new milestone can be started before this one finalizes; they progress in parallel.
+is created simply by running `brief` (flows generation) or `milestone-brief` (classic),
+which writes a new `m<N>/brief.md`. A new milestone can be started before this one
+finalizes; they progress in parallel.
 
 ## Output
 - `project/milestones/m{{N}}/summary.md` — the milestone summary.
@@ -52,4 +53,5 @@ new milestone can be started before this one finalizes; they progress in paralle
 2. If the session is getting long, start a fresh one: run
    `node {{scripts_path}}/handoff-prompt.mjs` and give the user the resume prompt.
 3. Milestone {{N}} is complete. Tell the user the next runnable stage is
-   `milestone-brief` for the next milestone (a new `m<N>/` folder).
+   `brief` (flows generation) or `milestone-brief` (classic) for the next milestone
+   (a new `m<N>/` folder).

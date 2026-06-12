@@ -39,7 +39,13 @@ both built and verified — if a feature is built but not verified, run
    is actually delivered by the milestone's features, and — for a cross-domain milestone
    — that each participating domain's work was addressed. Nothing chosen should be
    silently skipped. Run the `verify` pass (see [reference/verify.md](verify.md)) and resolve findings.
-5. **Write findings to `m{{N}}/review.md`** as a table with exactly these columns —
+5. **Arrow coverage (flows generation).** For every flow the milestone owns
+   (the `## Flows` list in `brief.md`): every arrow has an implementation, and every
+   implementation traces to an arrow. Run it per entity too — compare
+   `node {{scripts_path}}/adhd-state.mjs contract <participant>` against what the code
+   exposes; partial implementations must be explicit (deferred arrows listed with their
+   waiver), never silent. Unimplemented arrows or untraceable code are findings.
+6. **Write findings to `m{{N}}/review.md`** as a table with exactly these columns —
    `adhd-state.mjs` parses it for the `finalize` gate:
 
    `| ID | Finding | Where | Severity | Fix | Status |`
@@ -48,7 +54,7 @@ both built and verified — if a feature is built but not verified, run
    - `Status` — `open` | `fixed` | `accepted`. Every finding starts `open`; an empty
      cell counts as `open` (fail-closed). `accepted` means the user explicitly chose to
      live with it — record their ok in the `Fix` cell.
-6. **Resolve each finding through the right door — never freelance:**
+7. **Resolve each finding through the right door — never freelance:**
    - **small code defect** → `adhd fix` (see [fix.md](fix.md)), then set `Status: fixed`;
    - **substantial production work** (production-track) → append a feature row
      (e.g. `f-rev-1`) to `m{{N}}/features.md` with a `Size` and dependencies — the
