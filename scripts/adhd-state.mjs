@@ -96,10 +96,11 @@ export function generation(cwd = process.cwd()) {
   return c.generation === 'flows' ? 'flows' : 'classic';
 }
 
-export function groundworkStages(cwd) {
+export function groundworkStages(cwd = process.cwd()) {
   return generation(cwd) === 'flows' ? GROUNDWORK_STAGES_FLOWS : GROUNDWORK_STAGES;
 }
-export function milestoneStages(cwd) {
+
+export function milestoneStages(cwd = process.cwd()) {
   return generation(cwd) === 'flows' ? MILESTONE_STAGES_FLOWS : MILESTONE_STAGES;
 }
 
