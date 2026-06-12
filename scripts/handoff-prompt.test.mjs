@@ -53,6 +53,11 @@ test('handoffPrompt leads with the active work file and inlines checklist + log'
 test('handoffPrompt resumes the correct milestone and names --milestone in the run command', () => {
   const cwd = tmp();
   initConfig(cwd);
+  // stamp classic so the milestone chain uses milestone-brief / ux-refine
+  const cfgPath = path.join(cwd, 'project/config.json');
+  const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf-8'));
+  cfg.generation = 'classic';
+  fs.writeFileSync(cfgPath, JSON.stringify(cfg, null, 2) + '\n');
   w(cwd, 'docs/PRODUCT.md');
   w(cwd, 'docs/DECISIONS.md', '# Decisions\n\n## d\n');
   w(cwd, 'docs/CONCEPTS.md');

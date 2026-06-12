@@ -576,14 +576,14 @@ export function workGate(cwd, stage, { milestone, item } = {}) {
 // ---- next stage ----
 export function nextStage(cwd = process.cwd(), { milestone } = {}) {
   if (!loadConfig(cwd)) return { stage: 'setup', milestone: null, feature: null };
-  for (const s of GROUNDWORK_STAGES) {
+  for (const s of groundworkStages(cwd)) {
     if (!groundworkDone(cwd, s)) return { stage: s, milestone: null, feature: null };
   }
   const dirs = milestoneDirs(cwd);
   let target = milestone;
   if (target == null) {
     target = dirs.find((m) => !milestoneComplete(cwd, m));
-    if (target == null) return { stage: 'milestone-brief', milestone: (dirs.at(-1) ?? 0) + 1, feature: null };
+    if (target == null) return { stage: generation(cwd) === 'flows' ? 'brief' : 'milestone-brief', milestone: (dirs.at(-1) ?? 0) + 1, feature: null };
   }
   return milestoneNext(cwd, target);
 }
@@ -593,6 +593,29 @@ function milestoneComplete(cwd, m) {
 }
 
 function milestoneNext(cwd, m) {
+  return generation(cwd) === 'flows' ? milestoneNextFlows(cwd, m) : milestoneNextClassic(cwd, m);
+}
+
+function milestoneNextFlows(cwd, m) {
+  const at = (stage, feature = null) => ({ stage, milestone: m, feature });
+  if (!milestoneStageDone(cwd, m, 'brief')) return at('brief');
+  if (!milestoneStageDone(cwd, m, 'flows')) return at('flows');
+  if (!milestoneStageDone(cwd, m, 'realize')) return at('realize');
+  const feats = parseFeatures(cwd, m) ?? [];
+  const needsPlan = (f) => f.size !== 'S' && !planDone(cwd, m, f.id);
+  let blocked = null;
+  for (const f of feats) {
+    if (f.build) continue;
+    if (depsBuilt(feats, f)) return at(needsPlan(f) ? 'plan' : 'build', f.id);
+    if (!blocked) blocked = f;
+  }
+  if (blocked) return at(needsPlan(blocked) ? 'plan' : 'build', blocked.id);
+  if (!milestoneStageDone(cwd, m, 'review')) return at('review');
+  if (!milestoneStageDone(cwd, m, 'finalize')) return at('finalize');
+  return at('done');
+}
+
+function milestoneNextClassic(cwd, m) {
   const at = (stage, feature = null) => ({ stage, milestone: m, feature });
   if (!milestoneStageDone(cwd, m, 'milestone-brief')) return at('milestone-brief');
   if (!milestoneStageDone(cwd, m, 'ux-refine')) return at('ux-refine');
@@ -631,14 +654,15 @@ export function statusReport(cwd = process.cwd()) {
   if (exists(cwd, LEGACY_STATE_FILE)) {
     lines.push('! legacy project/state.json present — run `adhd-state.mjs migrate`.', '');
   }
-  lines.push('Groundwork:  ' + GROUNDWORK_STAGES.map((s) => `${s} ${ICON(groundworkDone(cwd, s))}`).join('  '));
+  lines.push('Groundwork:  ' + groundworkStages(cwd).map((s) => `${s} ${ICON(groundworkDone(cwd, s))}`).join('  '));
   for (const m of milestoneDirs(cwd)) {
     const title = milestoneTitle(cwd, m);
     const track = milestoneTrack(cwd, m);
-    lines.push(`Milestone ${m}${title ? ` — ${title}` : ''}${track ? ` [${track}]` : ''}:`);
-    const stages = track === 'prototype'
-      ? ['milestone-brief', 'ux-refine', 'review', 'finalize']
-      : MILESTONE_STAGES;
+    const trackSuffix = generation(cwd) !== 'flows' && track ? ` [${track}]` : '';
+    lines.push(`Milestone ${m}${title ? ` — ${title}` : ''}${trackSuffix}:`);
+    const stages = generation(cwd) === 'flows'
+      ? MILESTONE_STAGES_FLOWS
+      : (track === 'prototype' ? ['milestone-brief', 'ux-refine', 'review', 'finalize'] : MILESTONE_STAGES);
     lines.push('  ' + stages.map((s) => `${s} ${ICON(milestoneStageDone(cwd, m, s))}`).join('  '));
     for (const f of parseFeatures(cwd, m) ?? []) {
       lines.push(`  feature ${f.id}:  plan ${ICON(planDone(cwd, m, f.id))}  build ${ICON(f.build)}` +

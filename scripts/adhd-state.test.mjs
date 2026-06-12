@@ -39,6 +39,7 @@ const FEATURES_MD = [
 
 function groundwork(cwd) {
   initConfig(cwd);
+  const cfg = loadConfig(cwd); cfg.generation = 'classic'; saveConfig(cwd, cfg);
   w(cwd, 'docs/PRODUCT.md');
   w(cwd, 'docs/DECISIONS.md', '# Decisions\n\n## 2026 — a real decision\n');
   w(cwd, 'docs/CONCEPTS.md');
@@ -996,4 +997,27 @@ test('classic evolve gate fails without prototype', () => {
   const r = gate(c, 'evolve', {});
   assert.equal(r.pass, false);
   assert.match(r.missing.join(' '), /prototype not done/);
+});
+
+test('flows-gen nextStage: walks brief → flows → realize → feature loop → review → finalize', () => {
+  const c = tmp();
+  groundworkFlows(c);
+  assert.deepEqual(nextStage(c), { stage: 'brief', milestone: 1, feature: null });
+  w(c, 'project/milestones/m1/brief.md');
+  assert.equal(nextStage(c).stage, 'flows');
+  w(c, 'project/milestones/m1/flows.md');
+  assert.equal(nextStage(c).stage, 'realize');
+  w(c, 'project/milestones/m1/features.md', FEATURES_MD);
+  assert.deepEqual(nextStage(c), { stage: 'plan', milestone: 1, feature: 'f-ui' });
+  w(c, 'project/milestones/m1/plans/f-ui.md');
+  assert.deepEqual(nextStage(c), { stage: 'build', milestone: 1, feature: 'f-ui' });
+});
+
+test('flows-gen statusReport: shows the flows chain', () => {
+  const c = tmp();
+  groundworkFlows(c);
+  w(c, 'project/milestones/m1/brief.md');
+  const s = statusReport(c);
+  assert.match(s, /brief ✓\s+flows ·\s+realize ·/);
+  assert.doesNotMatch(s, /ux-refine|tracer/);
 });
