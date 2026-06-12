@@ -1078,3 +1078,47 @@ test('upgradeGeneration: sets generation = flows on config', () => {
   upgradeGeneration(cwd);
   assert.equal(loadConfig(cwd).generation, 'flows');
 });
+
+// ---- brief ## Flows coverage (validate) ----
+
+const BRIEF_WITH_FLOWS = `# Milestone 1 — Test
+
+## Scope
+- stuff
+
+## Flows
+- invite-redeem
+- missing-flow
+`;
+
+test('validate: flows stage done + brief-listed flow file missing → blocker', () => {
+  const c = tmp();
+  groundwork(c);
+  w(c, 'project/milestones/m1/brief.md', BRIEF_WITH_FLOWS);
+  w(c, 'project/milestones/m1/flows.md');
+  w(c, 'project/flows/invite-redeem.md', '# Flow: invite-redeem\n');
+  const r = validate(c);
+  assert.ok(r.blockers.some((b) => /brief lists flow "missing-flow"/.test(b)),
+    `expected brief-coverage blocker, got: ${JSON.stringify(r.blockers)}`);
+  assert.ok(!r.blockers.some((b) => /brief lists flow "invite-redeem"/.test(b)));
+});
+
+test('validate: flows stage not done yet → listed-but-missing flow is not a blocker', () => {
+  const c = tmp();
+  groundwork(c);
+  w(c, 'project/milestones/m1/brief.md', BRIEF_WITH_FLOWS);
+  const r = validate(c);
+  assert.ok(!r.blockers.some((b) => /brief lists flow/.test(b)),
+    `expected no brief-coverage blocker before flows is done, got: ${JSON.stringify(r.blockers)}`);
+});
+
+test('validate: flows done + every brief-listed flow has its file → no coverage blocker', () => {
+  const c = tmp();
+  groundwork(c);
+  w(c, 'project/milestones/m1/brief.md', '# M1\n\n## Flows\n- invite-redeem\n');
+  w(c, 'project/milestones/m1/flows.md');
+  w(c, 'project/flows/invite-redeem.md', '# Flow: invite-redeem\n');
+  const r = validate(c);
+  assert.ok(!r.blockers.some((b) => /brief lists flow/.test(b)),
+    `expected no brief-coverage blocker, got: ${JSON.stringify(r.blockers)}`);
+});

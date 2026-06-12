@@ -319,6 +319,22 @@ export function closure(cwd, targets) {
   };
 }
 
+// The flow names a milestone's brief declares under its `## Flows` heading.
+export function parseBriefFlows(cwd, m) {
+  const rel = milestoneRel(m, 'brief.md');
+  if (!exists(cwd, rel)) return [];
+  const lines = read(cwd, rel).split('\n');
+  const start = lines.findIndex((l) => /^##\s+Flows\b/i.test(l));
+  if (start < 0) return [];
+  const out = [];
+  for (const l of lines.slice(start + 1)) {
+    if (/^##\s/.test(l)) break;
+    const m2 = /^\s*[-*]\s+`?([\w][\w-]*)`?/.exec(l);
+    if (m2) out.push(m2[1]);
+  }
+  return out;
+}
+
 function milestoneTitle(cwd, m) {
   const rel = milestoneRel(m, 'brief.md');
   if (!exists(cwd, rel)) return null;
@@ -636,6 +652,16 @@ export function validate(cwd = process.cwd()) {
     }
     const cyc = findCycle(feats);
     if (cyc) blockers.push(`milestone ${m}: feature dependency cycle: ${cyc.join(' → ')}`);
+  }
+  // brief ## Flows coverage — once the flows stage is done, every flow the brief
+  // lists must have its file (the list is the coverage denominator for review/verify)
+  for (const m of milestoneDirs(cwd)) {
+    if (!milestoneStageDone(cwd, m, 'flows')) continue;
+    for (const name of parseBriefFlows(cwd, m)) {
+      if (!exists(cwd, `project/flows/${name}.md`)) {
+        blockers.push(`milestone ${m}: brief lists flow "${name}" but project/flows/${name}.md does not exist`);
+      }
+    }
   }
   if (exists(cwd, 'project/notes.md')) {
     warnings.push('project/notes.md is legacy (removed from the model) — drain durable entries to a canonical home, then delete it; `adhd-state.mjs migrate` removes it if empty and scaffolds project/parking.md');
