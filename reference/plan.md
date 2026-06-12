@@ -7,10 +7,11 @@ the `realize` stage in the flows generation, by `features` in classic).
 **Sub-skill:** `superpowers:writing-plans`.
 
 `plan` turns one feature into an ordered set of bite-sized implementation tasks. It
-runs per feature, on production-track milestones.
+runs per feature, walking the milestone's feature DAG.
 
 **Size `S` features skip this stage.** A feature whose `Size` cell in
-`m{{N}}/features.md` is `S` is built directly from its surface spec + feature row —
+`m{{N}}/features.md` is `S` is built directly from its flow slice + contract (flows
+generation) or surface spec (classic) + feature row —
 `adhd next` returns `build` for it and the `build` gate does not require a plan file.
 Planning an `S` feature anyway is allowed (the plan file is simply honored), but the
 default is skip. If, on inspection, an `S` feature turns out to need real design

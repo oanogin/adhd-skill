@@ -59,7 +59,7 @@ If the gate reports `tracer` is not done, HALT and tell the user to run
    `Feature` cell or an extra column — `plan` reads it to find the surface spec.
 5. **Check it.** Run `node {{scripts_path}}/adhd-state.mjs validate` for structural
    sanity (dependency cycles, unknown dependency IDs), then run the `verify` pass (see
-   [reference/verify.md](verify.md)) for content checks (unknown stories, unknown repos,
+   [reference/verify.md](../verify.md)) for content checks (unknown stories, unknown repos,
    drift).
 
 - **New entity → update `concepts` first.** If this stage surfaces a product entity not

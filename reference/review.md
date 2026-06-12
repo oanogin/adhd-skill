@@ -1,8 +1,10 @@
 # adhd — Review
 
 **Effort:** high
-**Gate:** prototype-only milestone — `ux-refine` is done; production-track milestone —
-every feature is built **and** verified.
+**Gate (flows generation):** every feature in the milestone's DAG has `Build: done` and
+`Verified: yes`. No tracks — all flows milestones are production milestones.
+**Gate (classic):** prototype-only milestone — `ux-refine` is done; production-track
+milestone — every feature is built **and** verified.
 **Output:** `project/milestones/m{{N}}/review.md`.
 **Sub-skill:** none.
 
@@ -11,10 +13,10 @@ Run `node {{scripts_path}}/adhd-state.mjs gate review --milestone {{N}}`.
 If it reports missing items, HALT. Tell the user exactly which predecessor stage to run.
 No skip, no override — this is the skill's central discipline.
 
-The gate is state-based and track-aware. A prototype-only milestone needs `ux-refine`
-done. A production-track milestone needs the `features` stage done and every feature
-both built and verified — if a feature is built but not verified, run
-`adhd build` for it and complete its verification first.
+The gate is state-based. **Flows generation:** every feature must be built and verified —
+if a feature is built but not verified, complete its verification first. **Classic
+(track-aware):** a prototype-only milestone needs `ux-refine` done; a production-track
+milestone needs the `features` stage done and every feature both built and verified.
 
 ## Procedure
 1. **Start working memory + seed the gate.** This high-effort stage may span sessions.
@@ -25,16 +27,19 @@ both built and verified — if a feature is built but not verified, run
    `node {{scripts_path}}/adhd-state.mjs work-gate review --milestone {{N}}` must pass
    before you write this stage's output artifact.
 2. **Run a fresh-session audit.** Review is a clean-eyes pass once the milestone is
-   complete — the signed-off prototype for a prototype-only milestone, or the built
-   production app for a production-track one. Start it in a fresh session so the audit
-   is not anchored to the build work. Testing-green is not design-green — passing tests
-   do not mean the milestone is coherent.
+   complete — the built production app (both generations). Start it in a fresh session
+   so the audit is not anchored to the build work. Testing-green is not design-green —
+   passing tests do not mean the milestone is coherent. *(Classic: for a prototype-only
+   milestone the audit target is the signed-off prototype.)*
 3. **Review the milestone's surfaces.** Check each surface against
-   `m{{N}}/surfaces/<name>.md`, `m{{N}}/brief.md`, `docs/PRODUCT.md`, and
-   `docs/DESIGN.md`. On a production-track milestone also check the production app
-   against the signed-off prototype. Look for cross-surface consistency, visual and
-   information hierarchy, the milestone journey holding together end to end, and whether
-   the must-have security and error-handling commitments from `brief.md` were delivered.
+   `m{{N}}/brief.md`, `docs/PRODUCT.md`, and `docs/DESIGN.md`.
+   **Flows generation:** use the milestone's flow set (`project/flows/<scenario>.md`) and
+   the `project/surfaces/` stubs as the spec baseline.
+   **Classic:** check against `m{{N}}/surfaces/<name>.md`; on a production-track milestone
+   also check the production app against the signed-off prototype.
+   Look for cross-surface consistency, visual and information hierarchy, the milestone
+   journey holding together end to end, and whether the must-have security and
+   error-handling commitments from `brief.md` were delivered.
 4. **Check story and feature coverage.** Verify every story chosen in `m{{N}}/brief.md`
    is actually delivered by the milestone's features, and — for a cross-domain milestone
    — that each participating domain's work was addressed. Nothing chosen should be
@@ -60,7 +65,10 @@ both built and verified — if a feature is built but not verified, run
      (e.g. `f-rev-1`) to `m{{N}}/features.md` with a `Size` and dependencies — the
      normal `plan`/`build` machinery and gates apply; set the finding `fixed` once that
      feature is built and verified;
-   - **prototype-slice problem** → `adhd ux-refine --milestone {{N}}` (slice fix);
+   - **prototype-slice problem** →
+     *flows generation:* `adhd prototype --milestone {{N}}` (on-demand slice rebuild),
+     or `adhd evolve` if the flow diagram itself is wrong;
+     *classic:* `adhd ux-refine --milestone {{N}}` (slice fix);
    - **the spec itself is wrong** (whole-product flow, concepts, stories) →
      `adhd evolve`;
    - **consciously deferred** → `Status: accepted`, with the user's explicit ok.

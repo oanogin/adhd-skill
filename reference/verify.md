@@ -33,33 +33,35 @@ with clean eyes and does not pollute the conductor's context:
    once, `TBD`/`TODO` placeholders, relationships stated inconsistently. `CONCEPTS.md`
    must be single-meaning.
 3. **Boundary / duplication.** Entity/state rules duplicated between `CONCEPTS.md` and
-   the `prototype`/surface specs; navigation or interaction rules that have leaked into
-   `CONCEPTS.md`; fields, schema, or surfaces appearing in `CONCEPTS.md` (fields belong
-   in `docs/DATA.md`, surfaces/placement in `project/map.md`).
+   the flow files (or, classic, the `prototype`/surface specs) — a flow references and
+   places a rule, never restates it; navigation or interaction rules that have leaked
+   into `CONCEPTS.md`; fields, schema, or surfaces appearing in `CONCEPTS.md` (fields
+   belong in `docs/DATA.md`, participants/placement in `project/map.md`).
 4. **Capability, not mechanism.** Stack, framework, or database names leaking into the
-   product-scope docs (`docs/PRODUCT.md`, `project/stories.md`, `project/map.md`). The
-   prototype *app* is the only legitimate place mechanisms appear.
+   product-scope docs (`docs/PRODUCT.md`, `project/stories.md`, `project/map.md`,
+   `project/flows/*`). The prototype *app* is the only legitimate place mechanisms
+   appear.
 5. **Story / feature integrity.** Features pointing at unknown stories, unknown repo
    references (a `multi`-mode feature naming a repo not registered in `config.json`),
    dangling dependency IDs, dependency cycles, duplicate story IDs.
 6. **Stale work files.** Any `project/work/*.md` whose stage is already complete (its
    artifact exists) is stale — its durable facts should have been drained to their
    canonical home and the file deleted.
-7. **Prototype / surface drift.** Surfaces or the prototype that contradict the
-   signed-off whole-product flow or the current `CONCEPTS.md`.
-8. **Undrained story changes.** `project/work/prototype.md` has an undrained
+7. **(classic) Prototype / surface drift.** Surfaces or the prototype that contradict
+   the signed-off whole-product flow or the current `CONCEPTS.md`.
+8. **(classic) Undrained story changes.** `project/work/prototype.md` has an undrained
    `## Story changes` block while the `prototype` stage is done — story changes were
    written during a prototype run but never folded into `project/stories.md`.
-9. **Empty or provisional Surfaces cell.** An `m<N>/brief.md` references a story whose
-   `Surfaces` cell in `project/stories.md` is empty or holds only provisional
-   `?`-suffixed names — the story was never drawn in the prototype and is therefore not
-   implementable (mirrors the `adhd-state.mjs validate` blocker).
+9. **(classic) Empty or provisional Surfaces cell.** An `m<N>/brief.md` references a
+   story whose `Surfaces` cell in `project/stories.md` is empty or holds only
+   provisional `?`-suffixed names — the story was never drawn in the prototype and is
+   therefore not implementable (mirrors the `adhd-state.mjs validate` blocker).
 10. **Abandoned evolve work file.** `project/work/evolve.md` still exists — either an
     `evolve` cascade was abandoned mid-way, or all `## Impact plan` items are checked
     but the file was not deleted as required by the `evolve` on-completion steps.
-11. **Stale provisional `?` names.** A `Surfaces` cell carries a `?`-suffixed name
-    whose surface already exists in `project/map.md` — the surface was built but the
-    `?` was never cleared (the `prototype` stage should have removed it).
+11. **(classic) Stale provisional `?` names.** A `Surfaces` cell carries a `?`-suffixed
+    name whose surface already exists in `project/map.md` — the surface was built but
+    the `?` was never cleared (the `prototype` stage should have removed it).
 12. **Review findings hygiene.** An `m<N>/review.md` whose findings table is missing
     the `Severity`/`Status` columns (the `finalize` gate cannot parse it), or a
     finalized milestone (`summary.md` exists) with findings still `open`.

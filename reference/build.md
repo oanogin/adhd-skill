@@ -7,7 +7,7 @@ for a `Size: S` feature — AND every feature this one depends on is already bui
 `m{{N}}/features.md` updated.
 **Sub-skill:** `impeccable craft`, `superpowers:executing-plans`.
 
-`build` runs per feature, on production-track milestones, walking the feature DAG. A
+`build` runs per feature, walking the milestone's feature DAG. A
 feature cannot build before the features it depends on — that is how backend work lands
 before the frontend that wires it.
 

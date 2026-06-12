@@ -11,8 +11,10 @@ convention violation, a small behavior-preserving refactor — without milestone
 A change is a `fix` when the **target state is already specified** somewhere and the
 code merely fails to match it:
 
-- a **bug** — behavior contradicts the signed-off prototype, a surface spec, a feature
-  plan, or `docs/CONCEPTS.md`'s governing rules;
+- a **bug** — behavior contradicts a signed-off flow diagram
+  (`project/flows/<scenario>.md` — the flows generation's primary spec artifact), the
+  signed-off prototype, a surface spec, a feature plan, or `docs/CONCEPTS.md`'s
+  governing rules;
 - a **structural correction** — code in the wrong file/module/repo location, a naming
   or convention violation, dead code, a behavior-preserving refactor;
 - a **breakage** — build, tests, types, or tooling broken.

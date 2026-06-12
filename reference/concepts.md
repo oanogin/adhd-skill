@@ -42,8 +42,8 @@ If the gate reports `foundation` is not done, HALT and tell the user to run
 4. **Capture the helicopter view.** Record the actors/roles, the core entities' key
    states/lifecycles, and the handful of **governing entity/state rules** (invariants).
    **Stop at helicopter altitude** — no step-by-step process flows, no implementation or
-   realization detail. Navigation/interaction rules belong to `prototype`; physical
-   schema belongs to `docs/DATA.md`.
+   realization detail. Navigation/interaction rules belong to the flow diagrams
+   (classic: `prototype`); physical schema belongs to `docs/DATA.md`.
 5. **Determinism pass.** Every term defined once, every relationship stated once, no
    `TBD`, no synonyms. This file is the single, unambiguous home for the product's
    vocabulary and behavior model.

@@ -4,7 +4,11 @@
 > no gate role and nothing depends on it. Run it for a milestone slice when a
 > surface's UX is genuinely uncertain (`flows` step 8 points here); the
 > `impeccable` flow below (`shape → confirm → craft`) applies to just that slice.
-> The whole-product procedure below is the classic-generation stage.
+> The whole-product procedure below is the classic-generation stage. On a flows
+> project the "## Gate check" below does NOT apply — the command is gateless
+> (`project/stories.md` may not even exist yet) — and step 8's `project/prototype.md`
+> is NOT written: record the slice sign-off in the milestone's `m<N>/flows.md`
+> change log instead.
 
 **Effort:** high
 **Gate:** the `stories` stage is done — `project/stories.md` exists.

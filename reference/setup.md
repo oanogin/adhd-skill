@@ -62,7 +62,7 @@ the `adhd-state.mjs` config subcommands, never by hand.
 New projects are `generation: flows`. The **flows-generation groundwork chain** is
 `setup → vision → foundation → concepts`; the **per-milestone chain** is
 `brief → flows → realize → plan/build → review → finalize`. Classic projects keep the
-old groundwork chain (see `reference/classic/` — forthcoming); their `project/stories.md`
+old groundwork chain (see `reference/classic/`); their `project/stories.md`
 carries a `Surfaces` column that the flows generation does not use.
 
 `setup` always scaffolds in `single` mode with `colocated` prototype topology. For a

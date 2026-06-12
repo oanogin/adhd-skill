@@ -51,7 +51,17 @@ milestone or a `docs/DECISIONS.md` entry. `adopt` does not block on it.
    - `docs/CONCEPTS.md` — the ubiquitous language: entities, their relationships
      (a Mermaid `erDiagram`), and a helicopter view of how the system works. This is the
      `concepts` artifact; draft it from the existing data model and architecture docs.
-   - `project/surfaces/<name>.md` — a spec per `ui` surface, read off the existing UI.
+   - `project/surfaces/<name>.md` — a stub per `ui` surface (purpose, UX intent, key
+     states), read off the existing UI.
+
+   **Flows generation:** that is the whole list — plus the **capability dependency
+   map** inside `docs/CONCEPTS.md` (mark the already-built areas as built — adoption
+   means much of the map is green) and `project/map.md`'s **participant registry**
+   seeded from the existing code's surfaces and services. Do NOT draft
+   `project/stories.md` or `project/prototype.md` — stories and flows are derived per
+   milestone by the `flows` stage.
+
+   **Classic generation** additionally drafts:
    - `project/stories.md` — the story backlog
      (`ID | Story | Value | Depends on | Size | Surfaces`), derived from the existing
      product. Fill the `Surfaces` column from the existing UI — each story should name
@@ -72,8 +82,8 @@ milestone or a `docs/DECISIONS.md` entry. `adopt` does not block on it.
 
 ## On completion
 
-1. Confirm all six groundwork stages register as done
-   (`node {{scripts_path}}/adhd-state.mjs status`).
+1. Confirm the groundwork stages register as done — four on a flows project, six on
+   a classic one (`node {{scripts_path}}/adhd-state.mjs status`).
 2. The project now resumes at the per-milestone loop exactly as a groundwork-loaded
    project would. Tell the user the next runnable stage is `brief` (`milestone-brief`
    on a classic project) for milestone 1.

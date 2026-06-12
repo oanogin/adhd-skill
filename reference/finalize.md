@@ -27,7 +27,11 @@ with the user's explicit ok; see [review.md](review.md)).
 2. **Update the canonical docs to the milestone's reality.** Reflect what the milestone
    actually changed: decisions in `docs/DECISIONS.md`, the current stack in
    `docs/STACK.md` (every stack change the milestone made must be there, with its
-   decision logged), refined concepts in `docs/CONCEPTS.md`. On a **production-track** milestone, update `docs/DATA.md` to the
+   decision logged), refined concepts in `docs/CONCEPTS.md`. **Mark the milestone's
+   shipped capability areas as built** in the capability dependency map in
+   `docs/CONCEPTS.md` — the pickable-next rule and the next `brief` depend on the map
+   staying current. When the milestone persisted real data (classic: on a
+   production-track milestone), update `docs/DATA.md` to the
    current field-level state of every entity this milestone added or changed (create
    `docs/DATA.md` if this is the first milestone to persist data). `DATA.md` entities are
    `## ` headings; every one must be defined in `docs/CONCEPTS.md` — if an entity is
