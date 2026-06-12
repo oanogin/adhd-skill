@@ -37,9 +37,13 @@ with the user's explicit ok; see [review.md](review.md)).
    missing from `docs/CONCEPTS.md`, STOP and run `adhd concepts` — do not inline-edit
    `CONCEPTS.md` here. Run the `verify` pass (see [reference/verify.md](verify.md)) and
    resolve any findings.
-3. **Write `m{{N}}/summary.md`** — what the milestone delivered: flows shipped,
-   features built, surfaces shipped, key decisions made, and anything explicitly
-   carried forward to a future milestone.
+3. **Write `m{{N}}/summary.md`** — a terse marker doc: one line each for flows
+   shipped, features built, surfaces shipped, key decisions (pointers into
+   `DECISIONS.md`, not restatements), and anything carried forward (parked items
+   point at `project/parking.md`). Nothing downstream reads its body — its
+   existence is the milestone-complete bit the state machine keys on, and the
+   durable facts already live in their canonical homes (step 2). Minutes, not an
+   essay.
 
 There is no "advance" step. Milestones are independent `m<N>/` folders — the next one
 is created simply by running `brief`, which writes a new `m<N>/brief.md`. A new

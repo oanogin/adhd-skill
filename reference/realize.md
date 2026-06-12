@@ -14,15 +14,26 @@ Run `node {{scripts_path}}/adhd-state.mjs gate realize --milestone {{N}}`.
 If it reports missing items, HALT. Tell the user exactly which predecessor stage to run.
 
 ## Procedure
-1. **Start working memory.** Create `project/work/m{{N}}-realize.md` with `## Gate` +
-   `## Left to do` + `## Log`; seed `requirements-confirmed` for the mechanism set.
+1. **Survey the mechanism needs, then decide on working memory.** Walk the
+   milestone's flows and list each capability that needs a concrete mechanism.
+   - **Baseline-only milestone** (every capability is served by what `docs/STACK.md`
+     already lists — no STACK edit, no new service): skip the work file and the
+     work-gate; tell the user "mechanisms: baseline only — `<the list>`" and proceed.
+     The confirmation the gate would collect is vacuous here, and SKILL.md already
+     classes this touchpoint as a light ok. The moment a new mechanism appears,
+     fall through to the next bullet.
+   - **Anything new enters the stack:** create `project/work/m{{N}}-realize.md` with
+     `## Gate` + `## Left to do` + `## Log`; seed `requirements-confirmed` for the
+     mechanism set.
 2. **Pick mechanisms.** For each capability the milestone's flows need, choose the
    concrete mechanism. **Baseline guard:** anything not in `docs/STACK.md` stops for
    the user's ok first; update `STACK.md` and log the decision in `docs/DECISIONS.md`.
    Run an end-to-end spike ONLY when genuinely new infrastructure appears
-   — prove the path, then continue. Record mechanism notes in `m{{N}}/realize.md`.
-   Present the mechanism set to the user, record their verbatim ok on
-   `requirements-confirmed`, then run
+   — prove the path, then continue. Record mechanism notes in `m{{N}}/realize.md` —
+   `plan` and `build` read this file as part of their scoped context, so write the
+   notes at the precision they need to implement against.
+   When a work file exists (new mechanisms), present the mechanism set to the user,
+   record their verbatim ok on `requirements-confirmed`, then run
    `node {{scripts_path}}/adhd-state.mjs work-gate realize --milestone {{N}}` —
    it must pass before the carving step writes any artifact.
 3. **Carve the feature DAG from diagram segments — entity-aware.** For every entity
@@ -82,7 +93,9 @@ Checked before the artifacts are written:
 
 ## Output
 `project/milestones/m{{N}}/features.md` — the feature DAG (existence = stage done) —
-plus `m{{N}}/realize.md` with the mechanism notes and any spike findings.
+plus `m{{N}}/realize.md` with the mechanism notes and any spike findings. The notes
+are not write-only: `plan` and `build` read them as the milestone's mechanism
+context, alongside the flow slice and `contract`.
 
 ## On completion
 1. Write the output files — the stage is done the moment `m{{N}}/features.md` exists.

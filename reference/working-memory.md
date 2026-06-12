@@ -14,7 +14,9 @@ its canonical home and deleted when the work is done.
 The high-effort stages — `vision`, `concepts`, `flows`, `realize`, `review` — plus
 the high-effort `evolve` and `prototype` commands
 create their work file as their first procedure step (a
-discipline the stage follows, not a script-enforced step). Medium/low stages (including
+discipline the stage follows, not a script-enforced step). One conditional:
+`realize` skips its work file for a baseline-only mechanism set — the mechanical
+condition and rationale live in reference/realize.md step 1. Medium/low stages (including
 `build` — its plan already is the memory) create none, with one exception: `brief`
 (medium) does — it carries user touchpoint #1.
 

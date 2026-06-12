@@ -30,7 +30,9 @@ the user to run `adhd realize --milestone {{N}}` first.
    `superpowers:writing-plans` for the feature. The feature's context is EXACTLY:
    its row in `m{{N}}/features.md`; the flow diagram(s) named in its `Feature` cell
    (`project/flows/<scenario>.md`); `node {{scripts_path}}/adhd-state.mjs contract <P>`
-   for every participant the feature implements; the surface stub
+   for every participant the feature implements; `m{{N}}/realize.md` — the
+   milestone's mechanism notes (which store/provider/library realizes each
+   capability); the surface stub
    (`project/surfaces/<name>.md`) if it serves a `ui` participant; and the target
    repo's code. **Whole-product reads are forbidden** — do not open `docs/CONCEPTS.md`
    or `project/map.md` wholesale; the flow slice IS the context.

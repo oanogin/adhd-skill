@@ -50,7 +50,12 @@ If it reports missing items, HALT. Tell the user exactly which predecessor stage
    full flow set (see reference/verify.md, flow checks): same trigger →
    contradictory outcomes; participant pairs with conflicting contracts; state
    transitions violating CONCEPTS lifecycles; flows consuming what no flow produces.
-   Resolve findings with the user in batch.
+   Resolve findings with the user in batch. **Mechanical skip:** when the total flow
+   set — this milestone's flows plus every previously drawn flow in
+   `project/flows/` — is a single flow, skip this step and note the skip in
+   `m{{N}}/flows.md`: every check above compares flows against each other, so with
+   one flow there is nothing to compare (the CONCEPTS-lifecycle check is already
+   covered by the sweep in step 2). Two or more flows anywhere in the set → run it.
 6. **Per-area sign-off (user touchpoint #2).** Walk the user through each area's
    diagrams. Record the verbatim ok on that area's gate line;
    `node {{scripts_path}}/adhd-state.mjs work-gate flows --milestone {{N}} --item <area>`
@@ -59,7 +64,9 @@ If it reports missing items, HALT. Tell the user exactly which predecessor stage
    waivers, and every change request and its resolution. Before writing it, run
    `node {{scripts_path}}/adhd-state.mjs work-gate flows --milestone {{N}}` with no
    `--item`: every area line plus `requirements-confirmed` must pass — a fail means
-   an area was never actually signed off. Its existence = stage done.
+   an area was never actually signed off. Its existence = stage done. This file is
+   an **audit record** — nothing downstream parses its body; its job is to preserve
+   the verbatim sign-offs before the work file is deleted. Keep it terse.
 8. **UI uncertainty?** If a surface's UX is genuinely uncertain, note it in
    `m{{N}}/flows.md` and run the on-demand `adhd prototype` command for that slice —
    it is never a gate.
