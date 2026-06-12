@@ -32,8 +32,8 @@ the user to run `adhd realize --milestone {{N}}` first.
    (`project/flows/<scenario>.md`); `node {{scripts_path}}/adhd-state.mjs contract <P>`
    for every participant the feature implements; the surface stub
    (`project/surfaces/<name>.md`) if it serves a `ui` participant; and the target
-   repo's code. **Whole-product reads are forbidden** — do not open `docs/CONCEPTS.md`,
-   `project/stories.md`, or `project/map.md` wholesale; the flow slice IS the context.
+   repo's code. **Whole-product reads are forbidden** — do not open `docs/CONCEPTS.md`
+   or `project/map.md` wholesale; the flow slice IS the context.
    **Design against the contract:** plan only the current flow's arrows, but shape
    signatures and schema for the participant's full contract.
 2. **Override the plan output path.** `writing-plans` defaults to

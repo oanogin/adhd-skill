@@ -44,9 +44,9 @@ Projects created before the flows redesign are blocked fail-closed: `gate` and
    (`| Participant | Kind | Concept |`) from the existing surfaces and services.
 3. **Stamp the generation** — `node <scripts>/adhd-state.mjs upgrade`.
 
-Existing artifacts stay valid: `stories.md` becomes the backlog index (its old
-`Surfaces` column is simply ignored), `CONCEPTS.md`/`PRODUCT.md`/`STACK.md` are
-unchanged, and the old prototype app remains a useful UX reference. The next
+Existing artifacts stay valid: an existing `stories.md` becomes inert readable
+history (nothing reads it, nothing blocks on it), `CONCEPTS.md`/`PRODUCT.md`/
+`STACK.md` are unchanged, and the old prototype app remains a useful UX reference. The next
 milestone runs `brief → flows` and flows accumulate from there. In-flight pre-flows
 milestones should be finished or re-briefed under the new chain.
 
@@ -157,7 +157,7 @@ node ~/.claude/skills/adhd/scripts/adhd-state.mjs contract <participant>
 ```
 
 It scans ALL of `project/flows/` and emits every message the participant receives and
-sends, plus its guards — each with flow and story refs. Zero drift, no maintenance.
+sends, plus its guards — each with flow refs. Zero drift, no maintenance.
 
 The transitive hard prerequisites of capability areas in the soft roadmap are computed
 via the `closure` command:
@@ -169,7 +169,7 @@ node ~/.claude/skills/adhd/scripts/adhd-state.mjs closure <areaId>...
 **Hard read scope at `plan`/`build`.** A feature's context is EXACTLY: its row in
 `m<N>/features.md` + the flow diagram(s) named in its `Feature` cell + `contract <P>`
 for every participant it implements + the surface stub (if applicable) + the target
-repo's code. Whole-product reads (`docs/CONCEPTS.md`, `project/stories.md`,
+repo's code. Whole-product reads (`docs/CONCEPTS.md`,
 `project/map.md` wholesale) are forbidden — the flow slice IS the context.
 
 ## Prototype (on demand)
@@ -240,7 +240,6 @@ project/
                              + domains/deployables
   surfaces/<name>.md         surface stub — purpose, UX intent, key states only
                              (behavior is derived: `contract <name>`)
-  stories.md                 the accumulated backlog index — rows derived at `flows`
   milestones/m<N>/
     brief.md                 Brief — the experience, scope closure, `## Flows` list
     flows.md                 Flows sign-off — per-area sign-offs, waivers, change log
@@ -258,11 +257,12 @@ not by hand. Everything else is plain markdown you (and `adhd`) edit directly.
 
 - **Commit gate** — `adhd` never runs `git commit` without your explicit "ok".
 - **Milestone discipline** — the front door for a mid-project change or new idea is
-  `/adhd evolve` (brainstorm, plan, drive artifact updates); a code-only correction is
-  `/adhd fix`. A new story filed to `project/stories.md` is picked up by a future
+  `/adhd evolve` (brainstorm, plan, drive artifact updates); a not-yet-actionable
+  idea goes to `/adhd park`; a code-only correction is
+  `/adhd fix`. A new flow lands in the global flow set and is picked up by a future
   `brief` — not bolted onto the milestone in flight.
 - **Capability, not mechanism** — the product-scope artifacts (`docs/PRODUCT.md`,
-  `project/stories.md`, `project/map.md`, `project/flows/*`) describe *what the product
+  `project/map.md`, `project/flows/*`) describe *what the product
   does* in capability terms — never a stack, framework, database, or architecture.
   Flows are **logical-altitude**: participants are concepts, never deployment decisions;
   a guard is behavior, not tech. Mechanisms are settled at `realize`.
@@ -276,7 +276,7 @@ not by hand. Everything else is plain markdown you (and `adhd`) edit directly.
 - **Single source of truth** — `adhd verify` (an agent-driven pass) checks the `.md`
   artifacts for drift, orphans, and misplaced info; `adhd-state.mjs validate` covers
   fast structural sanity — including flow checks (mermaid parse, undeclared participants,
-  registry membership, story links, flow-dependency cycles) whenever `project/flows/`
+  registry membership, flow-dependency cycles) whenever `project/flows/`
   has files.
 - **parking.md** — a durable, committed buffer you own, for ideas/details not yet ready
   to build. Free-form; an item stays until you implement it, then you remove it. Capture

@@ -4,8 +4,8 @@
 work. That is the point: conflicts are resolved here, where they cost a pencil stroke.
 **Gate:** `m{{N}}/brief.md` exists.
 **Output:** `project/flows/<scenario>.md` (one per scenario), the participant registry
-in `project/map.md`, derived story rows appended to `project/stories.md`, and
-`m{{N}}/flows.md` (the sign-off doc, written LAST — its existence is the done signal).
+in `project/map.md`, and `m{{N}}/flows.md` (the sign-off doc, written LAST — its
+existence is the done signal).
 **Sub-skill:** `superpowers:brainstorming`.
 
 `flows` declares ALL of the milestone's interactions as mermaid sequence diagrams
@@ -21,10 +21,10 @@ If it reports missing items, HALT. Tell the user exactly which predecessor stage
 1. **Start working memory + seed the gate.** Create `project/work/m{{N}}-flows.md`
    with `## Gate` + `## Left to do` + `## Log`. Seed one gate line per capability
    area in the brief (per-area batch sign-off), plus `requirements-confirmed`.
-2. **Derive the story set — never hand-pick.** For every in-scope entity, walk its
-   CONCEPTS lifecycle + invariants + relationships: every declared behavior either
-   gets a flow arrow in this milestone or an explicit waiver. Append the derived
-   stories to `project/stories.md` (`ID | Story | Value | Depends on | Size`). Keep IDs stable.
+2. **Run the CONCEPTS sweep — never hand-pick the flow set.** For every in-scope
+   entity, walk its CONCEPTS lifecycle + invariants + relationships: every declared
+   behavior either gets a flow arrow in this milestone or an explicit waiver. The
+   sweep's output is the flow set plus the waivers — nothing else.
 3. **Maintain the participant registry.** Every participant in any diagram must
    exist in `project/map.md`'s registry table:
    `| Participant | Kind | Concept |` with Kind ∈ actor/ui/service/store/external.
@@ -63,7 +63,7 @@ If it reports missing items, HALT. Tell the user exactly which predecessor stage
 ````markdown
 # Flow: <scenario>
 
-Stories: <ID, ID>
+Purpose: <one line — why this scenario exists; optional, human-readable only>
 Depends on: <other flow names, or none>
 
 ## Diagram

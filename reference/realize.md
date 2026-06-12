@@ -26,12 +26,12 @@ If it reports missing items, HALT. Tell the user exactly which predecessor stage
    - Run `node {{scripts_path}}/adhd-state.mjs contract <participant>` — its full
      cross-flow interface.
    - The FIRST feature for that entity is its skeleton: schema + interface shaped
-     from the full contract, sized for all flows. Per-story features then fill
+     from the full contract, sized for all flows. Per-flow features then fill
      behavior. Skeleton built once, extended N times, reworked zero.
    - A frontend feature wires a `ui` participant to its backend features and depends
      on them.
 4. **Write `m{{N}}/features.md`** as the standard table — exactly these columns:
-   `| ID | Feature | Story | Domain | Repo | Size | Depends on | Build | Verified |`
+   `| ID | Feature | Domain | Repo | Size | Depends on | Build | Verified |`
    Name the flow(s) a feature implements in its `Feature` cell (e.g.
    `redeem endpoint (invite-redeem)`) — `plan`/`build` read it to find the diagrams.
    Size `S` skips `plan`; when unsure write `M`. Leave Build/Verified empty.

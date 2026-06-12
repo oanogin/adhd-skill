@@ -19,7 +19,7 @@ code merely fails to match it:
 - a **breakage** — build, tests, types, or tooling broken.
 
 A change is **NOT** a fix when it alters what the product should do: a new or changed
-entity, story, surface, whole-product flow or rule, or data model. That is a scope
+entity, surface, whole-product flow or rule, or data model. That is a scope
 change — route it through `adhd evolve`. If mid-fix you discover the *spec* is what's
 wrong (a flow diagram, `CONCEPTS.md`), STOP and switch to `evolve` —
 the spec is corrected first, then the code follows it.

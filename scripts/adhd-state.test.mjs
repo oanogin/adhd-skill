@@ -8,7 +8,7 @@ import {
   defaultConfig, loadConfig, saveConfig, initConfig, CONFIG_VERSION,
   GROUNDWORK_STAGES, MILESTONE_STAGES, FEATURE_STAGES, SURFACE_KINDS, MODES, PROTOTYPE_TOPOLOGIES,
   PARTICIPANT_KINDS,
-  parseTable, parseTables, parseStories, parseFeatures, parseReviewFindings,
+  parseTable, parseTables, parseFeatures, parseReviewFindings,
   milestoneDirs,
   groundworkDone, milestoneStageDone, gate, nextStage, statusReport,
   validate, migrate, upgradeGeneration,
@@ -30,10 +30,10 @@ function w(cwd, rel, body = 'x') {
 function gitRepo() { const c = tmp(); fs.mkdirSync(path.join(c, '.git')); return c; }
 
 const FEATURES_MD = [
-  '| ID | Feature | Story | Domain | Repo | Depends on | Build | Verified |',
-  '|----|---------|-------|--------|------|------------|-------|----------|',
-  '| f-api | api work | S1 | reg | backend | | done | yes |',
-  '| f-ui  | ui work  | S1 | reg | backend | f-api | | |',
+  '| ID | Feature | Domain | Repo | Depends on | Build | Verified |',
+  '|----|---------|--------|------|------------|-------|----------|',
+  '| f-api | api work | reg | backend | | done | yes |',
+  '| f-ui  | ui work  | reg | backend | f-api | | |',
 ].join('\n');
 
 // Flows-generation groundwork helper (the only chain now).
@@ -100,13 +100,8 @@ test('parseTables splits separate tables instead of merging them', () => {
   assert.deepEqual(parseTable(t).header, ['id', 'name']);
 });
 
-test('parseStories / parseFeatures', () => {
+test('parseFeatures', () => {
   const cwd = tmp();
-  w(cwd, 'project/stories.md', '| ID | Story | Depends on |\n|--|--|--|\n| S1 | a | |\n| S2 | b | S1 |');
-  const stories = parseStories(cwd);
-  assert.deepEqual(stories.map((s) => s.id), ['S1', 'S2']);
-  assert.deepEqual(stories[1].dependsOn, ['S1']);
-
   w(cwd, 'project/milestones/m1/features.md', FEATURES_MD);
   const feats = parseFeatures(cwd, 1);
   assert.equal(feats.length, 2);
@@ -114,18 +109,22 @@ test('parseStories / parseFeatures', () => {
   assert.equal(feats[0].verified, true);
   assert.equal(feats[1].build, false);
   assert.deepEqual(feats[1].dependsOn, ['f-api']);
+  assert.equal(feats[0].story, undefined); // no story field anymore
 });
 
-test('parseStories: only {id, dependsOn} fields (no surfaces/provisionalSurfaces)', () => {
+test('parseFeatures: an old table with a Story column still parses (column ignored)', () => {
   const cwd = tmp();
-  w(cwd, 'project/stories.md',
-    '| ID | Story | Depends on | Surfaces |\n|--|--|--|--|\n' +
-    '| S1 | a | | Dashboard |\n' +
-    '| S2 | b | S1 | |');
-  const s = parseStories(cwd);
-  assert.deepEqual(Object.keys(s[0]).sort(), ['dependsOn', 'id']);
-  assert.equal(s[0].surfaces, undefined);
-  assert.equal(s[0].provisionalSurfaces, undefined);
+  w(cwd, 'project/milestones/m1/features.md', [
+    '| ID | Feature | Story | Domain | Repo | Depends on | Build | Verified |',
+    '|----|---------|-------|--------|------|------------|-------|----------|',
+    '| f-api | api work | S1 | reg | backend | | done | yes |',
+    '| f-ui  | ui work  | S1 | reg | backend | f-api | | |',
+  ].join('\n'));
+  const feats = parseFeatures(cwd, 1);
+  assert.equal(feats.length, 2);
+  assert.equal(feats[0].story, undefined);
+  assert.equal(feats[0].domain, 'reg'); // header-name lookup unaffected by the extra column
+  assert.deepEqual(feats[1].dependsOn, ['f-api']);
 });
 
 test('groundworkDone derives from files', () => {
@@ -206,8 +205,8 @@ test('gate: build is blocked by an unbuilt dependency feature', () => {
   // f-ui depends on f-api which IS built in FEATURES_MD -> passes
   assert.equal(gate(cwd, 'build', { milestone: 1, feature: 'f-ui' }).pass, true);
   // flip f-api to unbuilt
-  w(cwd, 'project/milestones/m1/features.md', FEATURES_MD.replace('| f-api | api work | S1 | reg | backend | | done | yes |',
-    '| f-api | api work | S1 | reg | backend | | | |'));
+  w(cwd, 'project/milestones/m1/features.md', FEATURES_MD.replace('| f-api | api work | reg | backend | | done | yes |',
+    '| f-api | api work | reg | backend | | | |'));
   const g = gate(cwd, 'build', { milestone: 1, feature: 'f-ui' });
   assert.equal(g.pass, false);
   assert.ok(g.missing.some((x) => /unbuilt/.test(x) && /f-api/.test(x)));
@@ -221,8 +220,8 @@ test('gate: review needs realize done + every feature built and verified', () =>
   w(cwd, 'project/milestones/m1/features.md', FEATURES_MD); // f-ui not built
   assert.equal(gate(cwd, 'review', { milestone: 1 }).pass, false);
   w(cwd, 'project/milestones/m1/features.md', FEATURES_MD
-    .replace('| f-ui  | ui work  | S1 | reg | backend | f-api | | |',
-      '| f-ui  | ui work  | S1 | reg | backend | f-api | done | yes |'));
+    .replace('| f-ui  | ui work  | reg | backend | f-api | | |',
+      '| f-ui  | ui work  | reg | backend | f-api | done | yes |'));
   assert.equal(gate(cwd, 'review', { milestone: 1 }).pass, true);
 });
 
@@ -306,10 +305,10 @@ test('nextStage interleaves plan and build feature by feature', () => {
   w(cwd, 'project/milestones/m1/brief.md');
   w(cwd, 'project/milestones/m1/flows.md');
   const feats = [
-    '| ID | Feature | Story | Domain | Repo | Depends on | Build | Verified |',
-    '|--|--|--|--|--|--|--|--|',
-    '| f-api | a | S1 | d | r | | | |',
-    '| f-ui  | b | S1 | d | r | f-api | | |',
+    '| ID | Feature | Domain | Repo | Depends on | Build | Verified |',
+    '|--|--|--|--|--|--|--|',
+    '| f-api | a | d | r | | | |',
+    '| f-ui  | b | d | r | f-api | | |',
   ].join('\n');
   w(cwd, 'project/milestones/m1/features.md', feats);
   const nx = () => { const n = nextStage(cwd, { milestone: 1 }); return [n.stage, n.feature]; };
@@ -320,7 +319,7 @@ test('nextStage interleaves plan and build feature by feature', () => {
   assert.deepEqual(nx(), ['build', 'f-api']);
   // f-api built -> now plan f-ui
   w(cwd, 'project/milestones/m1/features.md',
-    feats.replace('| f-api | a | S1 | d | r | | | |', '| f-api | a | S1 | d | r | | done | yes |'));
+    feats.replace('| f-api | a | d | r | | | |', '| f-api | a | d | r | | done | yes |'));
   assert.deepEqual(nx(), ['plan', 'f-ui']);
   // f-ui planned -> build f-ui
   w(cwd, 'project/milestones/m1/plans/f-ui.md');
@@ -602,11 +601,11 @@ test('workGate: milestone work file resolves m<N> path', () => {
 test('parseFeatures: Size column read; missing column defaults to M', () => {
   const cwd = tmp();
   w(cwd, 'project/milestones/m1/features.md', [
-    '| ID | Feature | Story | Domain | Repo | Size | Depends on | Build | Verified |',
-    '|--|--|--|--|--|--|--|--|--|',
-    '| f-a | a | S1 | d | r | S | | | |',
-    '| f-b | b | S1 | d | r | L | f-a | | |',
-    '| f-c | c | S1 | d | r | | f-a | | |',
+    '| ID | Feature | Domain | Repo | Size | Depends on | Build | Verified |',
+    '|--|--|--|--|--|--|--|--|',
+    '| f-a | a | d | r | S | | | |',
+    '| f-b | b | d | r | L | f-a | | |',
+    '| f-c | c | d | r | | f-a | | |',
   ].join('\n'));
   const feats = parseFeatures(cwd, 1);
   assert.deepEqual(feats.map((f) => f.size), ['S', 'L', 'M']);
@@ -620,10 +619,10 @@ test('gate: a Size S feature may build without a plan; M may not', () => {
   w(cwd, 'project/milestones/m1/brief.md');
   w(cwd, 'project/milestones/m1/flows.md');
   w(cwd, 'project/milestones/m1/features.md', [
-    '| ID | Feature | Story | Domain | Repo | Size | Depends on | Build | Verified |',
-    '|--|--|--|--|--|--|--|--|--|',
-    '| f-s | small | S1 | d | r | S | | | |',
-    '| f-m | medium | S1 | d | r | M | | | |',
+    '| ID | Feature | Domain | Repo | Size | Depends on | Build | Verified |',
+    '|--|--|--|--|--|--|--|--|',
+    '| f-s | small | d | r | S | | | |',
+    '| f-m | medium | d | r | M | | | |',
   ].join('\n'));
   assert.equal(gate(cwd, 'build', { milestone: 1, feature: 'f-s' }).pass, true);
   const g = gate(cwd, 'build', { milestone: 1, feature: 'f-m' });
@@ -637,18 +636,18 @@ test('nextStage: Size S feature skips plan and goes straight to build', () => {
   w(cwd, 'project/milestones/m1/brief.md');
   w(cwd, 'project/milestones/m1/flows.md');
   w(cwd, 'project/milestones/m1/features.md', [
-    '| ID | Feature | Story | Domain | Repo | Size | Depends on | Build | Verified |',
-    '|--|--|--|--|--|--|--|--|--|',
-    '| f-s | small | S1 | d | r | S | | | |',
-    '| f-m | medium | S1 | d | r | M | f-s | | |',
+    '| ID | Feature | Domain | Repo | Size | Depends on | Build | Verified |',
+    '|--|--|--|--|--|--|--|--|',
+    '| f-s | small | d | r | S | | | |',
+    '| f-m | medium | d | r | M | f-s | | |',
   ].join('\n'));
   let n = nextStage(cwd, { milestone: 1 });
   assert.deepEqual([n.stage, n.feature], ['build', 'f-s']);
   w(cwd, 'project/milestones/m1/features.md', [
-    '| ID | Feature | Story | Domain | Repo | Size | Depends on | Build | Verified |',
-    '|--|--|--|--|--|--|--|--|--|',
-    '| f-s | small | S1 | d | r | S | | done | yes |',
-    '| f-m | medium | S1 | d | r | M | f-s | | |',
+    '| ID | Feature | Domain | Repo | Size | Depends on | Build | Verified |',
+    '|--|--|--|--|--|--|--|--|',
+    '| f-s | small | d | r | S | | done | yes |',
+    '| f-m | medium | d | r | M | f-s | | |',
   ].join('\n'));
   n = nextStage(cwd, { milestone: 1 });
   assert.deepEqual([n.stage, n.feature], ['plan', 'f-m']);
@@ -682,8 +681,8 @@ test('gate: finalize blocked by an open critical review finding', () => {
   w(cwd, 'project/milestones/m1/brief.md');
   w(cwd, 'project/milestones/m1/flows.md');
   w(cwd, 'project/milestones/m1/features.md', FEATURES_MD
-    .replace('| f-ui  | ui work  | S1 | reg | backend | f-api | | |',
-      '| f-ui  | ui work  | S1 | reg | backend | f-api | done | yes |'));
+    .replace('| f-ui  | ui work  | reg | backend | f-api | | |',
+      '| f-ui  | ui work  | reg | backend | f-api | done | yes |'));
   w(cwd, 'project/milestones/m1/review.md', [
     '| ID | Finding | Where | Severity | Fix | Status |',
     '|--|--|--|--|--|--|',
@@ -735,7 +734,7 @@ test('milestoneStageDone: flows-gen artifacts', () => {
 
 const FLOW_MD = `# Flow: invite-redeem
 
-Stories: S1, S2
+Purpose: a recipient turns an invite code into membership
 Depends on: context-switch
 
 ## Diagram
@@ -785,7 +784,19 @@ test('parseFlows: header fields + diagram per file', () => {
   const flows = parseFlows(c);
   assert.equal(flows.length, 1);
   assert.equal(flows[0].name, 'invite-redeem');
-  assert.deepEqual(flows[0].stories, ['S1', 'S2']);
+  assert.deepEqual(flows[0].dependsOn, ['context-switch']);
+  assert.equal(flows[0].arrows.length, 5);
+  assert.equal(flows[0].stories, undefined); // story layer dropped
+});
+
+test('parseFlows: an old file with a Stories: line still parses (line ignored)', () => {
+  const c = tmp();
+  w(c, 'project/flows/invite-redeem.md', FLOW_MD.replace(
+    'Purpose: a recipient turns an invite code into membership',
+    'Stories: S1, S2'));
+  const flows = parseFlows(c);
+  assert.equal(flows.length, 1);
+  assert.equal(flows[0].stories, undefined);
   assert.deepEqual(flows[0].dependsOn, ['context-switch']);
   assert.equal(flows[0].arrows.length, 5);
 });
@@ -811,14 +822,15 @@ test('parseRegistry: reads the participant table from map.md', () => {
   assert.deepEqual(PARTICIPANT_KINDS, ['actor', 'ui', 'service', 'store', 'external']);
 });
 
-test('contract: receives/sends/guards across all flows, with flow+story refs', () => {
+test('contract: receives/sends/guards across all flows, with flow refs', () => {
   const c = tmp();
   w(c, 'project/flows/invite-redeem.md', FLOW_MD);
   const r = contract(c, 'invitation');
   assert.equal(r.receives.length, 1);
   assert.match(r.receives[0], /redeem\(code\)/);
   assert.match(r.receives[0], /← invite-resolver/);
-  assert.match(r.receives[0], /invite-redeem · S1,S2/);
+  assert.match(r.receives[0], /\[invite-redeem\]/);
+  assert.doesNotMatch(r.receives[0], /·/); // no story suffix
   assert.equal(r.sends.length, 2); // refused + member granted -> invite-resolver
   assert.equal(r.guards.length, 1); // rate-limit self-arrow
   assert.match(r.guards[0], /rate-limit check/);
@@ -898,20 +910,22 @@ test('gate: plan/build/review/finalize ride the features DAG, no tracks', () => 
   assert.equal(gate(c, 'evolve', {}).pass, true); // concepts done is enough
 });
 
-test('validate: flows project skips the classic Surfaces selection gate entirely', () => {
+test('validate: an existing stories.md is inert — nothing reads it, nothing blocks', () => {
   const c = tmp();
   groundwork(c);
-  w(c, 'project/stories.md', '| ID | Story |\n|---|---|\n| S1 | a |'); // no Surfaces column at all
-  w(c, 'project/milestones/m1/brief.md', 'covers S1');
+  w(c, 'project/stories.md', '| ID | Story | Surfaces |\n|---|---|---|\n| S1 | a | Dashboard |');
+  w(c, 'project/milestones/m1/brief.md', 'covers invite-redeem');
+  w(c, 'project/map.md', MAP_MD);
+  w(c, 'project/flows/invite-redeem.md', FLOW_MD.replace('Depends on: context-switch', 'Depends on:'));
   const r = validate(c);
-  assert.ok(!r.blockers.some((b) => /Surfaces/.test(b)));
+  assert.ok(!r.blockers.some((b) => /stor/i.test(b)));
+  assert.ok(!r.warnings.some((x) => /stor/i.test(x)));
 });
 
 test('validate: flow checks — unknown dep, undeclared participant', () => {
   const c = tmp();
   groundwork(c);
   w(c, 'project/map.md', MAP_MD);
-  w(c, 'project/stories.md', '| ID | Story |\n|---|---|\n| S1 | a |\n| S2 | b |');
   w(c, 'project/flows/invite-redeem.md', FLOW_MD.replace('Depends on: context-switch', 'Depends on: nope'));
   let r = validate(c);
   assert.ok(r.blockers.some((b) => /depends on unknown flow "nope"/.test(b)));
@@ -963,7 +977,7 @@ test('validate: unparseable arrow-like lines produce blockers', () => {
   const c = tmp();
   groundwork(c);
   const badFlow = `# Flow: bad-flow
-Stories: S1
+Purpose: exercise unparseable arrows
 
 \`\`\`mermaid
 sequenceDiagram
@@ -987,7 +1001,7 @@ test('validate: participant kind mismatch with registry → blocker', () => {
   w(c, 'project/map.md', MAP_MD);
   // We construct a fresh flow where invitation is declared as [api] but registry says service
   const flowWithWrongKind = `# Flow: invite-redeem
-Stories: S1, S2
+Purpose: redeem an invite
 
 \`\`\`mermaid
 sequenceDiagram
@@ -1010,7 +1024,7 @@ test('validate: participant with no [kind] suffix → warning (not blocker)', ()
   w(c, 'project/map.md', MAP_MD);
   // invite-resolver has no [kind] suffix in the flow
   const flowNoKind = `# Flow: invite-redeem
-Stories: S1, S2
+Purpose: redeem an invite
 
 \`\`\`mermaid
 sequenceDiagram
@@ -1035,7 +1049,7 @@ test('validate: actor participant with no [kind] suffix and registry kind actor 
   w(c, 'project/map.md', MAP_MD);
   // Recipient is declared as `actor R as Recipient` — no [kind] suffix; registry says actor
   const flowActorNoSuffix = `# Flow: invite-redeem
-Stories: S1, S2
+Purpose: redeem an invite
 
 \`\`\`mermaid
 sequenceDiagram

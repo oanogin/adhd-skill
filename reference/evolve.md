@@ -7,7 +7,7 @@ work file is drained and deleted.
 **Sub-skill:** `superpowers:brainstorming`.
 
 `evolve` is the **single front door for every change after groundwork is complete** —
-new features, adjustments to concepts, story edits, prototype revisions, data-model
+new features, adjustments to concepts, flow edits, prototype revisions, data-model
 updates, and map changes all enter through here. The one thing that does NOT come
 through `evolve` is a **code-only correction** — a bug, misplaced code, a convention
 violation — where the spec is already right and the code is wrong: that is
@@ -16,9 +16,11 @@ violation — where the spec is already right and the code is wrong: that is
 produce a canonical artifact of its own; instead it sequences re-runs of the living
 groundwork artifacts so the whole set stays internally consistent. In the **flows
 generation** that living set is `concepts → flows` (plus the participant registry in
-`project/map.md` and the `project/stories.md` index). It
-**never creates or starts a milestone** — a new story lands in the backlog; the user
-then runs `brief` to schedule it.
+`project/map.md`). A new idea mid-project routes by actionability: not yet actionable
+→ `adhd park` (the parking lot is the idea backlog); actionable now → `evolve`
+sequences it into the spec as a flow. `evolve` **never creates or starts a
+milestone** — a new flow lands in the global flow set; the user then runs `brief` to
+schedule it.
 
 ## Gate check
 
@@ -40,18 +42,9 @@ No skip, no override — this is the skill's central discipline.
 
 2. **Write the impact plan.** Populate `## Impact plan` in `project/work/evolve.md` with
    an **ordered checklist** of which living artifacts must change and why, in dependency
-   order (`concepts → flows → map/stories …`). Include only the stages the
+   order (`concepts → flows → map …`). Include only the stages the
    change actually touches. Each checklist item names the stage and the specific mutation
    it must make (e.g. `[ ] concepts — add "Subscription" entity and its lifecycle`).
-
-   > **Fast path — backlog-text-only edits.** If triage shows the change touches ONLY
-   > `project/stories.md` text — rewording a story, adjusting `Value`/`Size`/`Depends
-   > on`, or removing a never-selected story — with **no new story, no new entity, no
-   > `Surfaces` change, no flow/rule change, and no data impact**: skip the work file
-   > and impact plan entirely. Confirm the exact edit with the user, apply it directly
-   > to `project/stories.md` (IDs stay stable), done. The moment the change is anything
-   > more — a new story, a concept touched, a surface drawn — run the full procedure;
-   > the ripple check is exactly what `evolve` exists for.
 
 3. **Confirm the plan with the user.** Walk the user through the impact plan, explain
    why each stage is included, and get explicit agreement before making any changes.
@@ -61,16 +54,15 @@ No skip, no override — this is the skill's central discipline.
    stage's full procedure — `adhd concepts` / `adhd flows` / etc.
    Each sub-run keeps its **own gates and work-gates**; they must not be skipped.
    Check the item in `## Impact plan` only after the sub-run's own `## On completion`
-   steps finish. A new story becomes implementable when a flow realizes it — stories
-   carry no `Surfaces` column.
+   steps finish.
 
-   > **Milestone boundary:** `evolve` never creates or starts a milestone. A new story
-   > lands in the backlog. When the impact plan is fully executed, the user runs
-   > `brief` to schedule it.
+   > **Milestone boundary:** `evolve` never creates or starts a milestone. A new flow
+   > lands in the global flow set. When the impact plan is fully executed, the user
+   > runs `brief` to schedule it.
 
    > **Flow change.** Correct the diagram first: edit
-   > `project/flows/<scenario>.md`, update the registry/stories index if participants or
-   > stories changed, run `node {{scripts_path}}/adhd-state.mjs validate` plus the flow
+   > `project/flows/<scenario>.md`, update the registry if participants
+   > changed, run `node {{scripts_path}}/adhd-state.mjs validate` plus the flow
    > checks of the `verify` pass, get the user's sign-off on the diagram diff — then
    > route the affected code to `adhd fix` (code wrong, diagram right) or a new feature
    > row in the owning milestone's `features.md` (new work).
@@ -79,7 +71,7 @@ No skip, no override — this is the skill's central discipline.
 
 None of its own. `evolve` leaves the living artifacts updated and mutually consistent:
 `docs/CONCEPTS.md`, `project/flows/`, `project/map.md` (participant
-registry), `project/stories.md` (index), `docs/DATA.md` (as applicable).
+registry), `docs/DATA.md` (as applicable).
 
 ## On completion
 
@@ -89,4 +81,4 @@ registry), `project/stories.md` (index), `docs/DATA.md` (as applicable).
    remain only in the work file.
 3. Delete `project/work/evolve.md`. The `verify` pass flags a leftover `evolve.md`.
 4. Tell the user the relevant next step — for example: run `brief` to schedule a
-   newly-specced story into an upcoming milestone.
+   newly-specced flow into an upcoming milestone.

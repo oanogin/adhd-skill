@@ -1,6 +1,6 @@
 ---
 name: adhd
-description: "Use when starting, structuring, or building a software project end-to-end and you want a conductor that front-loads vision, scope, and structure before any code, then forbids skipping ahead. Triggers: /adhd, project kickoff, 'where am I in the build', milestone planning, scope discipline, story backlog, flow diagram sign-off, resume after a fresh session, new feature idea raised mid-project, a bugfix or in-place code correction on an adhd project, a stage gate refusing to run."
+description: "Use when starting, structuring, or building a software project end-to-end and you want a conductor that front-loads vision, scope, and structure before any code, then forbids skipping ahead. Triggers: /adhd, project kickoff, 'where am I in the build', milestone planning, scope discipline, flow diagram sign-off, resume after a fresh session, new feature idea raised mid-project, a bugfix or in-place code correction on an adhd project, a stage gate refusing to run."
 argument-hint: "[stage] [milestone|feature]"
 user-invocable: true
 license: Apache 2.0
@@ -152,7 +152,7 @@ milestone owns. Format and authoring rules:
   participants); rework risk is horizontal (one entity, many flows). The horizontal
   view is computed: `node {{scripts_path}}/adhd-state.mjs contract <participant>`
   emits everything that participant receives, sends, and guards across ALL flows, with
-  flow + story refs. Flows stay the single source of truth — zero drift.
+  flow refs. Flows stay the single source of truth — zero drift.
 - **Surface stubs.** `project/surfaces/<name>.md` holds a `ui` participant's purpose,
   UX intent, and key states ONLY — its behavior is derived via `contract`.
 
@@ -164,8 +164,7 @@ milestone owns. Format and authoring rules:
 | Rule's place in an interaction | flow arrow (references, never restates) |
 | Capability dependency map | `docs/CONCEPTS.md` |
 | Participant existence | `project/map.md` registry |
-| Story backlog index | `project/stories.md` |
-| Story ↔ flow link | flow file header |
+| Pending / not-yet-actionable ideas | `project/parking.md` |
 | Surface behavior | derived — `contract <ui-name>` |
 | Surface UX intent | `project/surfaces/<name>.md` stub |
 | Entity interface across flows | derived — `contract <participant>` |
@@ -176,10 +175,10 @@ milestone owns. Format and authoring rules:
 
 `realize` carves the signed-off flows into **features** — small work units cut from
 diagram segments, each in exactly one domain (one repo), recorded as the
-`m<N>/features.md` table (`ID | Feature | Story | Domain | Repo | Size | Depends on |
+`m<N>/features.md` table (`ID | Feature | Domain | Repo | Size | Depends on |
 Build | Verified` — `adhd-state.mjs` parses it; keep the layout intact). Carving is
 **entity-aware, skeleton-first**: an entity's first feature is its skeleton shaped
-from its full `contract`; per-story features fill behavior. The `Feature` cell names
+from its full `contract`; per-flow features fill behavior. The `Feature` cell names
 the flow(s) implemented — `plan`/`build` read it to find the diagrams. `Size: S`
 skips `plan`. Full carving rules: [reference/realize.md](reference/realize.md).
 
@@ -240,7 +239,7 @@ procedure:
 - `verify` — agent-driven content/consistency audit of the artifacts.
   [reference/verify.md](reference/verify.md)
 - `evolve` — the single front door for every post-sign-off spec change; sequences
-  `concepts → flows` (+ registry + stories index) re-runs.
+  `concepts → flows` (+ registry) re-runs.
   [reference/evolve.md](reference/evolve.md)
 - `park` — capture a not-yet-actionable idea into `project/parking.md`.
   [reference/park.md](reference/park.md)
@@ -270,9 +269,9 @@ or feature, edit the markdown.
    - "behavior is wrong or missing in the spec" → `evolve` (diagram corrected first,
      code follows); "code contradicts a signed-off diagram / is buggy or misplaced,
      spec is fine" → `fix`; "this screen needs deeper UI" → on-demand `prototype`;
-   - a new story idea mid-project → `evolve` (files it to the `stories.md` index; a
-     flow realizes it in a later milestone); warn if it would expand the current
-     milestone — do not hard-block;
+   - a new idea mid-project → `adhd park` if not yet actionable, `evolve` if
+     actionable now (it lands as a flow; a later milestone schedules it); warn if it
+     would expand the current milestone — do not hard-block;
    - if the task implies skipping ahead, name the blocking gate instead of running it;
    - state the routing decision, then proceed — confirming first when the task is
      ambiguous or the action mutates files.
@@ -294,7 +293,7 @@ If `project/config.json` does not exist, the only runnable stage is `setup`.
   user interrupts are code-contradicts-diagram and the commit gate.
 - **Hard read scope (`plan`/`build`)** — a feature's context is its feature row, its
   flow diagram(s), `contract <P>` per implemented participant, the surface stub, and
-  the target repo's code. Whole-product reads (`CONCEPTS.md`, `stories.md`, `map.md`
+  the target repo's code. Whole-product reads (`CONCEPTS.md`, `map.md`
   wholesale) are forbidden — the flow slice IS the context.
 - **Commit gate** — NEVER `git commit` without the user's explicit "ok" / "lgtm". No
   exceptions.
@@ -307,7 +306,7 @@ If `project/config.json` does not exist, the only runnable stage is `setup`.
 - **No "MVP"** — never write "MVP" in any artifact or message. Say "Milestone 1" or
   "the first valuable product".
 - **Capability, not mechanism** — product-scope artifacts (`PRODUCT.md`,
-  `stories.md`, `map.md`, `flows/*`) name capabilities, never stack/framework/
+  `map.md`, `flows/*`) name capabilities, never stack/framework/
   database/architecture. Flows are logical-altitude.
 - **Tech at the latest responsible moment** — `foundation` records only the firm
   baseline in `STACK.md`; every other mechanism is settled by the milestone that
@@ -339,7 +338,7 @@ Operational slips (gate rationalizations are tabled above):
 | Letting sub-skills write to their default `docs/superpowers/` paths. | Pass the canonical target on every invocation. |
 | Using an undeclared participant in a flow. | Register it in `project/map.md` first; `validate` fails on ad-hoc names. |
 | Restating a CONCEPTS rule inside a flow. | Reference and place, never restate — a restated rule is a second home that will drift. |
-| Hand-picking the story set at `flows`. | Derive it from the CONCEPTS sweep — every declared behavior gets an arrow or an explicit waiver. |
+| Hand-picking the flow set at `flows`. | Derive it from the CONCEPTS sweep — every declared behavior gets an arrow or an explicit waiver. |
 | Implementing arrows beyond the current flow. | Shape signatures for the full contract; implement only this flow's arrows. |
 | Editing a signed-off flow outside `evolve`. | `evolve` is the single front door — diagram corrected and re-validated first. |
 | Invoking `impeccable` for a non-`ui` participant. | `impeccable` runs only for `ui` work. |
@@ -358,6 +357,6 @@ node {{scripts_path}}/handoff-prompt.mjs
 ```
 
 - `contract <participant>` — derived cross-flow view: receives/sends/guards with flow
-  + story refs.
+  refs.
 - `closure <areaId>...` — transitive hard prerequisites off the capability map (the
   `brief` stage's mechanical-closure layer; soft edges surfaced as decide-explicitly).

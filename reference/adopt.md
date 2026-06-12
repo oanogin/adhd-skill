@@ -56,13 +56,12 @@ milestone or a `docs/DECISIONS.md` entry. `adopt` does not block on it.
    That is the whole list — plus the **capability dependency
    map** inside `docs/CONCEPTS.md` (mark the already-built areas as built — adoption
    means much of the map is green) and `project/map.md`'s **participant registry**
-   seeded from the existing code's surfaces and services. Do NOT draft
-   `project/stories.md` — stories and flows are derived per
+   seeded from the existing code's surfaces and services. Flows are derived per
    milestone by the `flows` stage.
    There is no roadmap artifact: milestones are formed just-in-time at `brief`,
    so `adopt` does not produce one.
 4. **Never invent.** Where the source docs do not cover something, flag the gap and ask
-   the user — do not fabricate vision, scope, or stories. Same discipline as the
+   the user — do not fabricate vision, scope, or behavior. Same discipline as the
    `vision` stage.
 5. **Record completion.** After the user confirms each artifact, write the canonical
    file. A groundwork stage is done the moment its artifact exists — there is no
@@ -74,5 +73,5 @@ milestone or a `docs/DECISIONS.md` entry. `adopt` does not block on it.
 1. Confirm all four groundwork stages register as done (`node {{scripts_path}}/adhd-state.mjs status`).
 2. The project now resumes at the per-milestone loop exactly as a groundwork-loaded
    project would. Tell the user the next runnable stage is `brief` for milestone 1.
-3. For any future changes to concepts, stories, or the data model —
+3. For any future changes to concepts, flows, or the data model —
    use `adhd evolve`. It is the single front door for every post-groundwork change.

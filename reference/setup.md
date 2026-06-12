@@ -72,7 +72,6 @@ project/
                              + domains/deployables
   surfaces/<name>.md         surface stub — purpose, UX intent, key states only
                              (behavior is derived: contract <name>)
-  stories.md                 the accumulated backlog index — rows derived at flows
   milestones/m<N>/
     brief.md                 Brief — the experience, scope closure, ## Flows list
     flows.md                 Flows sign-off — per-area sign-offs, waivers, change log

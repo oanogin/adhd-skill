@@ -12,7 +12,9 @@ else the user owns that file and edits it directly; `park` exists so a half-form
 can be sharpened into a clear, self-contained entry before it is stored. It **captures
 only** — it never implements, never writes a spec, and never proceeds to `writing-plans`.
 
-`project/parking.md` is durable and committed. An item lives there precisely because it
+`project/parking.md` is durable and committed. It is also the project's **idea
+backlog**: a new idea that is not yet actionable is parked here (an actionable one
+goes through `adhd evolve` as a flow). An item lives there precisely because it
 is not yet implemented; when it is implemented, the user removes it. There is no status
 field and no structure imposed by `adhd` — long prose, mermaid diagrams, and code
 sketches are all fine.

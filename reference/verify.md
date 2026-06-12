@@ -38,12 +38,11 @@ with clean eyes and does not pollute the conductor's context:
    appearing in `CONCEPTS.md` (fields belong in `docs/DATA.md`, participants/placement
    in `project/map.md`).
 4. **Capability, not mechanism.** Stack, framework, or database names leaking into the
-   product-scope docs (`docs/PRODUCT.md`, `project/stories.md`, `project/map.md`,
+   product-scope docs (`docs/PRODUCT.md`, `project/map.md`,
    `project/flows/*`). The prototype *app* is the only legitimate place mechanisms
    appear.
-5. **Story / feature integrity.** Features pointing at unknown stories, unknown repo
-   references (a `multi`-mode feature naming a repo not registered in `config.json`),
-   dangling dependency IDs, dependency cycles, duplicate story IDs.
+5. **Feature integrity.** Unknown repo references (a `multi`-mode feature naming a
+   repo not registered in `config.json`), dangling dependency IDs, dependency cycles.
 6. **Stale work files.** Any `project/work/*.md` whose stage is already complete (its
    artifact exists) is stale — its durable facts should have been drained to their
    canonical home and the file deleted.

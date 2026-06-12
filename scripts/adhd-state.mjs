@@ -127,18 +127,6 @@ export function parseTable(text) {
 
 const clean = (s) => (s ?? '').replace(/`/g, '').trim();
 
-export function parseStories(cwd) {
-  if (!exists(cwd, 'project/stories.md')) return null;
-  const { header, rows } = parseTable(read(cwd, 'project/stories.md'));
-  const idC = header.indexOf('id');
-  const depC = header.indexOf('depends on');
-  if (idC < 0) return [];
-  return rows.map((r) => ({
-    id: clean(r[idC]),
-    dependsOn: depC >= 0 ? clean(r[depC]).split(',').map((s) => s.trim()).filter(Boolean) : [],
-  })).filter((s) => s.id);
-}
-
 function milestoneRel(m, ...sub) { return path.join('project/milestones', `m${m}`, ...sub); }
 
 export function milestoneDirs(cwd) {
@@ -156,11 +144,10 @@ export function parseFeatures(cwd, m) {
   if (!exists(cwd, rel)) return null;
   const { header, rows } = parseTable(read(cwd, rel));
   const c = (name) => header.indexOf(name);
-  const idC = c('id'), storyC = c('story'), domainC = c('domain'),
+  const idC = c('id'), domainC = c('domain'),
     repoC = c('repo'), sizeC = c('size'), depC = c('depends on'), buildC = c('build'), verC = c('verified');
   return rows.map((r) => ({
     id: clean(r[idC]),
-    story: storyC >= 0 ? clean(r[storyC]) || null : null,
     domain: domainC >= 0 ? clean(r[domainC]) || null : null,
     repo: repoC >= 0 ? clean(r[repoC]) || null : null,
     // Size S = small + fully specified by its flow slice / surface spec and the feature row;
@@ -192,9 +179,10 @@ export function parseReviewFindings(cwd, m) {
 }
 
 // ---- flow parsing (project/flows/*.md) ----
-// A flow file holds one scenario: a `Stories:` line, a `Depends on:` line, and a
-// mermaid sequenceDiagram. Arrows are data: the contract command and the
-// validate checks are built on this parse.
+// A flow file holds one scenario: an optional `Purpose:` line (human-readable,
+// not machine-consumed), a `Depends on:` line, and a mermaid sequenceDiagram.
+// Arrows are data: the contract command and the validate checks are built on
+// this parse.
 export function parseFlowDiagram(text) {
   const participants = [];
   const arrows = [];
@@ -250,7 +238,6 @@ export function parseFlows(cwd) {
       .filter((s) => s && s !== '—' && s !== '-' && !/^none$/i.test(s)) ?? [];
     return {
       name: f.slice(0, -3),
-      stories: list(/^stories:\s*(.+)$/im),
       dependsOn: list(/^depends on:\s*(.+)$/im),
       ...parseFlowDiagram(text),
     };
@@ -271,8 +258,8 @@ export function parseRegistry(cwd) {
 
 // Derived entity contract: every message a participant receives (its complete
 // interface), sends (its dependencies), and self-arrows (guards/lifecycle) —
-// across ALL flows, with flow + story refs. Derived, never stored: flows stay
-// the single source of truth, so this view cannot drift.
+// across ALL flows, with flow refs. Derived, never stored: flows stay the
+// single source of truth, so this view cannot drift.
 export function contract(cwd, name) {
   const out = { receives: [], sends: [], guards: [] };
   for (const fl of parseFlows(cwd)) {
@@ -280,7 +267,7 @@ export function contract(cwd, name) {
     const mine = new Set(fl.participants
       .filter((p) => p.id === name || p.label === name).map((p) => p.id));
     if (!mine.size) continue;
-    const ref = `[${fl.name}${fl.stories.length ? ` · ${fl.stories.join(',')}` : ''}]`;
+    const ref = `[${fl.name}]`;
     const label = (id) => byId[id]?.label ?? id;
     for (const a of fl.arrows) {
       const from = mine.has(a.from), to = mine.has(a.to);
@@ -665,7 +652,6 @@ export function validate(cwd = process.cwd()) {
   if (flows.length) {
     const flowNames = new Set(flows.map((f) => f.name));
     const regNames = new Set((parseRegistry(cwd) ?? []).map((p) => p.name));
-    const storyIds = new Set((parseStories(cwd) ?? []).map((s) => s.id));
     for (const fl of flows) {
       if (!fl.arrows.length) blockers.push(`flow "${fl.name}": no sequence-diagram arrows found`);
       for (const issue of fl.branchIssues) blockers.push(`flow "${fl.name}": ${issue}`);
@@ -698,11 +684,6 @@ export function validate(cwd = process.cwd()) {
               warnings.push(`flow "${fl.name}": participant "${p.label}" has no [kind] suffix (registry: ${regEntry})`);
             }
           }
-        }
-      }
-      if (storyIds.size) {
-        for (const s of fl.stories) {
-          if (!storyIds.has(s)) warnings.push(`flow "${fl.name}": story "${s}" not found in project/stories.md`);
         }
       }
       for (const d of fl.dependsOn) {

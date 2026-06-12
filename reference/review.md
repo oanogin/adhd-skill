@@ -32,8 +32,8 @@ if a feature is built but not verified, complete its verification first.
    Look for cross-surface consistency, visual and information hierarchy, the milestone
    journey holding together end to end, and whether the must-have security and
    error-handling commitments from `brief.md` were delivered.
-4. **Check story and feature coverage.** Verify every story chosen in `m{{N}}/brief.md`
-   is actually delivered by the milestone's features, and — for a cross-domain milestone
+4. **Check flow and feature coverage.** Verify every flow in `m{{N}}/brief.md`'s
+   `## Flows` list is actually delivered by the milestone's features, and — for a cross-domain milestone
    — that each participating domain's work was addressed. Nothing chosen should be
    silently skipped. Run the `verify` pass (see [reference/verify.md](verify.md)) and resolve findings.
 5. **Arrow coverage (flows generation).** For every flow the milestone owns
@@ -60,7 +60,7 @@ if a feature is built but not verified, complete its verification first.
    - **prototype-slice problem** →
      `adhd prototype --milestone {{N}}` (on-demand slice rebuild),
      or `adhd evolve` if the flow diagram itself is wrong;
-   - **the spec itself is wrong** (whole-product flow, concepts, stories) →
+   - **the spec itself is wrong** (whole-product flow, concepts) →
      `adhd evolve`;
    - **consciously deferred** → `Status: accepted`, with the user's explicit ok.
 
