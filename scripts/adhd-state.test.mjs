@@ -49,6 +49,7 @@ test('defaultConfig: version 3, single, colocated', () => {
   assert.equal(c.mode, 'single');
   assert.equal(c.prototypeTopology, 'colocated');
   assert.deepEqual(c.repos, {});
+  assert.equal(c.generation, 'flows');
 });
 
 test('stage lists', () => {
@@ -58,6 +59,7 @@ test('stage lists', () => {
   assert.deepEqual(SURFACE_KINDS, ['ui', 'api', 'lib']);
   assert.deepEqual(MODES, ['single', 'multi']);
   assert.deepEqual(PROTOTYPE_TOPOLOGIES, ['colocated', 'standalone']);
+  assert.deepEqual(GENERATIONS, ['classic', 'flows']);
 });
 
 test('concepts → stories → prototype groundwork order', () => {

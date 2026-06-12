@@ -84,8 +84,9 @@ function requireConfig(cwd) {
   return config;
 }
 
-// A project's generation decides its stage chain. New projects are 'flows';
-// a config without the field is a pre-redesign project -> 'classic'.
+// A project's generation decides its stage chain. New projects are 'flows'
+// (no config yet = a project being created now); a config without the field
+// is a pre-redesign project -> 'classic'.
 export function generation(cwd = process.cwd()) {
   const c = loadConfig(cwd);
   if (!c) return 'flows';
@@ -796,6 +797,7 @@ function main(argv) {
       if (r.parkingCreated) acts.push('created project/parking.md');
       if (r.notesDeleted) acts.push('removed empty project/notes.md');
       if (r.notesKept) acts.push('kept non-empty project/notes.md — drain it to a canonical home, then delete it');
+      if (r.generationStamped) acts.push('stamped generation: classic');
       console.log(acts.length ? `migrated: ${acts.join('; ')}` : `nothing to migrate (${r.reason})`);
       break;
     }
