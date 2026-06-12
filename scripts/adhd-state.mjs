@@ -17,6 +17,9 @@ export const GROUNDWORK_STAGES = ['setup', 'vision', 'foundation', 'concepts', '
 export const MILESTONE_STAGES = ['milestone-brief', 'ux-refine', 'tracer', 'features', 'review', 'finalize'];
 export const FEATURE_STAGES = ['plan', 'build'];
 
+export const GROUNDWORK_STAGES_FLOWS = ['setup', 'vision', 'foundation', 'concepts'];
+export const MILESTONE_STAGES_FLOWS = ['brief', 'flows', 'realize', 'review', 'finalize'];
+
 export const SURFACE_KINDS = ['ui', 'api', 'lib'];
 export const MODES = ['single', 'multi'];
 export const MILESTONE_TRACKS = ['prototype', 'production'];
@@ -91,6 +94,13 @@ export function generation(cwd = process.cwd()) {
   const c = loadConfig(cwd);
   if (!c) return 'flows';
   return c.generation === 'flows' ? 'flows' : 'classic';
+}
+
+export function groundworkStages(cwd) {
+  return generation(cwd) === 'flows' ? GROUNDWORK_STAGES_FLOWS : GROUNDWORK_STAGES;
+}
+export function milestoneStages(cwd) {
+  return generation(cwd) === 'flows' ? MILESTONE_STAGES_FLOWS : MILESTONE_STAGES;
 }
 
 // ---- local repo bindings (gitignored) ----
@@ -263,7 +273,9 @@ export function groundworkDone(cwd, stage) {
 
 export function milestoneStageDone(cwd, m, stage) {
   const f = { 'milestone-brief': 'brief.md', 'ux-refine': 'ux-refine.md', tracer: 'tracer.md',
-    features: 'features.md', review: 'review.md', finalize: 'summary.md' }[stage];
+    features: 'features.md', review: 'review.md', finalize: 'summary.md',
+    // flows generation
+    brief: 'brief.md', flows: 'flows.md', realize: 'features.md' }[stage];
   return f ? exists(cwd, milestoneRel(m, f)) : false;
 }
 

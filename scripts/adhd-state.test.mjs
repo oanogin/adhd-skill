@@ -8,6 +8,7 @@ import {
   defaultConfig, loadConfig, saveConfig, initConfig, CONFIG_VERSION,
   GROUNDWORK_STAGES, MILESTONE_STAGES, FEATURE_STAGES, SURFACE_KINDS, MODES, PROTOTYPE_TOPOLOGIES,
   GENERATIONS, generation,
+  GROUNDWORK_STAGES_FLOWS, MILESTONE_STAGES_FLOWS, groundworkStages, milestoneStages,
   parseTable, parseTables, parseStories, parseFeatures, parseReviewFindings,
   milestoneTrack, milestoneDirs, briefStoryIds,
   groundworkDone, milestoneStageDone, gate, nextStage, statusReport,
@@ -772,4 +773,21 @@ test('migrate: stamps generation classic on a legacy config', () => {
   const r = migrate(c);
   assert.equal(loadConfig(c).generation, 'classic');
   assert.equal(r.generationStamped, true);
+});
+
+test('flows-gen stage lists', () => {
+  assert.deepEqual(GROUNDWORK_STAGES_FLOWS, ['setup', 'vision', 'foundation', 'concepts']);
+  assert.deepEqual(MILESTONE_STAGES_FLOWS, ['brief', 'flows', 'realize', 'review', 'finalize']);
+});
+
+test('milestoneStageDone: flows-gen artifacts', () => {
+  const c = tmp();
+  initConfig(c);
+  w(c, 'project/milestones/m1/brief.md');
+  w(c, 'project/milestones/m1/flows.md');
+  w(c, 'project/milestones/m1/features.md', FEATURES_MD);
+  assert.equal(milestoneStageDone(c, 1, 'brief'), true);
+  assert.equal(milestoneStageDone(c, 1, 'flows'), true);
+  assert.equal(milestoneStageDone(c, 1, 'realize'), true); // done signal = features.md
+  assert.equal(milestoneStageDone(c, 1, 'review'), false);
 });
