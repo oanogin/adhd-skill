@@ -22,8 +22,8 @@ generation** that living set is `concepts → flows` (plus the participant regis
 `project/map.md` and the `project/stories.md` index); in the **classic generation** it
 is `concepts → stories → prototype` (plus the lazily-created `docs/DATA.md` /
 `project/map.md`). It
-**never creates or starts a milestone** — a new story lands in the backlog with a drawn
-surface; the user then runs `milestone-brief` to schedule it.
+**never creates or starts a milestone** — a new story lands in the backlog; the user
+then runs `brief` (`milestone-brief` on a classic project) to schedule it.
 
 ## Gate check
 
@@ -73,8 +73,8 @@ No skip, no override — this is the skill's central discipline.
    implementable when a flow realizes them).
 
    > **Milestone boundary:** `evolve` never creates or starts a milestone. A new story
-   > lands in the backlog with a drawn surface. When the impact plan is fully executed,
-   > the user runs `milestone-brief` to schedule it.
+   > lands in the backlog. When the impact plan is fully executed, the user runs
+   > `brief` (`milestone-brief` on a classic project) to schedule it.
 
    > **Flow change (flows generation).** Correct the diagram first: edit
    > `project/flows/<scenario>.md`, update the registry/stories index if participants or
@@ -98,5 +98,5 @@ registry), `project/stories.md` (index). Classic generation: `docs/CONCEPTS.md`,
 2. Drain durable facts to their canonical homes first — nothing informational should
    remain only in the work file.
 3. Delete `project/work/evolve.md`. The `verify` pass flags a leftover `evolve.md`.
-4. Tell the user the relevant next step — for example: run `milestone-brief` to schedule
-   a newly-prototyped story into an upcoming milestone.
+4. Tell the user the relevant next step — for example: run `brief` (`milestone-brief`
+   on a classic project) to schedule a newly-specced story into an upcoming milestone.
