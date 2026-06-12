@@ -986,7 +986,7 @@ function main(argv) {
       break;
     }
     default:
-      console.error('Usage: adhd-state.mjs <init|read|status|next|gate|work-gate|validate|audit|migrate|upgrade|preflight-confirm|workspace-mode|workspace-add|workspace-remove|workspace-list|repo-bind|repo-unbind|prototype-topology|prototype-home|contract|closure>');
+      console.error('Usage: adhd-state.mjs <init|read|status|next|gate|work-gate|validate|migrate|upgrade|preflight-confirm|workspace-mode|workspace-add|workspace-remove|workspace-list|repo-bind|repo-unbind|prototype-topology|prototype-home|contract|closure>');
       process.exitCode = 1;
   }
 }

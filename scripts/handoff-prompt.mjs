@@ -9,7 +9,7 @@ function activeWorkFile(cwd, next) {
   const dir = path.join(cwd, 'project/work');
   if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) return null;
   const files = fs.readdirSync(dir).filter((f) => f.endsWith('.md'));
-  const stage = next.stage === 'next-milestone' ? 'milestone-brief' : next.stage;
+  const stage = next.stage;
   const want = next.milestone ? `m${next.milestone}-${stage}.md` : `${stage}.md`;
   if (files.includes(want)) return want;
   // fallback: match the stage segment, scoped to the correct milestone
@@ -45,7 +45,7 @@ export function handoffPrompt(cwd = process.cwd()) {
   const where = next.stage +
     (next.milestone ? ` — milestone ${next.milestone}` : '') +
     (next.feature ? ` — feature ${next.feature}` : '');
-  const runArg = next.stage === 'next-milestone' ? 'milestone-brief' : next.stage;
+  const runArg = next.stage;
 
   const work = activeWorkFile(cwd, next);
   const lines = ['Resume the `adhd` conductor.', ''];
