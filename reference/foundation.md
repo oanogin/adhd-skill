@@ -43,7 +43,7 @@ user to run `adhd vision` first.
    - `## Baseline` — languages, frontend framework, repo topology, prototype topology.
    - `## Libraries` — the approved list, one line each: `name — what it is used for`.
      Include explicit exclusions if the user named any (`no <lib> — <why>`).
-   - `## Services` — left out now; `realize` (classic: `tracer`) adds it when the
+   - `## Services` — left out now; `realize` adds it when the
      first real mechanism (data store, queue, auth provider, ...) is settled.
 3. **Log the baseline decision in `docs/DECISIONS.md`.** One `## ` entry summarizing
    the baseline and its rationale. `setup` already created the file with a
@@ -56,7 +56,7 @@ user to run `adhd vision` first.
    moment to run it.
 5. **Do not over-reach.** No data model, no architecture diagram, no API design, no
    per-domain mechanism. If you are tempted to spec something, stop — it belongs to a
-   later stage (`realize` — classic: `tracer` — settles infra mechanisms;
+   later stage (`realize` settles infra mechanisms;
    `docs/DATA.md` is authored lazily).
 
 ## Output

@@ -33,10 +33,10 @@ with clean eyes and does not pollute the conductor's context:
    once, `TBD`/`TODO` placeholders, relationships stated inconsistently. `CONCEPTS.md`
    must be single-meaning.
 3. **Boundary / duplication.** Entity/state rules duplicated between `CONCEPTS.md` and
-   the flow files (or, classic, the `prototype`/surface specs) — a flow references and
-   places a rule, never restates it; navigation or interaction rules that have leaked
-   into `CONCEPTS.md`; fields, schema, or surfaces appearing in `CONCEPTS.md` (fields
-   belong in `docs/DATA.md`, participants/placement in `project/map.md`).
+   the flow files — a flow references and places a rule, never restates it; navigation
+   or interaction rules that have leaked into `CONCEPTS.md`; fields, schema, or surfaces
+   appearing in `CONCEPTS.md` (fields belong in `docs/DATA.md`, participants/placement
+   in `project/map.md`).
 4. **Capability, not mechanism.** Stack, framework, or database names leaking into the
    product-scope docs (`docs/PRODUCT.md`, `project/stories.md`, `project/map.md`,
    `project/flows/*`). The prototype *app* is the only legitimate place mechanisms
@@ -47,30 +47,18 @@ with clean eyes and does not pollute the conductor's context:
 6. **Stale work files.** Any `project/work/*.md` whose stage is already complete (its
    artifact exists) is stale — its durable facts should have been drained to their
    canonical home and the file deleted.
-7. **(classic) Prototype / surface drift.** Surfaces or the prototype that contradict
-   the signed-off whole-product flow or the current `CONCEPTS.md`.
-8. **(classic) Undrained story changes.** `project/work/prototype.md` has an undrained
-   `## Story changes` block while the `prototype` stage is done — story changes were
-   written during a prototype run but never folded into `project/stories.md`.
-9. **(classic) Empty or provisional Surfaces cell.** An `m<N>/brief.md` references a
-   story whose `Surfaces` cell in `project/stories.md` is empty or holds only
-   provisional `?`-suffixed names — the story was never drawn in the prototype and is
-   therefore not implementable (mirrors the `adhd-state.mjs validate` blocker).
-10. **Abandoned evolve work file.** `project/work/evolve.md` still exists — either an
-    `evolve` cascade was abandoned mid-way, or all `## Impact plan` items are checked
-    but the file was not deleted as required by the `evolve` on-completion steps.
-11. **(classic) Stale provisional `?` names.** A `Surfaces` cell carries a `?`-suffixed
-    name whose surface already exists in `project/map.md` — the surface was built but
-    the `?` was never cleared (the `prototype` stage should have removed it).
-12. **Review findings hygiene.** An `m<N>/review.md` whose findings table is missing
-    the `Severity`/`Status` columns (the `finalize` gate cannot parse it), or a
-    finalized milestone (`summary.md` exists) with findings still `open`.
-13. **STACK ↔ DECISIONS drift.** A technology named in `docs/STACK.md` with no
-    corresponding entry in `docs/DECISIONS.md` (warning), or — stronger — a stack
-    element that decisions/tracer notes show in use but that is absent from
-    `docs/STACK.md`. `STACK.md` is current state; `DECISIONS.md` is the log — both
-    must tell the same story.
-14. **Flow checks (when `project/flows/` exists):** same trigger → contradictory
+7. **Abandoned evolve work file.** `project/work/evolve.md` still exists — either an
+   `evolve` cascade was abandoned mid-way, or all `## Impact plan` items are checked
+   but the file was not deleted as required by the `evolve` on-completion steps.
+8. **Review findings hygiene.** An `m<N>/review.md` whose findings table is missing
+   the `Severity`/`Status` columns (the `finalize` gate cannot parse it), or a
+   finalized milestone (`summary.md` exists) with findings still `open`.
+9. **STACK ↔ DECISIONS drift.** A technology named in `docs/STACK.md` with no
+   corresponding entry in `docs/DECISIONS.md` (warning), or — stronger — a stack
+   element that decisions or `realize` notes show in use but that is absent from
+   `docs/STACK.md`. `STACK.md` is current state; `DECISIONS.md` is the log — both
+   must tell the same story.
+10. **Flow checks (when `project/flows/` exists):** same trigger → contradictory
     outcomes across flows; participant pairs whose message contracts conflict; state
     transitions violating `docs/CONCEPTS.md` lifecycles; messages consumed that no flow
     produces; registry orphans (registered participants no flow uses); flows owned by
@@ -87,7 +75,7 @@ with clean eyes and does not pollute the conductor's context:
 
 - `finalize` runs `verify` (not the old `adhd audit`) and resolves its findings before
   writing the milestone summary.
-- The "new entity → update `concepts` first" rule on `tracer`/`features`/`build` is a
+- The "new entity → update `concepts` first" rule on `realize`/`build` is a
   soft inline reminder; `verify` at `finalize` is the backstop that catches a
   `CONCEPTS.md` that fell behind.
 - Structural, mechanical sanity (legacy state file, config version, repo bindings,

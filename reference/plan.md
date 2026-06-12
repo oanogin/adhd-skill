@@ -2,7 +2,7 @@
 
 **Effort:** medium
 **Gate:** the feature exists in the milestone's DAG (`m{{N}}/features.md` — written by
-the `realize` stage in the flows generation, by `features` in classic).
+the `realize` stage).
 **Output:** `project/milestones/m{{N}}/plans/{{feature}}.md`.
 **Sub-skill:** `superpowers:writing-plans`.
 
@@ -10,8 +10,7 @@ the `realize` stage in the flows generation, by `features` in classic).
 runs per feature, walking the milestone's feature DAG.
 
 **Size `S` features skip this stage.** A feature whose `Size` cell in
-`m{{N}}/features.md` is `S` is built directly from its flow slice + contract (flows
-generation) or surface spec (classic) + feature row —
+`m{{N}}/features.md` is `S` is built directly from its flow slice + contract + feature row —
 `adhd next` returns `build` for it and the `build` gate does not require a plan file.
 Planning an `S` feature anyway is allowed (the plan file is simply honored), but the
 default is skip. If, on inspection, an `S` feature turns out to need real design
@@ -24,8 +23,7 @@ If it reports missing items, HALT. Tell the user exactly which predecessor stage
 No skip, no override — this is the skill's central discipline.
 
 If the gate reports the feature does not exist or `features` is not done, HALT and tell
-the user to run `adhd realize --milestone {{N}}` (flows generation) or
-`adhd features --milestone {{N}}` (classic) first.
+the user to run `adhd realize --milestone {{N}}` first.
 
 ## Procedure
 1. **Write the implementation plan — scoped reads only.** Run
@@ -36,8 +34,6 @@ the user to run `adhd realize --milestone {{N}}` (flows generation) or
    (`project/surfaces/<name>.md`) if it serves a `ui` participant; and the target
    repo's code. **Whole-product reads are forbidden** — do not open `docs/CONCEPTS.md`,
    `project/stories.md`, or `project/map.md` wholesale; the flow slice IS the context.
-   (Classic-generation projects without flows keep the old inputs: feature row +
-   surface specs.)
    **Design against the contract:** plan only the current flow's arrows, but shape
    signatures and schema for the participant's full contract.
 2. **Override the plan output path.** `writing-plans` defaults to

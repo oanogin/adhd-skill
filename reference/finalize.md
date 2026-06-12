@@ -30,8 +30,7 @@ with the user's explicit ok; see [review.md](review.md)).
    decision logged), refined concepts in `docs/CONCEPTS.md`. **Mark the milestone's
    shipped capability areas as built** in the capability dependency map in
    `docs/CONCEPTS.md` — the pickable-next rule and the next `brief` depend on the map
-   staying current. When the milestone persisted real data (classic: on a
-   production-track milestone), update `docs/DATA.md` to the
+   staying current. When the milestone persisted real data, update `docs/DATA.md` to the
    current field-level state of every entity this milestone added or changed (create
    `docs/DATA.md` if this is the first milestone to persist data). `DATA.md` entities are
    `## ` headings; every one must be defined in `docs/CONCEPTS.md` — if an entity is
@@ -43,9 +42,8 @@ with the user's explicit ok; see [review.md](review.md)).
    carried forward to a future milestone.
 
 There is no "advance" step. Milestones are independent `m<N>/` folders — the next one
-is created simply by running `brief` (flows generation) or `milestone-brief` (classic),
-which writes a new `m<N>/brief.md`. A new milestone can be started before this one
-finalizes; they progress in parallel.
+is created simply by running `brief`, which writes a new `m<N>/brief.md`. A new
+milestone can be started before this one finalizes; they progress in parallel.
 
 ## Output
 - `project/milestones/m{{N}}/summary.md` — the milestone summary.
@@ -57,5 +55,4 @@ finalizes; they progress in parallel.
 2. If the session is getting long, start a fresh one: run
    `node {{scripts_path}}/handoff-prompt.mjs` and give the user the resume prompt.
 3. Milestone {{N}} is complete. Tell the user the next runnable stage is
-   `brief` (flows generation) or `milestone-brief` (classic) for the next milestone
-   (a new `m<N>/` folder).
+   `brief` for the next milestone (a new `m<N>/` folder).

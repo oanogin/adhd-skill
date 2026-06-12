@@ -1,4 +1,4 @@
-# adhd — Flows (flows generation)
+# adhd — Flows
 
 **Effort:** high — for an experience-sized milestone this is days of deliberate spec
 work. That is the point: conflicts are resolved here, where they cost a pencil stroke.
@@ -24,8 +24,7 @@ If it reports missing items, HALT. Tell the user exactly which predecessor stage
 2. **Derive the story set — never hand-pick.** For every in-scope entity, walk its
    CONCEPTS lifecycle + invariants + relationships: every declared behavior either
    gets a flow arrow in this milestone or an explicit waiver. Append the derived
-   stories to `project/stories.md` (`ID | Story | Value | Depends on | Size` — no
-   Surfaces column). Keep IDs stable.
+   stories to `project/stories.md` (`ID | Story | Value | Depends on | Size`). Keep IDs stable.
 3. **Maintain the participant registry.** Every participant in any diagram must
    exist in `project/map.md`'s registry table:
    `| Participant | Kind | Concept |` with Kind ∈ actor/ui/service/store/external.

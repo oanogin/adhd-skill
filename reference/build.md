@@ -36,9 +36,9 @@ DAG order is not optional.
    `build` is allowed.
 
    **A `Size: S` feature has no plan file** — build it directly under the same
-   scoped-read contract: its feature row, its flow diagram(s) and `contract <P>`
-   (flows generation) or its surface spec(s) (classic), in one small, verifiable
-   pass. If mid-build it turns out to need real design decisions, STOP: set its
+   scoped-read contract: its feature row, its flow diagram(s) and `contract <P>`,
+   in one small, verifiable pass. If mid-build it turns out to need real design
+   decisions, STOP: set its
    `Size` to `M` in `features.md` and run `plan` first.
 
    Build in the feature's own `repo` — read it from the feature's row in

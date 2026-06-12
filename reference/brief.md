@@ -1,4 +1,4 @@
-# adhd — Brief (flows generation)
+# adhd — Brief
 
 **Effort:** medium
 **Gate:** groundwork done — `docs/CONCEPTS.md` exists (with its capability dependency map).

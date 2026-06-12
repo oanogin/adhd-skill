@@ -12,8 +12,7 @@ A change is a `fix` when the **target state is already specified** somewhere and
 code merely fails to match it:
 
 - a **bug** — behavior contradicts a signed-off flow diagram
-  (`project/flows/<scenario>.md` — the flows generation's primary spec artifact), the
-  signed-off prototype, a surface spec, a feature plan, or `docs/CONCEPTS.md`'s
+  (`project/flows/<scenario>.md`), a feature plan, or `docs/CONCEPTS.md`'s
   governing rules;
 - a **structural correction** — code in the wrong file/module/repo location, a naming
   or convention violation, dead code, a behavior-preserving refactor;
@@ -22,14 +21,14 @@ code merely fails to match it:
 A change is **NOT** a fix when it alters what the product should do: a new or changed
 entity, story, surface, whole-product flow or rule, or data model. That is a scope
 change — route it through `adhd evolve`. If mid-fix you discover the *spec* is what's
-wrong (the prototype, a surface spec, `CONCEPTS.md`), STOP and switch to `evolve` —
+wrong (a flow diagram, `CONCEPTS.md`), STOP and switch to `evolve` —
 the spec is corrected first, then the code follows it.
 
 ## Procedure
 
-1. **Triage.** State in one line which artifact specifies the correct state (prototype,
-   surface spec, plan, repo conventions, "tests green"). If no artifact does, it is a
-   scope change — go to `adhd evolve` instead.
+1. **Triage.** State in one line which artifact specifies the correct state (a flow
+   diagram, a feature plan, repo conventions, "tests green"). If no artifact does, it is
+   a scope change — go to `adhd evolve` instead.
 2. **Confirm scope with the user.** One short exchange: what will change, what will
    not. No work file, no `## Gate` ceremony — `fix` is deliberately light. For a fix
    big enough to span sessions, it is too big: split it, or it is really a feature
@@ -61,5 +60,5 @@ from a review. `fix` leaves no artifact of its own.
 ## On completion
 
 1. Report what was fixed, the root cause (for a bug), and the verification output.
-2. If the fix revealed a wrong or missing spec, tell the user to run `adhd evolve` —
-   do not patch the spec inline.
+2. If the fix revealed a wrong or missing spec (flow diagram, `CONCEPTS.md`), tell the
+   user to run `adhd evolve` — do not patch the spec inline.

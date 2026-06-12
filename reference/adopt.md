@@ -3,8 +3,7 @@
 **Effort:** high
 **Purpose:** bring an existing, already-built project under `adhd`. Substitutes for
 the groundwork loop — flows generation: `vision → foundation → concepts` (the backlog
-and flows are then derived per milestone); classic: `vision → foundation → concepts →
-stories → prototype`.
+and flows are then derived per milestone).
 **Not a stage:** no gate. Run it once, instead of the groundwork stages, when the
 project already exists.
 
@@ -54,24 +53,14 @@ milestone or a `docs/DECISIONS.md` entry. `adopt` does not block on it.
    - `project/surfaces/<name>.md` — a stub per `ui` surface (purpose, UX intent, key
      states), read off the existing UI.
 
-   **Flows generation:** that is the whole list — plus the **capability dependency
+   That is the whole list — plus the **capability dependency
    map** inside `docs/CONCEPTS.md` (mark the already-built areas as built — adoption
    means much of the map is green) and `project/map.md`'s **participant registry**
    seeded from the existing code's surfaces and services. Do NOT draft
-   `project/stories.md` or `project/prototype.md` — stories and flows are derived per
+   `project/stories.md` — stories and flows are derived per
    milestone by the `flows` stage.
-
-   **Classic generation** additionally drafts:
-   - `project/stories.md` — the story backlog
-     (`ID | Story | Value | Depends on | Size | Surfaces`), derived from the existing
-     product. Fill the `Surfaces` column from the existing UI — each story should name
-     the surface(s) it realizes.
-   - `project/prototype.md` — the `prototype` artifact. The existing built UI *is* the
-     whole-product UX reference, so record what it covers and treat it as signed off;
-     no new prototype app is built. (`prototype` is done once `project/prototype.md` and
-     `project/map.md` exist.)
-   There is no roadmap artifact: milestones are formed just-in-time at `brief`
-   (`milestone-brief` on a classic project), so `adopt` does not produce one.
+   There is no roadmap artifact: milestones are formed just-in-time at `brief`,
+   so `adopt` does not produce one.
 4. **Never invent.** Where the source docs do not cover something, flag the gap and ask
    the user — do not fabricate vision, scope, or stories. Same discipline as the
    `vision` stage.
@@ -82,10 +71,8 @@ milestone or a `docs/DECISIONS.md` entry. `adopt` does not block on it.
 
 ## On completion
 
-1. Confirm the groundwork stages register as done — four on a flows project, six on
-   a classic one (`node {{scripts_path}}/adhd-state.mjs status`).
+1. Confirm all four groundwork stages register as done (`node {{scripts_path}}/adhd-state.mjs status`).
 2. The project now resumes at the per-milestone loop exactly as a groundwork-loaded
-   project would. Tell the user the next runnable stage is `brief` (`milestone-brief`
-   on a classic project) for milestone 1.
-3. For any future changes to concepts, stories, the prototype, or the data model —
+   project would. Tell the user the next runnable stage is `brief` for milestone 1.
+3. For any future changes to concepts, stories, or the data model —
    use `adhd evolve`. It is the single front door for every post-groundwork change.

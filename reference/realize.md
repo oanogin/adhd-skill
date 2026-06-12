@@ -1,4 +1,4 @@
-# adhd — Realize (flows generation)
+# adhd — Realize
 
 **Effort:** high
 **Gate:** `m{{N}}/flows.md` exists (flows signed off).
@@ -7,7 +7,7 @@ its existence is the done signal).
 **Sub-skill:** none.
 
 `realize` turns the signed-off flow set into buildable work: mechanisms + the feature
-DAG. It replaces the classic `tracer` and `features` stages.
+DAG.
 
 ## Gate check
 Run `node {{scripts_path}}/adhd-state.mjs gate realize --milestone {{N}}`.
@@ -19,7 +19,7 @@ If it reports missing items, HALT. Tell the user exactly which predecessor stage
 2. **Pick mechanisms.** For each capability the milestone's flows need, choose the
    concrete mechanism. **Baseline guard:** anything not in `docs/STACK.md` stops for
    the user's ok first; update `STACK.md` and log the decision in `docs/DECISIONS.md`.
-   Run a tracer-style end-to-end spike ONLY when genuinely new infrastructure appears
+   Run an end-to-end spike ONLY when genuinely new infrastructure appears
    — prove the path, then continue. Record mechanism notes in `m{{N}}/realize.md`.
 3. **Carve the feature DAG from diagram segments — entity-aware.** For every entity
    (service/store participant) the milestone's flows touch:

@@ -59,11 +59,11 @@ records stage status separately. `config.json` holds only the irreducible non-do
 config (mode, repos, prototype topology, preflight, generation); mutate it only through
 the `adhd-state.mjs` config subcommands, never by hand.
 
-New projects are `generation: flows`. The **flows-generation groundwork chain** is
+New projects are `generation: flows`. The **groundwork chain** is
 `setup → vision → foundation → concepts`; the **per-milestone chain** is
-`brief → flows → realize → plan/build → review → finalize`. Classic projects keep the
-old groundwork chain (see `reference/classic/`); their `project/stories.md`
-carries a `Surfaces` column that the flows generation does not use.
+`brief → flows → realize → plan/build → review → finalize`.
+A pre-flows project must be upgraded before any stage runs — `validate`/`gate` block it
+and point at `adhd-state.mjs upgrade`.
 
 `setup` always scaffolds in `single` mode with `colocated` prototype topology. For a
 multi-repo product, or one whose prototype app is standalone (its own app or a separate
