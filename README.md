@@ -32,6 +32,24 @@ if either is missing.
 Place this directory at `~/.claude/skills/adhd/`. That is all — no build step.
 The scripts in `scripts/` run on plain Node.js (v18+; tested on v24).
 
+## Upgrading a pre-flows project
+
+Projects created before the flows redesign are blocked fail-closed: `gate` and
+`validate` report `pre-flows project — upgrade required`. To upgrade:
+
+1. **Capability dependency map** — ensure `docs/CONCEPTS.md` carries the mermaid
+   flowchart of capability areas (solid `-->` = hard prerequisite, dashed `-.->` =
+   soft; mark already-built areas). Run `adhd concepts` to add it if missing.
+2. **Participant registry** — seed `project/map.md` with the registry table
+   (`| Participant | Kind | Concept |`) from the existing surfaces and services.
+3. **Stamp the generation** — `node <scripts>/adhd-state.mjs upgrade`.
+
+Existing artifacts stay valid: `stories.md` becomes the backlog index (its old
+`Surfaces` column is simply ignored), `CONCEPTS.md`/`PRODUCT.md`/`STACK.md` are
+unchanged, and the old prototype app remains a useful UX reference. The next
+milestone runs `brief → flows` and flows accumulate from there. In-flight pre-flows
+milestones should be finished or re-briefed under the new chain.
+
 ## Usage
 
 Run inside the project you are building (not in this skill's repo):
@@ -110,20 +128,12 @@ Milestones are independent `project/milestones/m<N>/` folders — no global poin
 two or three can be in flight at once. The next milestone is started simply by running
 `brief` again.
 
-**Generations.** The chain above is the **flows generation** (`generation: "flows"` in
-`project/config.json`), the default for new projects. A project with
-`generation: "classic"` predates flows and keeps the classic chain — `stories →
-prototype` in groundwork, `milestone-brief → ux-refine → tracer → features` per
-milestone; its stage docs live in [reference/classic/](reference/classic/README.md).
-`adhd-state.mjs` is generation-aware. New work on a classic project adopts flows
-incrementally via `adhd evolve`.
-
 | Stage | Loop | Effort | Artifact (exists ⇔ done) | Sub-skill | Reference |
 |---|---|---|---|---|---|
 | `setup` | groundwork | low | `project/config.json` | none | [reference/setup.md](reference/setup.md) |
 | `vision` | groundwork | high | `docs/PRODUCT.md` | none | [reference/vision.md](reference/vision.md) |
-| `foundation` | groundwork | medium | `docs/STACK.md` (+ the baseline decision logged in `docs/DECISIONS.md`) | none | [reference/foundation.md](reference/foundation.md) |
-| `concepts` | groundwork (living) | high | `docs/CONCEPTS.md` (incl. the capability dependency map) | brainstorming | [reference/concepts.md](reference/concepts.md) |
+| `foundation` | groundwork | medium | `docs/STACK.md` | none | [reference/foundation.md](reference/foundation.md) |
+| `concepts` | groundwork (living) | high | `docs/CONCEPTS.md` (incl. capability map) | brainstorming | [reference/concepts.md](reference/concepts.md) |
 | `brief` | per-milestone | medium | `m<N>/brief.md` | brainstorming | [reference/brief.md](reference/brief.md) |
 | `flows` | per-milestone | high | `m<N>/flows.md` + `project/flows/*` | brainstorming | [reference/flows.md](reference/flows.md) |
 | `realize` | per-milestone | high | `m<N>/features.md` (+ `m<N>/realize.md`) | none | [reference/realize.md](reference/realize.md) |
@@ -230,8 +240,7 @@ project/
                              + domains/deployables
   surfaces/<name>.md         surface stub — purpose, UX intent, key states only
                              (behavior is derived: `contract <name>`)
-  stories.md                 the accumulated backlog index — rows derived at `flows`;
-                             no `Surfaces` column
+  stories.md                 the accumulated backlog index — rows derived at `flows`
   milestones/m<N>/
     brief.md                 Brief — the experience, scope closure, `## Flows` list
     flows.md                 Flows sign-off — per-area sign-offs, waivers, change log
@@ -288,7 +297,7 @@ Codex and Cursor are supported. See `reference/codex-tools.md` and
 
 - `SKILL.md` — router: stage table, gates, rules.
 - `reference/<stage>.md` — per-stage playbook, loaded on demand.
-- `reference/classic/` — classic-generation stage playbooks
-  (`stories`, `milestone-brief`, `ux-refine`, `tracer`, `features`).
-- `scripts/` — `adhd-state.mjs` (read/derive + `config.json` CLI),
-  `handoff-prompt.mjs`.
+- `reference/working-memory.md` — full rules for transient work files and the
+  durable parking lot.
+- `scripts/` — `adhd-state.mjs` (read/derive + `config.json` CLI; subcommands
+  include `upgrade` and `migrate`), `handoff-prompt.mjs`.
