@@ -25,6 +25,7 @@ export const MODES = ['single', 'multi'];
 export const MILESTONE_TRACKS = ['prototype', 'production'];
 export const PROTOTYPE_TOPOLOGIES = ['colocated', 'standalone'];
 export const GENERATIONS = ['classic', 'flows'];
+export const PARTICIPANT_KINDS = ['actor', 'ui', 'service', 'store', 'external'];
 
 // ---- paths & io ----
 function configPath(cwd) { return path.join(cwd, CONFIG_FILE); }
@@ -276,6 +277,18 @@ export function parseFlows(cwd) {
       ...parseFlowDiagram(text),
     };
   });
+}
+
+// The participant registry lives in project/map.md as the table whose header
+// has `participant` + `kind`. Flows may only use registered participants.
+export function parseRegistry(cwd) {
+  if (!exists(cwd, 'project/map.md')) return null;
+  const t = parseTables(read(cwd, 'project/map.md'))
+    .find((x) => x.header.includes('participant') && x.header.includes('kind'));
+  if (!t) return [];
+  const pC = t.header.indexOf('participant'), kC = t.header.indexOf('kind');
+  return t.rows.map((r) => ({ name: clean(r[pC]), kind: clean(r[kC]).toLowerCase() }))
+    .filter((p) => p.name);
 }
 
 export function milestoneTrack(cwd, m) {

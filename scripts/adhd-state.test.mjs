@@ -17,6 +17,7 @@ import {
   setPrototypeTopology, setPrototypeHome, confirmPreflight,
   workFileRel, parseGateItems, workGate,
   parseFlowDiagram, parseFlows,
+  parseRegistry, PARTICIPANT_KINDS,
 } from './adhd-state.mjs';
 
 function tmp() { return fs.mkdtempSync(path.join(os.tmpdir(), 'adhd-')); }
@@ -850,4 +851,25 @@ test('parseFlows: header fields + diagram per file', () => {
   assert.deepEqual(flows[0].stories, ['S1', 'S2']);
   assert.deepEqual(flows[0].dependsOn, ['context-switch']);
   assert.equal(flows[0].arrows.length, 5);
+});
+
+const MAP_MD = `# Map
+
+## Participant registry
+
+| Participant | Kind | Concept |
+|---|---|---|
+| Recipient | actor | Account |
+| invite-resolver | ui | Invitation code |
+| invitation | service | Invitation code |
+`;
+
+test('parseRegistry: reads the participant table from map.md', () => {
+  const c = tmp();
+  assert.equal(parseRegistry(c), null); // no map.md
+  w(c, 'project/map.md', MAP_MD);
+  const reg = parseRegistry(c);
+  assert.equal(reg.length, 3);
+  assert.deepEqual(reg[1], { name: 'invite-resolver', kind: 'ui' });
+  assert.deepEqual(PARTICIPANT_KINDS, ['actor', 'ui', 'service', 'store', 'external']);
 });
