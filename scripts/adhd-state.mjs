@@ -426,7 +426,7 @@ export function gate(cwd, stage, { milestone, feature } = {}) {
   const need = (ok, msg) => { if (!ok) missing.push(msg); };
   const gw = (s) => groundworkDone(cwd, s);
   const ms = (s) => milestone != null && milestoneStageDone(cwd, milestone, s);
-  const needsMilestone = ['milestone-brief', 'ux-refine', 'tracer', 'features', 'plan', 'build', 'review', 'finalize'];
+  const needsMilestone = ['milestone-brief', 'ux-refine', 'tracer', 'features', 'plan', 'build', 'review', 'finalize', 'brief', 'flows', 'realize'];
   if (needsMilestone.includes(stage) && milestone == null) {
     return { pass: false, missing: ['--milestone is required for this stage'] };
   }
@@ -449,8 +449,18 @@ export function gate(cwd, stage, { milestone, feature } = {}) {
       need(ms('tracer'), `milestone ${milestone}: tracer not done`);
       need(track !== 'prototype', `milestone ${milestone} is prototype-only — features does not apply`);
       break;
+    case 'brief':
+      need(gw('concepts'), 'concepts not done — docs/CONCEPTS.md missing');
+      break;
+    case 'flows':
+      need(ms('brief'), `milestone ${milestone}: brief not done — m${milestone}/brief.md missing`);
+      break;
+    case 'realize':
+      need(ms('flows'), `milestone ${milestone}: flows not signed off — m${milestone}/flows.md missing`);
+      break;
     case 'plan': {
-      need(ms('features'), `milestone ${milestone}: features not done`);
+      if (generation(cwd) === 'flows') need(ms('realize'), `milestone ${milestone}: realize not done — m${milestone}/features.md missing`);
+      else need(ms('features'), `milestone ${milestone}: features not done`);
       const feats = parseFeatures(cwd, milestone) ?? [];
       need(feats.some((f) => f.id === feature), `milestone ${milestone}: no feature "${feature}" in features.md`);
       break;
@@ -471,7 +481,13 @@ export function gate(cwd, stage, { milestone, feature } = {}) {
       break;
     }
     case 'review':
-      if (track === 'prototype') {
+      if (generation(cwd) === 'flows') {
+        need(ms('realize'), `milestone ${milestone}: realize not done — m${milestone}/features.md missing`);
+        for (const f of parseFeatures(cwd, milestone) ?? []) {
+          if (!f.build) missing.push(`feature "${f.id}" not built`);
+          else if (!f.verified) missing.push(`feature "${f.id}" built but not verified`);
+        }
+      } else if (track === 'prototype') {
         need(ms('ux-refine'), `milestone ${milestone}: ux-refine not done`);
       } else {
         need(ms('features'), `milestone ${milestone}: features not done`);
@@ -489,7 +505,10 @@ export function gate(cwd, stage, { milestone, feature } = {}) {
         }
       }
       break;
-    case 'evolve': need(gw('prototype'), 'groundwork not complete — prototype not done (project/prototype.md / project/map.md)'); break;
+    case 'evolve':
+      if (generation(cwd) === 'flows') need(gw('concepts'), 'concepts not done — docs/CONCEPTS.md missing');
+      else need(gw('prototype'), 'groundwork not complete — prototype not done (project/prototype.md / project/map.md)');
+      break;
     default: return { pass: false, missing: [`unknown stage: ${stage}`] };
   }
   const notes = [];

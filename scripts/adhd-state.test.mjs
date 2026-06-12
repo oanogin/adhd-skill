@@ -936,3 +936,44 @@ test('closure: transitive solid prerequisites + soft in-edges surfaced', () => {
   const r2 = closure(c, ['INV']);
   assert.deepEqual(r2.soft, ['EV -.-> INV']); // soft in-edge: decide, never blocks
 });
+
+function groundworkFlows(cwd) {
+  initConfig(cwd); // generation: flows
+  w(cwd, 'docs/PRODUCT.md');
+  w(cwd, 'docs/STACK.md');
+  w(cwd, 'docs/CONCEPTS.md', CONCEPTS_MD);
+}
+
+test('flows-gen gates: brief → flows → realize chain', () => {
+  const c = tmp();
+  groundworkFlows(c);
+  assert.equal(gate(c, 'brief', { milestone: 1 }).pass, true);
+  assert.equal(gate(c, 'flows', { milestone: 1 }).pass, false); // no brief.md
+  w(c, 'project/milestones/m1/brief.md');
+  assert.equal(gate(c, 'flows', { milestone: 1 }).pass, true);
+  assert.equal(gate(c, 'realize', { milestone: 1 }).pass, false); // no flows.md sign-off
+  w(c, 'project/milestones/m1/flows.md');
+  assert.equal(gate(c, 'realize', { milestone: 1 }).pass, true);
+});
+
+test('flows-gen gates: plan/build/review/finalize ride the features DAG, no tracks', () => {
+  const c = tmp();
+  groundworkFlows(c);
+  w(c, 'project/milestones/m1/brief.md');
+  w(c, 'project/milestones/m1/flows.md');
+  w(c, 'project/milestones/m1/features.md', FEATURES_MD);
+  assert.equal(gate(c, 'plan', { milestone: 1, feature: 'f-ui' }).pass, true);
+  assert.equal(gate(c, 'build', { milestone: 1, feature: 'f-ui' }).pass, false); // unplanned M
+  w(c, 'project/milestones/m1/plans/f-ui.md');
+  assert.equal(gate(c, 'build', { milestone: 1, feature: 'f-ui' }).pass, true); // f-api built
+  assert.equal(gate(c, 'review', { milestone: 1 }).pass, false); // f-ui not built
+  assert.equal(gate(c, 'evolve', {}).pass, true); // flows gen: concepts done is enough
+});
+
+test('classic gates unchanged: stories still gated on concepts', () => {
+  const c = tmp();
+  groundwork(c);
+  const cfg = loadConfig(c); cfg.generation = 'classic'; saveConfig(c, cfg);
+  assert.equal(gate(c, 'stories', {}).pass, true);
+  assert.equal(gate(c, 'milestone-brief', { milestone: 1 }).pass, true);
+});
