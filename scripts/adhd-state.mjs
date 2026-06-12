@@ -21,6 +21,7 @@ export const SURFACE_KINDS = ['ui', 'api', 'lib'];
 export const MODES = ['single', 'multi'];
 export const MILESTONE_TRACKS = ['prototype', 'production'];
 export const PROTOTYPE_TOPOLOGIES = ['colocated', 'standalone'];
+export const GENERATIONS = ['classic', 'flows'];
 
 // ---- paths & io ----
 function configPath(cwd) { return path.join(cwd, CONFIG_FILE); }
@@ -42,6 +43,7 @@ export function defaultConfig() {
     version: CONFIG_VERSION,
     docHome: 'docs',
     mode: 'single',
+    generation: 'flows',
     repos: {},
     prototypeTopology: 'colocated',
     prototype: { repo: null, subpath: null },
@@ -80,6 +82,14 @@ function requireConfig(cwd) {
   const config = loadConfig(cwd);
   if (!config) throw new Error('No project/config.json — run `adhd setup` first.');
   return config;
+}
+
+// A project's generation decides its stage chain. New projects are 'flows';
+// a config without the field is a pre-redesign project -> 'classic'.
+export function generation(cwd = process.cwd()) {
+  const c = loadConfig(cwd);
+  if (!c) return 'flows';
+  return c.generation === 'flows' ? 'flows' : 'classic';
 }
 
 // ---- local repo bindings (gitignored) ----
@@ -657,7 +667,7 @@ export function confirmPreflight(cwd = process.cwd()) {
 
 // ---- migrate: v2 state.json -> v3 config.json, and notes.md -> parking.md ----
 export function migrate(cwd = process.cwd()) {
-  const result = { migrated: false, stateConverted: false, parkingCreated: false, notesDeleted: false, notesKept: false };
+  const result = { migrated: false, stateConverted: false, parkingCreated: false, notesDeleted: false, notesKept: false, generationStamped: false };
 
   // 1. Legacy v2 state.json -> v3 config.json (if present).
   const legacy = path.join(cwd, LEGACY_STATE_FILE);
@@ -697,7 +707,17 @@ export function migrate(cwd = process.cwd()) {
     }
   }
 
-  result.migrated = result.stateConverted || result.parkingCreated || result.notesDeleted;
+  // 3. Stamp generation on configs that predate the field (classic chain).
+  {
+    const config = loadConfig(cwd);
+    if (config && !config.generation) {
+      config.generation = 'classic';
+      saveConfig(cwd, config);
+      result.generationStamped = true;
+    }
+  }
+
+  result.migrated = result.stateConverted || result.parkingCreated || result.notesDeleted || result.generationStamped;
   if (!result.migrated && !result.notesKept) result.reason = loadConfig(cwd) ? 'already migrated' : 'no adhd project here';
   return result;
 }

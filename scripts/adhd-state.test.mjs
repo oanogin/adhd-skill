@@ -7,6 +7,7 @@ import path from 'node:path';
 import {
   defaultConfig, loadConfig, saveConfig, initConfig, CONFIG_VERSION,
   GROUNDWORK_STAGES, MILESTONE_STAGES, FEATURE_STAGES, SURFACE_KINDS, MODES, PROTOTYPE_TOPOLOGIES,
+  GENERATIONS, generation,
   parseTable, parseTables, parseStories, parseFeatures, parseReviewFindings,
   milestoneTrack, milestoneDirs, briefStoryIds,
   groundworkDone, milestoneStageDone, gate, nextStage, statusReport,
@@ -745,4 +746,28 @@ test('briefStoryIds matches story IDs as whole words in brief.md', () => {
     '# Milestone 1 — x\nChosen stories: S1 and LEGAL. Note: S22 is a separate id.');
   const ids = briefStoryIds(cwd, 1);
   assert.deepEqual([...ids].sort(), ['LEGAL', 'S1']);
+});
+
+test('generation: new projects are flows-gen, legacy configs are classic', () => {
+  const c = tmp();
+  assert.equal(generation(c), 'flows'); // pre-setup default
+  initConfig(c);
+  assert.equal(loadConfig(c).generation, 'flows');
+  assert.equal(generation(c), 'flows');
+  // simulate a legacy config with no generation field
+  const cfg = loadConfig(c);
+  delete cfg.generation;
+  saveConfig(c, cfg);
+  assert.equal(generation(c), 'classic');
+});
+
+test('migrate: stamps generation classic on a legacy config', () => {
+  const c = tmp();
+  initConfig(c);
+  const cfg = loadConfig(c);
+  delete cfg.generation;
+  saveConfig(c, cfg);
+  const r = migrate(c);
+  assert.equal(loadConfig(c).generation, 'classic');
+  assert.equal(r.generationStamped, true);
 });
