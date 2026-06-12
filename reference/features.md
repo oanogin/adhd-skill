@@ -39,11 +39,16 @@ If the gate reports `tracer` is not done, HALT and tell the user to run
    the features are written to match reality.
 3. **Write `m{{N}}/features.md`** as a table with exactly these columns:
 
-   `| ID | Feature | Story | Domain | Repo | Depends on | Build | Verified |`
+   `| ID | Feature | Story | Domain | Repo | Size | Depends on | Build | Verified |`
 
    - `ID` — a stable short key for the feature (`f-registry-api`, `f1`, ...).
    - `Story` — the parent story ID from `project/stories.md`.
    - `Domain` / `Repo` — the one domain and the one repo the feature lives in.
+   - `Size` — `S` | `M` | `L`. **`S` skips the `plan` stage**: the feature is small
+     (a few files) and already fully specified by its surface spec + this row, so
+     `adhd next` goes straight to `build` for it and the `build` gate does not require
+     a plan file. `M`/`L` require `plan`. When unsure, write `M` — `S` is for work
+     where a plan would be longer than the diff. An empty cell counts as `M`.
    - `Depends on` — comma-separated feature IDs this feature must be built after. A
      frontend feature depends on its backend feature — that is how backend-before-
      frontend order is enforced. The DAG must be acyclic.
@@ -64,9 +69,9 @@ If the gate reports `tracer` is not done, HALT and tell the user to run
 
 ## Output
 `project/milestones/m{{N}}/features.md` — the feature DAG as a markdown table
-(`ID | Feature | Story | Domain | Repo | Depends on | Build | Verified`), one row per
-feature, `Build`/`Verified` empty. This table is the single source of truth for the
-DAG and, later, for per-feature build progress.
+(`ID | Feature | Story | Domain | Repo | Size | Depends on | Build | Verified`), one
+row per feature, `Build`/`Verified` empty. This table is the single source of truth
+for the DAG and, later, for per-feature build progress.
 
 ## On completion
 1. Write the output file — the stage is done the moment `m{{N}}/features.md` exists.
@@ -74,5 +79,6 @@ DAG and, later, for per-feature build progress.
    `node {{scripts_path}}/handoff-prompt.mjs` and give the user the resume prompt.
 3. Drain `project/work/m{{N}}-features.md`: migrate durable facts to their canonical home,
    then delete the work file.
-4. Tell the user the next runnable stage is `plan` for the first feature of the DAG —
+4. Tell the user the next runnable stage is `plan` (or `build`, for a Size `S`
+   feature) for the first feature of the DAG —
    `node {{scripts_path}}/adhd-state.mjs next --milestone {{N}}` names it.

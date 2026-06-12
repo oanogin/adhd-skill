@@ -52,6 +52,11 @@ Three management commands sit outside the stage flow:
   (reports drift and proposes fixes for your approval).
 - `/adhd evolve` — change-intake conductor: brainstorm a new idea or update, plan
   the artifact updates across living stages, and drive the re-runs.
+- `/adhd park` — capture a not-yet-actionable idea into the durable parking lot
+  (`project/parking.md`) after a clarifying dialogue.
+- `/adhd fix` — correct existing code in place (a bug, misplaced files, a convention
+  violation) when the spec is right and the code is wrong — no milestone or `evolve`
+  ceremony. A fix that turns out to change scope escalates to `evolve`.
 
 You can also describe a task in plain words — `/adhd <free text>` — and `adhd`
 picks the stage or command that fits, respecting the gates.
@@ -98,8 +103,9 @@ PER-MILESTONE LOOP
   prototype-only milestone (infra: none):  → review → finalize
   production-track milestone:
     tracer → features
-    plan → build  (one feature at a time, DAG order — plan it, build it, next)
-    review
+    plan → build  (one feature at a time, DAG order — plan it, build it, next;
+                   Size S features skip plan)
+    review        (findings table; open criticals block finalize)
   → finalize → next milestone (a new m<N>/ folder)
 ```
 
@@ -111,7 +117,7 @@ again.
 |---|---|---|
 | setup | scaffold layout, init `config.json` | folder tree |
 | vision | product, users, usage | `docs/PRODUCT.md` |
-| foundation | the firm tech baseline — no full arch | `docs/DECISIONS.md` |
+| foundation | the firm tech baseline + approved libraries — no full arch | `docs/STACK.md` (+ logged decision in `docs/DECISIONS.md`) |
 | concepts | ubiquitous language — entities, ER relationships, helicopter view | `docs/CONCEPTS.md` |
 | stories | story backlog, derived from concepts — each story includes a `Surfaces` column | `project/stories.md` |
 | prototype | realizes the story backlog into the whole-product Hi-Fi clickable app; fills `Surfaces` column; sitemap + sign-off | `project/prototype.md`, `project/map.md`, `project/surfaces/*` |
@@ -119,10 +125,10 @@ again.
 | milestone-brief | choose stories, confirm surfaces, set track, lock security/errors | `m<N>/brief.md` |
 | ux-refine | deepen this milestone's slice of the prototype + sign-off | `m<N>/surfaces/*`, `m<N>/ux-refine.md` |
 | tracer | settle the data store; one thin slice through the real backend | `m<N>/tracer.md` + code |
-| features | decompose chosen stories into the per-domain feature DAG | `m<N>/features.md` |
-| plan | per-feature implementation plan for the production app | `m<N>/plans/<feature>.md` |
+| features | decompose chosen stories into the per-domain feature DAG, sized S/M/L | `m<N>/features.md` |
+| plan | per-feature implementation plan for the production app (skipped for Size S) | `m<N>/plans/<feature>.md` |
 | build | build the feature (DAG order), verify it | code |
-| review | fresh-session audit of the milestone | `m<N>/review.md` |
+| review | fresh-session audit of the milestone; findings table drives fixes | `m<N>/review.md` |
 | finalize | clean up docs, write the milestone summary | `m<N>/summary.md` |
 
 `tracer`, `features`, `plan`, and `build` run only on **production-track**
@@ -183,7 +189,9 @@ when its artifact file exists.
 ```
 .ruler/                  agent instructions
 docs/
-  PRODUCT.md  DESIGN.md  CONCEPTS.md  DECISIONS.md
+  PRODUCT.md  DESIGN.md  CONCEPTS.md
+  STACK.md               the CURRENT tech stack + approved libraries — edited in place
+  DECISIONS.md           append-only log — why each stack/arch choice was made
   DATA.md                data model — created lazily, only once a milestone persists data
 project/
   config.json            the only non-doc file — mode, repos, prototype topology
@@ -204,18 +212,24 @@ not by hand. Everything else is plain markdown you (and `adhd`) edit directly.
 
 - **Commit gate** — `adhd` never runs `git commit` without your explicit "ok".
 - **Milestone discipline** — the front door for a mid-project change or new idea is
-  `/adhd evolve` (brainstorm, plan, drive artifact updates). A new story filed to
+  `/adhd evolve` (brainstorm, plan, drive artifact updates); a code-only correction is
+  `/adhd fix`. A new story filed to
   `stories.md` is picked up by a future `milestone-brief` — not bolted onto the milestone
-  in flight. A story with an empty `Surfaces` column cannot be selected into a milestone.
+  in flight. A story whose `Surfaces` column is empty — or holds only provisional
+  `?`-suffixed names seeded at `stories` — cannot be selected into a milestone.
 - **Product before tech** — the scope artifacts (`docs/PRODUCT.md`, `project/stories.md`,
   `project/map.md`) describe *what the product does* in capability terms — never a stack,
   framework, database, or architecture. (`Surfaces` names in `stories.md` are
   capability-level surface names, not technical routes.) The prototype *app* is the
   exception — real code on the framework chosen at `foundation` — but the `map.md`
-  sitemap stays capability-level. The firm tech baseline lives in `docs/DECISIONS.md`
+  sitemap stays capability-level. The current tech stack lives in `docs/STACK.md`
   (`foundation`).
 - **Tech, just-in-time** — `foundation` records only the firm, known-from-the-start
-  baseline; every other stack decision is made by the milestone that first needs it. A
+  baseline (plus approved libraries) in `docs/STACK.md`; every other stack decision is
+  made by the milestone that first needs it. `STACK.md` is the always-current state,
+  edited in place; every change to it gets a rationale entry appended to
+  `docs/DECISIONS.md`. The **baseline guard**: the agent never introduces a framework,
+  library, or service outside `STACK.md` without your ok + a logged decision. A
   milestone can declare `infra: none` and ship as a fully-working UX prototype on mock
   data — no database, no data model. The data model appears in `docs/DATA.md` only once
   a milestone actually persists data.

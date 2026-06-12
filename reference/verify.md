@@ -50,12 +50,24 @@ with clean eyes and does not pollute the conductor's context:
 8. **Undrained story changes.** `project/work/prototype.md` has an undrained
    `## Story changes` block while the `prototype` stage is done — story changes were
    written during a prototype run but never folded into `project/stories.md`.
-9. **Empty Surfaces cell.** An `m<N>/brief.md` references a story whose `Surfaces`
-   cell is empty in `project/stories.md` — the story was never drawn in the prototype
-   and is therefore not implementable (mirrors the `adhd-state.mjs validate` blocker).
+9. **Empty or provisional Surfaces cell.** An `m<N>/brief.md` references a story whose
+   `Surfaces` cell in `project/stories.md` is empty or holds only provisional
+   `?`-suffixed names — the story was never drawn in the prototype and is therefore not
+   implementable (mirrors the `adhd-state.mjs validate` blocker).
 10. **Abandoned evolve work file.** `project/work/evolve.md` still exists — either an
     `evolve` cascade was abandoned mid-way, or all `## Impact plan` items are checked
     but the file was not deleted as required by the `evolve` on-completion steps.
+11. **Stale provisional `?` names.** A `Surfaces` cell carries a `?`-suffixed name
+    whose surface already exists in `project/map.md` — the surface was built but the
+    `?` was never cleared (the `prototype` stage should have removed it).
+12. **Review findings hygiene.** An `m<N>/review.md` whose findings table is missing
+    the `Severity`/`Status` columns (the `finalize` gate cannot parse it), or a
+    finalized milestone (`summary.md` exists) with findings still `open`.
+13. **STACK ↔ DECISIONS drift.** A technology named in `docs/STACK.md` with no
+    corresponding entry in `docs/DECISIONS.md` (warning), or — stronger — a stack
+    element that decisions/tracer notes show in use but that is absent from
+    `docs/STACK.md`. `STACK.md` is current state; `DECISIONS.md` is the log — both
+    must tell the same story.
 
 ## Output
 

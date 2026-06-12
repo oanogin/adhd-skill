@@ -31,9 +31,13 @@ into features and built. It runs only on production-track milestones.
    before you write this stage's output artifact or any code.
 2. **Settle the infra mechanism — latest responsible moment.** Read the milestone's
    `infra` need from `m{{N}}/brief.md`. For each capability it requires that has no
-   mechanism chosen yet, decide the mechanism now, with the user, and log it in
-   `docs/DECISIONS.md`. The tracer is the first stage that needs a real backend, so
-   this is where the data store and other deferred tech decisions are made.
+   mechanism chosen yet, decide the mechanism now, with the user; then update
+   `docs/STACK.md` in place (the mechanism under `## Services`, any new library under
+   `## Libraries`) and log the decision with its rationale in `docs/DECISIONS.md`.
+   The tracer is the first stage that needs a real backend, so this is where the data
+   store and other deferred tech decisions are made. The **Baseline guard** (SKILL.md)
+   applies: no technology outside `docs/STACK.md` without this update + log + the
+   user's ok.
 3. **Build one deliberate thin slice.** Pick a single surface from `m{{N}}/brief.md`
    and build it end to end through the real mechanism — not a mock. Choose the slice so
    it exercises the risk classes that hurt late: auth, errors, rate limits, and data

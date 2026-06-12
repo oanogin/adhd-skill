@@ -7,7 +7,8 @@ import path from 'node:path';
 import {
   defaultConfig, loadConfig, saveConfig, initConfig, CONFIG_VERSION,
   GROUNDWORK_STAGES, MILESTONE_STAGES, FEATURE_STAGES, SURFACE_KINDS, MODES, PROTOTYPE_TOPOLOGIES,
-  parseTable, parseStories, parseFeatures, milestoneTrack, milestoneDirs, briefStoryIds,
+  parseTable, parseTables, parseStories, parseFeatures, parseReviewFindings,
+  milestoneTrack, milestoneDirs, briefStoryIds,
   groundworkDone, milestoneStageDone, gate, nextStage, statusReport,
   validate, migrate,
   setMode, addRepo, removeRepo, bindRepo, unbindRepo, listRepos,
@@ -87,6 +88,21 @@ test('parseTable finds the first table, header lowercased', () => {
   assert.deepEqual(rows[0], ['a', 'x']);
 });
 
+test('parseTables splits separate tables instead of merging them', () => {
+  const t = [
+    '| ID | Name |', '|--|--|', '| a | x |',
+    '', 'prose between tables', '',
+    '| Severity | Status |', '|--|--|', '| critical | open |',
+  ].join('\n');
+  const tables = parseTables(t);
+  assert.equal(tables.length, 2);
+  assert.deepEqual(tables[0].header, ['id', 'name']);
+  assert.equal(tables[0].rows.length, 1);
+  assert.deepEqual(tables[1].header, ['severity', 'status']);
+  // parseTable still returns the first
+  assert.deepEqual(parseTable(t).header, ['id', 'name']);
+});
+
 test('parseStories / parseFeatures / milestoneTrack', () => {
   const cwd = tmp();
   w(cwd, 'project/stories.md', '| ID | Story | Depends on |\n|--|--|--|\n| S1 | a | |\n| S2 | b | S1 |');
@@ -126,6 +142,26 @@ test('groundworkDone derives from files', () => {
   assert.equal(groundworkDone(cwd, 'prototype'), false); // map but no sign-off
   w(cwd, 'project/prototype.md');
   assert.equal(groundworkDone(cwd, 'prototype'), true);
+});
+
+test('foundation: docs/STACK.md is the canonical done signal; decision log is legacy', () => {
+  const cwd = tmp();
+  initConfig(cwd);
+  w(cwd, 'docs/PRODUCT.md');
+  assert.equal(groundworkDone(cwd, 'foundation'), false);
+  // canonical: STACK.md alone
+  w(cwd, 'docs/STACK.md', '## Baseline\n- TypeScript\n## Libraries\n- zod — validation\n');
+  assert.equal(groundworkDone(cwd, 'foundation'), true);
+  assert.equal(gate(cwd, 'concepts').pass, true);
+  // legacy: decision log alone, no STACK.md -> done, but validate warns
+  const cwd2 = tmp();
+  initConfig(cwd2);
+  w(cwd2, 'docs/PRODUCT.md');
+  w(cwd2, 'docs/DECISIONS.md', '# Decisions\n\n## baseline\n');
+  assert.equal(groundworkDone(cwd2, 'foundation'), true);
+  assert.ok(validate(cwd2).warnings.some((x) => /STACK\.md is missing/.test(x)));
+  w(cwd2, 'docs/STACK.md', '## Baseline\n');
+  assert.ok(!validate(cwd2).warnings.some((x) => /STACK\.md is missing/.test(x)));
 });
 
 test('gate: groundwork chain', () => {
@@ -535,6 +571,139 @@ test('parseStories reads the Surfaces column', () => {
   const s = parseStories(cwd);
   assert.deepEqual(s[0].surfaces, ['Dashboard', 'Settings']);
   assert.deepEqual(s[1].surfaces, []);
+});
+
+test('parseStories: `?`-suffixed surfaces are provisional, not confirmed', () => {
+  const cwd = tmp();
+  w(cwd, 'project/stories.md',
+    '| ID | Story | Surfaces |\n|--|--|--|\n' +
+    '| S1 | a | Dashboard, Reports? |\n' +
+    '| S2 | b | Billing? |');
+  const s = parseStories(cwd);
+  assert.deepEqual(s[0].surfaces, ['Dashboard']);
+  assert.deepEqual(s[0].provisionalSurfaces, ['Reports']);
+  assert.deepEqual(s[1].surfaces, []);
+  assert.deepEqual(s[1].provisionalSurfaces, ['Billing']);
+});
+
+test('validate blocks a brief selecting a story with only provisional Surfaces', () => {
+  const cwd = tmp();
+  w(cwd, 'project/config.json', JSON.stringify(defaultConfig()));
+  w(cwd, 'docs/PRODUCT.md');
+  w(cwd, 'docs/DECISIONS.md', '## d');
+  w(cwd, 'docs/CONCEPTS.md');
+  w(cwd, 'project/map.md');
+  w(cwd, 'project/prototype.md');
+  w(cwd, 'project/stories.md',
+    '| ID | Story | Surfaces |\n|--|--|--|\n| S1 | a | Dash |\n| S2 | b | Billing? |');
+  w(cwd, 'project/milestones/m1/brief.md', '# Milestone 1 — x\nStories: S1, S2.');
+  const r = validate(cwd);
+  assert.equal(r.ok, false);
+  assert.ok(r.blockers.some((b) => /S2/.test(b) && /provisional/.test(b)),
+    `expected a provisional-Surfaces blocker, got: ${JSON.stringify(r.blockers)}`);
+});
+
+test('parseFeatures: Size column read; missing column defaults to M', () => {
+  const cwd = tmp();
+  w(cwd, 'project/milestones/m1/features.md', [
+    '| ID | Feature | Story | Domain | Repo | Size | Depends on | Build | Verified |',
+    '|--|--|--|--|--|--|--|--|--|',
+    '| f-a | a | S1 | d | r | S | | | |',
+    '| f-b | b | S1 | d | r | L | f-a | | |',
+    '| f-c | c | S1 | d | r | | f-a | | |',
+  ].join('\n'));
+  const feats = parseFeatures(cwd, 1);
+  assert.deepEqual(feats.map((f) => f.size), ['S', 'L', 'M']);
+  w(cwd, 'project/milestones/m2/features.md', FEATURES_MD); // no Size column
+  assert.ok(parseFeatures(cwd, 2).every((f) => f.size === 'M'));
+});
+
+test('gate: a Size S feature may build without a plan; M may not', () => {
+  const cwd = tmp();
+  groundwork(cwd);
+  w(cwd, 'project/milestones/m1/brief.md', 'Track: production');
+  w(cwd, 'project/milestones/m1/features.md', [
+    '| ID | Feature | Story | Domain | Repo | Size | Depends on | Build | Verified |',
+    '|--|--|--|--|--|--|--|--|--|',
+    '| f-s | small | S1 | d | r | S | | | |',
+    '| f-m | medium | S1 | d | r | M | | | |',
+  ].join('\n'));
+  assert.equal(gate(cwd, 'build', { milestone: 1, feature: 'f-s' }).pass, true);
+  const g = gate(cwd, 'build', { milestone: 1, feature: 'f-m' });
+  assert.equal(g.pass, false);
+  assert.ok(g.missing.some((x) => /not planned/.test(x)));
+});
+
+test('nextStage: Size S feature skips plan and goes straight to build', () => {
+  const cwd = tmp();
+  groundwork(cwd);
+  w(cwd, 'project/milestones/m1/brief.md', 'Track: production');
+  w(cwd, 'project/milestones/m1/ux-refine.md');
+  w(cwd, 'project/milestones/m1/tracer.md');
+  w(cwd, 'project/milestones/m1/features.md', [
+    '| ID | Feature | Story | Domain | Repo | Size | Depends on | Build | Verified |',
+    '|--|--|--|--|--|--|--|--|--|',
+    '| f-s | small | S1 | d | r | S | | | |',
+    '| f-m | medium | S1 | d | r | M | f-s | | |',
+  ].join('\n'));
+  let n = nextStage(cwd, { milestone: 1 });
+  assert.deepEqual([n.stage, n.feature], ['build', 'f-s']);
+  w(cwd, 'project/milestones/m1/features.md', [
+    '| ID | Feature | Story | Domain | Repo | Size | Depends on | Build | Verified |',
+    '|--|--|--|--|--|--|--|--|--|',
+    '| f-s | small | S1 | d | r | S | | done | yes |',
+    '| f-m | medium | S1 | d | r | M | f-s | | |',
+  ].join('\n'));
+  n = nextStage(cwd, { milestone: 1 });
+  assert.deepEqual([n.stage, n.feature], ['plan', 'f-m']);
+});
+
+test('parseReviewFindings reads the severity/status table; empty status = open', () => {
+  const cwd = tmp();
+  assert.equal(parseReviewFindings(cwd, 1), null); // no review.md
+  w(cwd, 'project/milestones/m1/review.md', 'no table here');
+  assert.deepEqual(parseReviewFindings(cwd, 1), []);
+  w(cwd, 'project/milestones/m1/review.md', [
+    '# Review',
+    '',
+    '| Surface | Note |', '|--|--|', '| Dash | fine |', // decoy table
+    '',
+    '| ID | Finding | Where | Severity | Fix | Status |',
+    '|--|--|--|--|--|--|',
+    '| R1 | broken auth | Dash | critical | redo guard | open |',
+    '| R2 | misaligned | Dash | minor | nudge css | fixed |',
+    '| R3 | no empty state | Dash | major | add state | |',
+  ].join('\n'));
+  const f = parseReviewFindings(cwd, 1);
+  assert.equal(f.length, 3);
+  assert.deepEqual([f[0].severity, f[0].status], ['critical', 'open']);
+  assert.deepEqual([f[2].severity, f[2].status], ['major', 'open']); // empty -> open
+});
+
+test('gate: finalize blocked by an open critical review finding', () => {
+  const cwd = tmp();
+  groundwork(cwd);
+  w(cwd, 'project/milestones/m1/brief.md', 'Track: prototype');
+  w(cwd, 'project/milestones/m1/review.md', [
+    '| ID | Finding | Where | Severity | Fix | Status |',
+    '|--|--|--|--|--|--|',
+    '| R1 | broken auth | Dash | critical | redo guard | open |',
+  ].join('\n'));
+  let g = gate(cwd, 'finalize', { milestone: 1 });
+  assert.equal(g.pass, false);
+  assert.ok(g.missing.some((x) => /R1/.test(x) && /critical/.test(x)));
+  // fixed / accepted criticals do not block; open majors do not block
+  w(cwd, 'project/milestones/m1/review.md', [
+    '| ID | Finding | Where | Severity | Fix | Status |',
+    '|--|--|--|--|--|--|',
+    '| R1 | broken auth | Dash | critical | redo guard | fixed |',
+    '| R2 | slow load | Dash | critical | cache | accepted |',
+    '| R3 | no empty state | Dash | major | add state | open |',
+  ].join('\n'));
+  assert.equal(gate(cwd, 'finalize', { milestone: 1 }).pass, true);
+  // a review.md without a findings table keeps the old file-exists semantics
+  w(cwd, 'project/milestones/m1/review.md', 'free-form notes');
+  assert.equal(gate(cwd, 'finalize', { milestone: 1 }).pass, true);
 });
 
 test('validate blocks a brief selecting a story with empty Surfaces', () => {

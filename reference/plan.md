@@ -8,6 +8,14 @@
 `plan` turns one feature into an ordered set of bite-sized implementation tasks. It
 runs per feature, on production-track milestones.
 
+**Size `S` features skip this stage.** A feature whose `Size` cell in
+`m{{N}}/features.md` is `S` is built directly from its surface spec + feature row —
+`adhd next` returns `build` for it and the `build` gate does not require a plan file.
+Planning an `S` feature anyway is allowed (the plan file is simply honored), but the
+default is skip. If, on inspection, an `S` feature turns out to need real design
+decisions, change its `Size` to `M` in `features.md` and plan it — do not build
+unplanned work that deserved a plan.
+
 ## Gate check
 Run `node {{scripts_path}}/adhd-state.mjs gate plan --milestone {{N}} --feature {{feature}}`.
 If it reports missing items, HALT. Tell the user exactly which predecessor stage to run.

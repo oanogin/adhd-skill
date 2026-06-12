@@ -92,13 +92,7 @@ function loadLocalRepos(cwd) {
 function saveLocalRepos(cwd, obj) { writeJSON(localReposPath(cwd), obj); }
 
 // ---- markdown parsing ----
-// Parse the first markdown table in `text` -> { header: [lowercased], rows: [[cells]] }.
-export function parseTable(text) {
-  const rowLines = [];
-  for (const line of text.split('\n')) {
-    const t = line.trim();
-    if (t.startsWith('|') && t.endsWith('|')) rowLines.push(t);
-  }
+function parseTableBlock(rowLines) {
   const cells = (l) => l.slice(1, -1).split('|').map((c) => c.trim());
   let sep = -1;
   for (let i = 0; i < rowLines.length; i++) {
@@ -112,6 +106,24 @@ export function parseTable(text) {
   };
 }
 
+// Parse every markdown table in `text` -> [{ header: [lowercased], rows: [[cells]] }].
+export function parseTables(text) {
+  const blocks = [];
+  let cur = [];
+  for (const line of text.split('\n')) {
+    const t = line.trim();
+    if (t.startsWith('|') && t.endsWith('|')) cur.push(t);
+    else if (cur.length) { blocks.push(cur); cur = []; }
+  }
+  if (cur.length) blocks.push(cur);
+  return blocks.map(parseTableBlock).filter((t) => t.header.length);
+}
+
+// Parse the first markdown table in `text` -> { header: [lowercased], rows: [[cells]] }.
+export function parseTable(text) {
+  return parseTables(text)[0] ?? { header: [], rows: [] };
+}
+
 const clean = (s) => (s ?? '').replace(/`/g, '').trim();
 
 export function parseStories(cwd) {
@@ -121,11 +133,18 @@ export function parseStories(cwd) {
   const depC = header.indexOf('depends on');
   const surfC = header.indexOf('surfaces');
   if (idC < 0) return [];
-  return rows.map((r) => ({
-    id: clean(r[idC]),
-    dependsOn: depC >= 0 ? clean(r[depC]).split(',').map((s) => s.trim()).filter(Boolean) : [],
-    surfaces: surfC >= 0 ? clean(r[surfC]).split(',').map((s) => s.trim()).filter(Boolean) : [],
-  })).filter((s) => s.id);
+  return rows.map((r) => {
+    // A `?`-suffixed surface name is provisional: seeded at `stories` for a
+    // surface that does not exist yet; the `prototype` stage clears the `?`
+    // when it builds the surface. Provisional names do not make a story selectable.
+    const all = surfC >= 0 ? clean(r[surfC]).split(',').map((s) => s.trim()).filter(Boolean) : [];
+    return {
+      id: clean(r[idC]),
+      dependsOn: depC >= 0 ? clean(r[depC]).split(',').map((s) => s.trim()).filter(Boolean) : [],
+      surfaces: all.filter((s) => !s.endsWith('?')),
+      provisionalSurfaces: all.filter((s) => s.endsWith('?')).map((s) => s.slice(0, -1).trim()).filter(Boolean),
+    };
+  }).filter((s) => s.id);
 }
 
 function milestoneRel(m, ...sub) { return path.join('project/milestones', `m${m}`, ...sub); }
@@ -146,16 +165,38 @@ export function parseFeatures(cwd, m) {
   const { header, rows } = parseTable(read(cwd, rel));
   const c = (name) => header.indexOf(name);
   const idC = c('id'), storyC = c('story'), domainC = c('domain'),
-    repoC = c('repo'), depC = c('depends on'), buildC = c('build'), verC = c('verified');
+    repoC = c('repo'), sizeC = c('size'), depC = c('depends on'), buildC = c('build'), verC = c('verified');
   return rows.map((r) => ({
     id: clean(r[idC]),
     story: storyC >= 0 ? clean(r[storyC]) || null : null,
     domain: domainC >= 0 ? clean(r[domainC]) || null : null,
     repo: repoC >= 0 ? clean(r[repoC]) || null : null,
+    // Size S = small + fully specified by the surface spec and the feature row;
+    // it skips the `plan` stage. Missing column or any other value -> 'M' (plan required).
+    size: sizeC >= 0 && /^s$/i.test(clean(r[sizeC])) ? 'S' : (sizeC >= 0 && /^l$/i.test(clean(r[sizeC])) ? 'L' : 'M'),
     dependsOn: depC >= 0 ? clean(r[depC]).split(',').map((s) => s.trim()).filter(Boolean) : [],
     build: buildC >= 0 && /\bdone\b/i.test(r[buildC] ?? ''),
     verified: verC >= 0 && /\b(yes|done|x)\b/i.test(r[verC] ?? ''),
   })).filter((f) => f.id);
+}
+
+// Findings table in m<N>/review.md: the table whose header carries both
+// `severity` and `status`. -> [{ id, finding, severity, status }] | null (no review.md).
+// An empty status counts as open (fail-closed).
+export function parseReviewFindings(cwd, m) {
+  const rel = milestoneRel(m, 'review.md');
+  if (!exists(cwd, rel)) return null;
+  const table = parseTables(read(cwd, rel))
+    .find((t) => t.header.includes('severity') && t.header.includes('status'));
+  if (!table) return [];
+  const c = (name) => table.header.indexOf(name);
+  const idC = c('id'), findC = c('finding'), sevC = c('severity'), statC = c('status');
+  return table.rows.map((r) => ({
+    id: idC >= 0 ? clean(r[idC]) : '',
+    finding: findC >= 0 ? clean(r[findC]) : '',
+    severity: clean(r[sevC]).toLowerCase(),
+    status: clean(r[statC]).toLowerCase() || 'open',
+  })).filter((f) => f.severity);
 }
 
 export function milestoneTrack(cwd, m) {
@@ -195,8 +236,11 @@ export function groundworkDone(cwd, stage) {
     case 'setup': return exists(cwd, CONFIG_FILE);
     case 'vision': return exists(cwd, `${docHome}/PRODUCT.md`);
     case 'foundation':
-      return exists(cwd, `${docHome}/DECISIONS.md`)
-        && /^##\s/m.test(read(cwd, `${docHome}/DECISIONS.md`));
+      // docs/STACK.md is the canonical artifact; a logged decision in
+      // docs/DECISIONS.md is the legacy (pre-STACK) done signal.
+      return exists(cwd, `${docHome}/STACK.md`)
+        || (exists(cwd, `${docHome}/DECISIONS.md`)
+          && /^##\s/m.test(read(cwd, `${docHome}/DECISIONS.md`)));
     case 'concepts': return exists(cwd, `${docHome}/CONCEPTS.md`);
     case 'prototype':
       return exists(cwd, 'project/prototype.md')
@@ -235,7 +279,7 @@ export function gate(cwd, stage, { milestone, feature } = {}) {
     case 'setup': break;
     case 'vision': need(gw('setup'), 'setup not done — no project/config.json'); break;
     case 'foundation': need(gw('vision'), 'vision not done — docs/PRODUCT.md missing'); break;
-    case 'concepts': need(gw('foundation'), 'foundation not done — no decisions logged in docs/DECISIONS.md'); break;
+    case 'concepts': need(gw('foundation'), 'foundation not done — no docs/STACK.md (and no legacy decision logged in docs/DECISIONS.md)'); break;
     case 'stories': need(gw('concepts'), 'concepts not done — docs/CONCEPTS.md missing'); break;
     case 'prototype': need(gw('stories'), 'stories not done — project/stories.md missing'); break;
     case 'milestone-brief': need(gw('prototype'), 'prototype not done — project/prototype.md / project/map.md missing'); break;
@@ -255,10 +299,13 @@ export function gate(cwd, stage, { milestone, feature } = {}) {
       break;
     }
     case 'build': {
-      need(planDone(cwd, milestone, feature), `feature "${feature}": not planned — m${milestone}/plans/${feature}.md missing`);
       const feats = parseFeatures(cwd, milestone) ?? [];
       const f = feats.find((x) => x.id === feature);
       if (!f) { missing.push(`milestone ${milestone}: no feature "${feature}" in features.md`); break; }
+      // Size S features may skip the plan stage entirely.
+      if (f.size !== 'S') {
+        need(planDone(cwd, milestone, feature), `feature "${feature}": not planned — m${milestone}/plans/${feature}.md missing (only Size S features may skip plan)`);
+      }
       if (!depsBuilt(feats, f)) {
         const byId = Object.fromEntries(feats.map((x) => [x.id, x]));
         const blockers = (f.dependsOn ?? []).filter((d) => !byId[d]?.build);
@@ -277,7 +324,14 @@ export function gate(cwd, stage, { milestone, feature } = {}) {
         }
       }
       break;
-    case 'finalize': need(ms('review'), `milestone ${milestone}: review not done`); break;
+    case 'finalize':
+      need(ms('review'), `milestone ${milestone}: review not done`);
+      for (const f of parseReviewFindings(cwd, milestone) ?? []) {
+        if (f.severity === 'critical' && f.status === 'open') {
+          missing.push(`milestone ${milestone}: review finding "${f.id || f.finding}" is critical and still open — fix it (\`adhd fix\` or a feature row) or mark it accepted`);
+        }
+      }
+      break;
     case 'evolve': need(gw('prototype'), 'groundwork not complete — prototype not done (project/prototype.md / project/map.md)'); break;
     default: return { pass: false, missing: [`unknown stage: ${stage}`] };
   }
@@ -372,19 +426,19 @@ function milestoneNext(cwd, m) {
     // Interleaved plan -> build, one feature at a time, in dependency order:
     // for the first not-yet-built feature whose deps are built, plan it if it
     // is not planned yet, otherwise build it. Only then move to the next feature.
+    // Size S features skip plan and go straight to build.
     const feats = parseFeatures(cwd, m) ?? [];
+    const needsPlan = (f) => f.size !== 'S' && !planDone(cwd, m, f.id);
     let blocked = null;
     for (const f of feats) {
       if (f.build) continue;
       if (depsBuilt(feats, f)) {
-        if (!planDone(cwd, m, f.id)) return at('plan', f.id);
-        return at('build', f.id);
+        return at(needsPlan(f) ? 'plan' : 'build', f.id);
       }
       if (!blocked) blocked = f;
     }
     if (blocked) {
-      if (!planDone(cwd, m, blocked.id)) return at('plan', blocked.id);
-      return at('build', blocked.id);
+      return at(needsPlan(blocked) ? 'plan' : 'build', blocked.id);
     }
   }
   if (!milestoneStageDone(cwd, m, 'review')) return at('review');
@@ -493,18 +547,31 @@ export function validate(cwd = process.cwd()) {
     const cyc = findCycle(feats);
     if (cyc) blockers.push(`milestone ${m}: feature dependency cycle: ${cyc.join(' → ')}`);
   }
-  // empty-Surfaces selection gate: a brief may not pick a story with no Surfaces.
+  // empty-Surfaces selection gate: a brief may not pick a story with no confirmed
+  // Surfaces. A `?`-suffixed (provisional) name does not count — the surface was
+  // seeded at `stories` but never prototyped.
   const stories = parseStories(cwd) ?? [];
-  const surfacesById = Object.fromEntries(stories.map((s) => [s.id, s.surfaces]));
+  const byId = Object.fromEntries(stories.map((s) => [s.id, s]));
   for (const m of milestoneDirs(cwd)) {
     for (const id of briefStoryIds(cwd, m)) {
-      if ((surfacesById[id] ?? []).length === 0) {
-        blockers.push(`milestone ${m}: brief selects story "${id}" which has empty Surfaces in project/stories.md — run \`adhd evolve\` to prototype it first`);
+      const s = byId[id];
+      if (s && s.surfaces.length === 0) {
+        const why = s.provisionalSurfaces.length
+          ? `only provisional (\`?\`-suffixed) Surfaces`
+          : 'empty Surfaces';
+        blockers.push(`milestone ${m}: brief selects story "${id}" which has ${why} in project/stories.md — run \`adhd evolve\` to prototype it first`);
       }
     }
   }
   if (exists(cwd, 'project/notes.md')) {
     warnings.push('project/notes.md is legacy (removed from the model) — drain durable entries to a canonical home, then delete it; `adhd-state.mjs migrate` removes it if empty and scaffolds project/parking.md');
+  }
+  // foundation done via the legacy decision-log signal but no STACK.md yet
+  {
+    const docHome = config.docHome ?? 'docs';
+    if (groundworkDone(cwd, 'foundation') && !exists(cwd, `${docHome}/STACK.md`)) {
+      warnings.push(`foundation is satisfied by a legacy ${docHome}/DECISIONS.md entry but ${docHome}/STACK.md is missing — author it from the logged baseline (re-run \`adhd foundation\`)`);
+    }
   }
   return { ok: blockers.length === 0, blockers, warnings };
 }

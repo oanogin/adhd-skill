@@ -1,8 +1,8 @@
 # adhd — Build
 
 **Effort:** medium — effort scales with the number of tasks in the feature plan.
-**Gate:** `project/milestones/m{{N}}/plans/{{feature}}.md` exists (Plan done) AND every
-feature this one depends on is already built.
+**Gate:** `project/milestones/m{{N}}/plans/{{feature}}.md` exists (Plan done) — waived
+for a `Size: S` feature — AND every feature this one depends on is already built.
 **Output:** working code for the feature, plus the `Build`/`Verified` columns of
 `m{{N}}/features.md` updated.
 **Sub-skill:** `impeccable craft`, `superpowers:executing-plans`.
@@ -26,11 +26,20 @@ DAG order is not optional.
    `superpowers:executing-plans`, one task at a time. For UI craft within a task use
    `impeccable craft` so the implementation matches the design system.
 
+   **A `Size: S` feature has no plan file** — build it directly from its feature row
+   and the surface spec(s) it serves, in one small, verifiable pass. If mid-build it
+   turns out to need real design decisions, STOP: set its `Size` to `M` in
+   `features.md` and run `plan` first.
+
    Build in the feature's own `repo` — read it from the feature's row in
    `m{{N}}/features.md`, resolve the repo's absolute local path via
    `node {{scripts_path}}/adhd-state.mjs workspace-list`, and `cd` into it before
    writing code. Honor that repo's own conventions (`CLAUDE.md`, etc.). If the repo is
    unbound, HALT and tell the user to run `adhd workspace`.
+
+   **Baseline guard:** use only technologies listed in `docs/STACK.md`. A task that
+   needs a new library or service STOPS first — propose it, get the user's ok, update
+   `STACK.md`, log the decision in `docs/DECISIONS.md`, then proceed.
 2. **Verify before done.** When the whole plan is complete, run the feature's
    verification — the repo's tests, build, and type checks — and confirm it passes. Do
    not claim done on assertion alone; run the commands and read the output.

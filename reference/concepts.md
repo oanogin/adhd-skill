@@ -1,8 +1,8 @@
 # adhd — Concepts
 
 **Effort:** high
-**Gate:** the `foundation` stage is done — the firm tech baseline is logged in
-`docs/DECISIONS.md`.
+**Gate:** the `foundation` stage is done — `docs/STACK.md` exists (or, legacy, the
+baseline is logged in `docs/DECISIONS.md`).
 **Output:** `docs/CONCEPTS.md` (the product's ubiquitous language: entities,
 relationships, and a helicopter view of how the system works).
 **Sub-skill:** `superpowers:brainstorming`.

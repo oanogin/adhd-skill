@@ -122,26 +122,29 @@ without a confirmed `shape` brief.
      `node {{scripts_path}}/adhd-state.mjs workspace-list`; HALT if a needed repo is unbound.
 
    Then for **each** `ui` surface:
-   1. **Clarify this surface's requirements with the user** — its purpose, the scenarios
-      it serves (from step 4), key states, the interactions it must support, and what is
-      explicitly out of scope. Do not touch any other surface now.
-   2. **`impeccable shape <surface>`** — plan the surface's UX/UI. This produces a shape
-      brief. **WAIT for the user's explicit confirmation of that brief before writing any
-      code.** No `craft` without a confirmed brief — this is `impeccable`'s own gate and
-      the checkpoint that stops the build from running in the wrong direction. On
-      confirmation, check this surface's `## Gate` line with the user's verbatim ok and
-      fold the confirmed brief into `project/surfaces/<name>.md`.
-   3. **Gate-check, then `impeccable craft <surface>`** — run
+   1. **`impeccable shape <surface>`** — `shape` owns this surface's clarification AND
+      its plan: purpose, the scenarios it serves (from step 4), key states, the
+      interactions it must support, what is explicitly out of scope. Do not run a
+      separate clarify pass before it, and do not touch any other surface now. `shape`
+      produces a brief. **WAIT for the user's explicit confirmation of that brief
+      before writing any code** — `impeccable`'s own gate, the checkpoint that stops
+      the build from running in the wrong direction. **That one confirmation is also
+      the work-file gate confirmation**: record the same verbatim ok on this surface's
+      `## Gate` line — never ask a second time for the same sign-off. Fold the
+      confirmed brief into `project/surfaces/<name>.md`.
+   2. **Gate-check, then `impeccable craft <surface>`** — run
       `node {{scripts_path}}/adhd-state.mjs work-gate prototype --item <surface>`; if it
       reports `missing`, HALT and re-clarify. Only on `pass` build the surface Hi-Fi on
       mock data at the resolved location, matching the design system.
-   4. **Write the surface name into `project/stories.md`.** The moment this surface is
+   3. **Write the surface name into `project/stories.md`.** The moment this surface is
       built (or as soon as you determine which stories it realizes), open
       `project/stories.md` and append the surface name to the `Surfaces` cell of every
-      story it realizes. A story whose `Surfaces` cell remains empty is NOT implementable
-      and CANNOT be selected at `milestone-brief`. This write is mandatory — do it now,
+      story it realizes — and **remove the `?` suffix** from any provisional entry this
+      surface confirms (a name seeded at `stories` before the surface existed). A story
+      whose `Surfaces` cell is empty or holds only `?`-names is NOT implementable and
+      CANNOT be selected at `milestone-brief`. This write is mandatory — do it now,
       not at the end of the stage.
-   5. Do not start the next surface until this one is shaped (confirmed), built, and its
+   4. Do not start the next surface until this one is shaped (confirmed), built, and its
       stories' `Surfaces` cells written. If the user redirects during shape, re-shape and
       re-confirm — never push past unconfirmed direction.
 6. **Wire the clickable whole-product prototype.** Assemble every `ui` surface into ONE

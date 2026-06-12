@@ -39,18 +39,33 @@ both built and verified — if a feature is built but not verified, run
    is actually delivered by the milestone's features, and — for a cross-domain milestone
    — that each participating domain's work was addressed. Nothing chosen should be
    silently skipped. Run the `verify` pass (see [reference/verify.md](verify.md)) and resolve findings.
-5. **Write findings to `m{{N}}/review.md`.** Record each as an actionable item: the
-   issue, the surface or feature it affects, a severity, and the fix.
-6. **File and fix defects before closing.** Defects found in review are fixed before
-   `finalize`. Do not advance with open critical items.
+5. **Write findings to `m{{N}}/review.md`** as a table with exactly these columns —
+   `adhd-state.mjs` parses it for the `finalize` gate:
+
+   `| ID | Finding | Where | Severity | Fix | Status |`
+
+   - `Severity` — `critical` | `major` | `minor`.
+   - `Status` — `open` | `fixed` | `accepted`. Every finding starts `open`; an empty
+     cell counts as `open` (fail-closed). `accepted` means the user explicitly chose to
+     live with it — record their ok in the `Fix` cell.
+6. **Resolve each finding through the right door — never freelance:**
+   - **small code defect** → `adhd fix` (see [fix.md](fix.md)), then set `Status: fixed`;
+   - **substantial production work** (production-track) → append a feature row
+     (e.g. `f-rev-1`) to `m{{N}}/features.md` with a `Size` and dependencies — the
+     normal `plan`/`build` machinery and gates apply; set the finding `fixed` once that
+     feature is built and verified;
+   - **prototype-slice problem** → `adhd ux-refine --milestone {{N}}` (slice fix);
+   - **the spec itself is wrong** (whole-product flow, concepts, stories) →
+     `adhd evolve`;
+   - **consciously deferred** → `Status: accepted`, with the user's explicit ok.
+
+   The `finalize` gate refuses to run while any `critical` finding is `open` — that is
+   the machine check behind "do not advance with open critical items".
 
 ## Output
-`project/milestones/m{{N}}/review.md` with a findings list. Each finding records:
-
-- `item` — the issue found.
-- `where` — the surface or feature it affects.
-- `severity` — how serious the finding is.
-- `fix` — the action that resolves it.
+`project/milestones/m{{N}}/review.md` with the findings table
+(`ID | Finding | Where | Severity | Fix | Status`), one row per finding, each resolved
+(`fixed`/`accepted`) or consciously left `open` (non-critical only).
 
 ## On completion
 1. Write the output file(s) above — review is done the moment `m{{N}}/review.md` exists.

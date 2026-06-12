@@ -39,8 +39,12 @@ milestone or a `docs/DECISIONS.md` entry. `adopt` does not block on it.
    below, draft the `adhd`-style version from what the scan found and present it to
    the user for review before writing:
    - `docs/PRODUCT.md` — product, users, usage, brand, anti-references, principles.
-   - `docs/DECISIONS.md` — carry over the existing decision log and the firm tech
-     baseline (the `foundation` artifact).
+   - `docs/STACK.md` — the current tech stack read off the existing code: `## Baseline`
+     (languages, frameworks, repo topology), `## Libraries` (what the repos actually
+     use), `## Services` (data stores etc. already in production). This is the
+     `foundation` artifact.
+   - `docs/DECISIONS.md` — carry over the existing decision log; add one entry
+     recording the adopted baseline.
    - `project/map.md` — the surface catalog, domains, and deployables.
    - `docs/CONCEPTS.md` — the ubiquitous language: entities, their relationships
      (a Mermaid `erDiagram`), and a helicopter view of how the system works. This is the

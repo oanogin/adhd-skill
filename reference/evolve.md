@@ -9,7 +9,10 @@ work file is drained and deleted.
 
 `evolve` is the **single front door for every change after groundwork is complete** —
 new features, adjustments to concepts, story edits, prototype revisions, data-model
-updates, and map changes all enter through here. It is a **living, on-demand conductor**
+updates, and map changes all enter through here. The one thing that does NOT come
+through `evolve` is a **code-only correction** — a bug, misplaced code, a convention
+violation — where the spec is already right and the code is wrong: that is
+`adhd fix` (see [fix.md](fix.md)). It is a **living, on-demand conductor**
 (like `verify` or `adopt`), not part of the linear groundwork progression. It does NOT
 produce a canonical artifact of its own; instead it sequences re-runs of the living
 groundwork stages (`concepts`, `stories`, `prototype`, and the lazily-created
@@ -40,6 +43,15 @@ No skip, no override — this is the skill's central discipline.
    order (`concepts → stories → prototype → data/map …`). Include only the stages the
    change actually touches. Each checklist item names the stage and the specific mutation
    it must make (e.g. `[ ] concepts — add "Subscription" entity and its lifecycle`).
+
+   > **Fast path — backlog-text-only edits.** If triage shows the change touches ONLY
+   > `project/stories.md` text — rewording a story, adjusting `Value`/`Size`/`Depends
+   > on`, or removing a never-selected story — with **no new story, no new entity, no
+   > `Surfaces` change, no flow/rule change, and no data impact**: skip the work file
+   > and impact plan entirely. Confirm the exact edit with the user, apply it directly
+   > to `project/stories.md` (IDs stay stable), done. The moment the change is anything
+   > more — a new story, a concept touched, a surface drawn — run the full procedure;
+   > the ripple check is exactly what `evolve` exists for.
 
 3. **Confirm the plan with the user.** Walk the user through the impact plan, explain
    why each stage is included, and get explicit agreement before making any changes.

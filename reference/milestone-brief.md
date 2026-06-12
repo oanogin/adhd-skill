@@ -27,11 +27,11 @@ brief *is* the milestone's record.
    that this milestone will deliver — the smallest set that is genuinely valuable to
    real users, not a tech demo and not the whole spaceship. Respect story dependencies:
    a story cannot land before the stories it depends on. **A story whose `Surfaces` cell
-   in `project/stories.md` is empty may NOT be chosen** — its surfaces have not been
-   prototyped yet. If a wanted story has no `Surfaces` entry, STOP and run
-   `adhd evolve` to prototype it first; `adhd-state.mjs validate` enforces this
-   structurally and will block a brief that selects an empty-`Surfaces` story. List the
-   chosen story IDs in `brief.md`, with a one-line title for the milestone.
+   in `project/stories.md` is empty — or holds only provisional `?`-suffixed names —
+   may NOT be chosen**: its surfaces have not been prototyped yet. If a wanted story has
+   no confirmed `Surfaces` entry, STOP and run `adhd evolve` to prototype it first;
+   `adhd-state.mjs validate` enforces this structurally and will block such a brief.
+   List the chosen story IDs in `brief.md`, with a one-line title for the milestone.
 2. **Identify the surfaces touched.** From `project/map.md`, list the surfaces this
    milestone's stories add or change. Keep `ui` surfaces **workspace-sized** — one
    coherent workspace you would demo as a unit, not one per screen-area; the milestone's

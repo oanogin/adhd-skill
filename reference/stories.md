@@ -34,17 +34,25 @@ user to run `adhd concepts` first.
    - `ID` — a stable short key (`S1`, `S2`, ... or a mnemonic like `LEGAL-ENTITY`). It
      is the story's permanent handle and survives any later rewording.
    - `Depends on` — references other stories **by ID**, never by retyping their text.
-   - `Surfaces` — comma-separated surface names that realize the story. FILLED BY THE
-     `prototype` STAGE; left empty here on first authoring. Empty = "not prototyped yet";
-     a story with empty `Surfaces` CANNOT be selected at `milestone-brief`. It is the
+   - `Surfaces` — comma-separated surface names that realize the story. It is the
      single source of truth for the story↔surface link; `project/map.md` carries no
-     story back-references.
+     story back-references. COMPLETED BY THE `prototype` STAGE, but it may be
+     **seeded here** when the realizing surface is obvious:
+     - the surface **already exists** in `project/map.md` (a story landing on an
+       existing screen) → write its name plainly;
+     - the surface is obvious but **not prototyped yet** → write the name with a `?`
+       suffix (`Dashboard?`). A `?`-name is **provisional**: the `prototype` stage (or
+       an `evolve` re-run) builds the surface and removes the `?`.
+     - genuinely unclear → leave empty.
+     A story whose cell is empty or holds only `?`-names CANNOT be selected at
+     `milestone-brief` — only plain names count as prototyped.
    - There is **no milestone column.** A story is not pre-assigned to a milestone — it
      is picked into one at `milestone-brief` time. The backlog is the only
      forward-looking list; `adhd` keeps no separate roadmap.
 4. **Re-running.** When `stories` is run again later, amend the table in place. Keep
-   IDs stable. A new feature idea raised mid-project is filed here and picked up by a
-   future `milestone-brief` — never bolted onto the milestone in flight.
+   IDs stable. A new feature idea raised mid-project enters through `adhd evolve`
+   (which sequences this stage's re-run) and is picked up by a future
+   `milestone-brief` — never bolted onto the milestone in flight.
 
 ## Output
 `project/stories.md` containing:
