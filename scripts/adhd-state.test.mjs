@@ -811,7 +811,7 @@ Depends on: context-switch
 sequenceDiagram
   actor R as Recipient
   participant RES as invite-resolver [ui]
-  participant INV as invitation [api]
+  participant INV as invitation [service]
   R->>RES: paste code
   RES->>INV: redeem(code)
   INV->>INV: rate-limit check
@@ -833,7 +833,7 @@ test('parseFlowDiagram: participants, arrows, kinds, self-arrows', () => {
   const d = parseFlowDiagram(FLOW_MD);
   assert.deepEqual(d.participants.map((p) => p.id), ['R', 'RES', 'INV']);
   assert.equal(d.participants[1].kind, 'ui');
-  assert.equal(d.participants[0].kind, null);
+  assert.equal(d.participants[0].kind, 'actor'); // actor keyword sets kind='actor'
   assert.equal(d.arrows.length, 5);
   assert.deepEqual(d.arrows[1], { from: 'RES', to: 'INV', msg: 'redeem(code)' });
   assert.deepEqual(d.arrows[3], { from: 'INV', to: 'RES', msg: 'refused' }); // double-dash op keeps from intact
@@ -1045,4 +1045,137 @@ test('validate: flows-gen skips the classic Surfaces selection gate', () => {
   w(c, 'project/milestones/m1/brief.md', 'covers S1');
   const r = validate(c);
   assert.ok(!r.blockers.some((b) => /Surfaces/.test(b)));
+});
+
+// ---- Fix 1: activation token arrows ----
+
+test('parseFlowDiagram: mermaid activation tokens (+/-) are parsed, not dropped', () => {
+  const md = `
+\`\`\`mermaid
+sequenceDiagram
+  participant RES as invite-resolver
+  participant INV as invitation
+  RES->>+INV: redeem(code)
+  INV-->>-RES: done
+\`\`\`
+`;
+  const d = parseFlowDiagram(md);
+  assert.equal(d.arrows.length, 2, 'both activation-token arrows should parse');
+  assert.deepEqual(d.arrows[0], { from: 'RES', to: 'INV', msg: 'redeem(code)' });
+  assert.deepEqual(d.arrows[1], { from: 'INV', to: 'RES', msg: 'done' });
+  assert.deepEqual(d.unparsed ?? [], [], 'no unparsed lines expected');
+});
+
+// ---- Fix 2: unparsed arrow-like line detection ----
+
+test('parseFlowDiagram: arrow-like lines that fail to parse are collected in unparsed', () => {
+  const md = `
+\`\`\`mermaid
+sequenceDiagram
+  participant RES as invite-resolver
+  participant INV as invitation
+  RES->INV missing colon
+  RES->>INV: valid arrow
+\`\`\`
+`;
+  const d = parseFlowDiagram(md);
+  assert.equal(d.arrows.length, 1, 'only the valid arrow should parse');
+  assert.ok(Array.isArray(d.unparsed), 'unparsed should be an array');
+  assert.equal(d.unparsed.length, 1);
+  assert.match(d.unparsed[0], /RES->INV missing colon/);
+});
+
+test('validate: unparseable arrow-like lines produce blockers', () => {
+  const c = tmp();
+  groundworkFlows(c);
+  const badFlow = `# Flow: bad-flow
+Stories: S1
+
+\`\`\`mermaid
+sequenceDiagram
+  participant RES as invite-resolver
+  participant INV as invitation
+  RES->INV missing colon
+  RES->>INV: valid
+\`\`\`
+`;
+  w(c, 'project/flows/bad-flow.md', badFlow);
+  const r = validate(c);
+  assert.ok(r.blockers.some((b) => /unparseable arrow/.test(b) && /RES->INV missing colon/.test(b)),
+    `expected unparseable-arrow blocker, got: ${JSON.stringify(r.blockers)}`);
+});
+
+// ---- Fix 3: [kind] suffix enforcement ----
+
+test('validate: participant kind mismatch with registry → blocker', () => {
+  const c = tmp();
+  groundworkFlows(c);
+  w(c, 'project/map.md', MAP_MD);
+  // invitation is registered as 'service' but flow declares [api]
+  const mismatchFlow = FLOW_MD; // FLOW_MD still has [api] at this point — used to detect mismatch
+  // We construct a fresh flow where invitation is declared as [api] but registry says service
+  const flowWithWrongKind = `# Flow: invite-redeem
+Stories: S1, S2
+
+\`\`\`mermaid
+sequenceDiagram
+  actor R as Recipient
+  participant RES as invite-resolver [ui]
+  participant INV as invitation [api]
+  R->>RES: paste code
+  RES->>INV: redeem(code)
+\`\`\`
+`;
+  w(c, 'project/flows/invite-redeem.md', flowWithWrongKind);
+  const r = validate(c);
+  assert.ok(r.blockers.some((b) => /invitation.*\[api\].*registry says service/.test(b) || /\[api\].*service/.test(b)),
+    `expected kind-mismatch blocker, got: ${JSON.stringify(r.blockers)}`);
+});
+
+test('validate: participant with no [kind] suffix → warning (not blocker)', () => {
+  const c = tmp();
+  groundworkFlows(c);
+  w(c, 'project/map.md', MAP_MD);
+  // invite-resolver has no [kind] suffix in the flow
+  const flowNoKind = `# Flow: invite-redeem
+Stories: S1, S2
+
+\`\`\`mermaid
+sequenceDiagram
+  actor R as Recipient
+  participant RES as invite-resolver
+  participant INV as invitation [service]
+  R->>RES: paste code
+  RES->>INV: redeem(code)
+\`\`\`
+`;
+  w(c, 'project/flows/invite-redeem.md', flowNoKind);
+  const r = validate(c);
+  assert.ok(!r.blockers.some((b) => /invite-resolver.*no \[kind\]/.test(b)),
+    `should not be a blocker, got blockers: ${JSON.stringify(r.blockers)}`);
+  assert.ok(r.warnings.some((w) => /invite-resolver.*no \[kind\]/.test(w) || /no \[kind\] suffix/.test(w)),
+    `expected no-kind warning, got warnings: ${JSON.stringify(r.warnings)}`);
+});
+
+test('validate: actor participant with no [kind] suffix and registry kind actor → no warning', () => {
+  const c = tmp();
+  groundworkFlows(c);
+  w(c, 'project/map.md', MAP_MD);
+  // Recipient is declared as `actor R as Recipient` — no [kind] suffix; registry says actor
+  const flowActorNoSuffix = `# Flow: invite-redeem
+Stories: S1, S2
+
+\`\`\`mermaid
+sequenceDiagram
+  actor R as Recipient
+  participant RES as invite-resolver [ui]
+  participant INV as invitation [service]
+  R->>RES: paste code
+  RES->>INV: redeem(code)
+\`\`\`
+`;
+  w(c, 'project/flows/invite-redeem.md', flowActorNoSuffix);
+  const r = validate(c);
+  assert.ok(!r.warnings.some((w) => /Recipient.*no \[kind\]/.test(w)),
+    `actor with matching registry kind should not warn, got: ${JSON.stringify(r.warnings)}`);
 });

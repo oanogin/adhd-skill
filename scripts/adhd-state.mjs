@@ -194,7 +194,7 @@ export function parseFeatures(cwd, m) {
     story: storyC >= 0 ? clean(r[storyC]) || null : null,
     domain: domainC >= 0 ? clean(r[domainC]) || null : null,
     repo: repoC >= 0 ? clean(r[repoC]) || null : null,
-    // Size S = small + fully specified by the surface spec and the feature row;
+    // Size S = small + fully specified by its flow slice / surface spec and the feature row;
     // it skips the `plan` stage. Missing column or any other value -> 'M' (plan required).
     size: sizeC >= 0 && /^s$/i.test(clean(r[sizeC])) ? 'S' : (sizeC >= 0 && /^l$/i.test(clean(r[sizeC])) ? 'L' : 'M'),
     dependsOn: depC >= 0 ? clean(r[depC]).split(',').map((s) => s.trim()).filter(Boolean) : [],
@@ -230,8 +230,11 @@ export function parseFlowDiagram(text) {
   const participants = [];
   const arrows = [];
   const branchIssues = [];
+  const unparsed = [];
   let inMermaid = false;
   const sections = []; // open alt/opt/loop/par sections: {label, arrows}
+  // Keywords that are valid non-arrow mermaid lines inside a sequenceDiagram
+  const KNOWN_KW = /^(?:alt|opt|loop|par|else|and|end|sequenceDiagram|Note|activate|deactivate|autonumber|rect|break|critical|option)\b/i;
   for (const raw of text.split('\n')) {
     const line = raw.trim();
     if (line.startsWith('```')) { inMermaid = !inMermaid && /^```mermaid/.test(line); continue; }
@@ -239,12 +242,15 @@ export function parseFlowDiagram(text) {
     let m;
     if ((m = /^(?:participant|actor)\s+(\w+)(?:\s+as\s+(.+))?\s*$/.exec(line))) {
       const label = (m[2] ?? m[1]).trim();
+      const isActor = /^actor\s/.test(line);
+      const kindFromSuffix = /\[(\w+)\]\s*$/.exec(label)?.[1]?.toLowerCase() ?? null;
       participants.push({
         id: m[1],
         label: label.replace(/\s*\[\w+\]\s*$/, '').trim(),
-        kind: /\[(\w+)\]\s*$/.exec(label)?.[1]?.toLowerCase() ?? null,
+        kind: kindFromSuffix ?? (isActor ? 'actor' : null),
+        explicitKind: kindFromSuffix,  // non-null only when a [kind] suffix was present
       });
-    } else if ((m = /^(\w+)\s*(-{1,2}(?:>>|>|x|\)))\s*(\w+)\s*:\s*(.+)$/.exec(line))) {
+    } else if ((m = /^(\w+)\s*(-{1,2}(?:>>|>|x|\)))\s*[+-]?\s*(\w+)\s*:\s*(.+)$/.exec(line))) {
       arrows.push({ from: m[1], to: m[3], msg: m[4].replace(/%%.*$/, '').trim() });
       if (sections.length) sections[sections.length - 1].arrows++;
     } else if ((m = /^(alt|opt|loop|par)\b/.exec(line))) {
@@ -258,9 +264,12 @@ export function parseFlowDiagram(text) {
     } else if (/^end\b/.test(line)) {
       const top = sections.pop();
       if (top && top.arrows === 0) branchIssues.push(`branch "${top.label}" has no arrows — dangling branch`);
+    } else if (/^\w+\s*-{1,2}/.test(line) && !KNOWN_KW.test(line)) {
+      // Looks like an arrow but matched none of the above — record as unparsed
+      unparsed.push(line);
     }
   }
-  return { participants, arrows, branchIssues };
+  return { participants, arrows, branchIssues, unparsed };
 }
 
 export function parseFlows(cwd) {
@@ -709,7 +718,7 @@ export function validate(cwd = process.cwd()) {
   }
   // groundwork order coherence
   let seenIncomplete = false;
-  for (const s of GROUNDWORK_STAGES) {
+  for (const s of groundworkStages(cwd)) {
     if (!groundworkDone(cwd, s)) seenIncomplete = true;
     else if (seenIncomplete) blockers.push(`groundwork stage "${s}" is done but an earlier stage is not`);
   }
@@ -791,10 +800,28 @@ export function validate(cwd = process.cwd()) {
           if (!declared.has(end)) blockers.push(`flow "${fl.name}": arrow references undeclared participant "${end}"`);
         }
       }
+      // Fix 2: unparsed arrow-like lines
+      for (const line of fl.unparsed ?? []) {
+        blockers.push(`flow "${fl.name}": unparseable arrow-like line "${line}"`);
+      }
+      const registry = parseRegistry(cwd) ?? [];
+      const regMap = new Map(registry.map((p) => [p.name, p.kind]));
       if (regNames.size) {
         for (const p of fl.participants) {
-          if (!regNames.has(p.label) && !regNames.has(p.id)) {
-            blockers.push(`flow "${fl.name}": participant "${p.label}" is not in the project/map.md registry`);
+          const regEntry = regMap.get(p.label) ?? regMap.get(p.id);
+          if (regEntry === undefined) {
+            if (!regNames.has(p.label) && !regNames.has(p.id)) {
+              blockers.push(`flow "${fl.name}": participant "${p.label}" is not in the project/map.md registry`);
+            }
+          } else {
+            // Fix 3: kind enforcement
+            if (p.explicitKind !== null && p.explicitKind !== undefined && p.explicitKind !== regEntry) {
+              blockers.push(`flow "${fl.name}": participant "${p.label}" is [${p.explicitKind}] but the registry says ${regEntry}`);
+            } else if (p.explicitKind === null && p.kind !== regEntry) {
+              // No [kind] suffix was written; kind was inferred (e.g. from actor keyword or null)
+              // Only warn if the inferred kind doesn't match (actor declared via actor keyword is ok)
+              warnings.push(`flow "${fl.name}": participant "${p.label}" has no [kind] suffix (registry: ${regEntry})`);
+            }
           }
         }
       }
