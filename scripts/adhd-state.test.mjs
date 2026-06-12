@@ -976,4 +976,24 @@ test('classic gates unchanged: stories still gated on concepts', () => {
   const cfg = loadConfig(c); cfg.generation = 'classic'; saveConfig(c, cfg);
   assert.equal(gate(c, 'stories', {}).pass, true);
   assert.equal(gate(c, 'milestone-brief', { milestone: 1 }).pass, true);
+  // classic evolve still needs the prototype stage (not just concepts)
+  assert.equal(gate(c, 'evolve', {}).pass, true); // groundwork() includes prototype.md + map.md
+  // classic plan still rides the features stage, not realize
+  w(c, 'project/milestones/m1/brief.md', 'Track: production');
+  const planGate = gate(c, 'plan', { milestone: 1, feature: 'f-api' });
+  assert.equal(planGate.pass, false);
+  assert.match(planGate.missing.join(' '), /features not done/);
+});
+
+test('classic evolve gate fails without prototype', () => {
+  const c = tmp();
+  initConfig(c);
+  const cfg = loadConfig(c); cfg.generation = 'classic'; saveConfig(c, cfg);
+  w(c, 'docs/PRODUCT.md');
+  w(c, 'docs/STACK.md');
+  w(c, 'docs/CONCEPTS.md');
+  w(c, 'project/stories.md', '| ID | Story |\n|---|---|\n| S1 | a |');
+  const r = gate(c, 'evolve', {});
+  assert.equal(r.pass, false);
+  assert.match(r.missing.join(' '), /prototype not done/);
 });
