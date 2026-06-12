@@ -28,7 +28,9 @@ stage as the argument. Tool-name mappings: `reference/codex-tools.md`,
 **`{{scripts_path}}`** — every `node {{scripts_path}}/...` command uses this token: the
 `scripts/` directory under the folder you loaded this `SKILL.md` from. Resolve it
 **once, now**, to a real absolute path and substitute it into every such command —
-never run the literal `{{scripts_path}}`.
+never run the literal `{{scripts_path}}`. **Run every such command from the project
+root** — the script resolves `project/config.json` from the current working directory,
+not from its own location.
 
 ## Required-skill preflight (non-optional)
 
