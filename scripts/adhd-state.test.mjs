@@ -18,6 +18,7 @@ import {
   workFileRel, parseGateItems, workGate,
   parseFlowDiagram, parseFlows,
   parseRegistry, PARTICIPANT_KINDS,
+  contract,
 } from './adhd-state.mjs';
 
 function tmp() { return fs.mkdtempSync(path.join(os.tmpdir(), 'adhd-')); }
@@ -872,4 +873,23 @@ test('parseRegistry: reads the participant table from map.md', () => {
   assert.equal(reg.length, 3);
   assert.deepEqual(reg[1], { name: 'invite-resolver', kind: 'ui' });
   assert.deepEqual(PARTICIPANT_KINDS, ['actor', 'ui', 'service', 'store', 'external']);
+});
+
+test('contract: receives/sends/guards across all flows, with flow+story refs', () => {
+  const c = tmp();
+  w(c, 'project/flows/invite-redeem.md', FLOW_MD);
+  const r = contract(c, 'invitation');
+  assert.equal(r.receives.length, 1);
+  assert.match(r.receives[0], /redeem\(code\)/);
+  assert.match(r.receives[0], /← invite-resolver/);
+  assert.match(r.receives[0], /invite-redeem · S1,S2/);
+  assert.equal(r.sends.length, 2); // refused + member granted -> invite-resolver
+  assert.equal(r.guards.length, 1); // rate-limit self-arrow
+  assert.match(r.guards[0], /rate-limit check/);
+});
+
+test('contract: matches by participant id or label', () => {
+  const c = tmp();
+  w(c, 'project/flows/invite-redeem.md', FLOW_MD);
+  assert.deepEqual(contract(c, 'INV'), contract(c, 'invitation'));
 });

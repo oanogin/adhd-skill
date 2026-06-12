@@ -291,6 +291,29 @@ export function parseRegistry(cwd) {
     .filter((p) => p.name);
 }
 
+// Derived entity contract: every message a participant receives (its complete
+// interface), sends (its dependencies), and self-arrows (guards/lifecycle) —
+// across ALL flows, with flow + story refs. Derived, never stored: flows stay
+// the single source of truth, so this view cannot drift.
+export function contract(cwd, name) {
+  const out = { receives: [], sends: [], guards: [] };
+  for (const fl of parseFlows(cwd)) {
+    const byId = Object.fromEntries(fl.participants.map((p) => [p.id, p]));
+    const mine = new Set(fl.participants
+      .filter((p) => p.id === name || p.label === name).map((p) => p.id));
+    if (!mine.size) continue;
+    const ref = `[${fl.name}${fl.stories.length ? ` · ${fl.stories.join(',')}` : ''}]`;
+    const label = (id) => byId[id]?.label ?? id;
+    for (const a of fl.arrows) {
+      const from = mine.has(a.from), to = mine.has(a.to);
+      if (from && to) out.guards.push(`${a.msg}  ${ref}`);
+      else if (to) out.receives.push(`${a.msg}  ← ${label(a.from)}  ${ref}`);
+      else if (from) out.sends.push(`${a.msg}  → ${label(a.to)}  ${ref}`);
+    }
+  }
+  return out;
+}
+
 export function milestoneTrack(cwd, m) {
   const rel = milestoneRel(m, 'brief.md');
   if (!exists(cwd, rel)) return null;
