@@ -68,7 +68,9 @@ No skip, no override — this is the skill's central discipline.
    Each sub-run keeps its **own gates and work-gates**; they must not be skipped.
    Check the item in `## Impact plan` only after the sub-run's own `## On completion`
    steps finish. A new story **must** have its `Surfaces` cell filled by a `prototype`
-   re-run before it is implementable or selectable at `milestone-brief`.
+   re-run before it is implementable or selectable at `milestone-brief` (classic
+   generation — flows-gen projects carry no `Surfaces` column; their stories become
+   implementable when a flow realizes them).
 
    > **Milestone boundary:** `evolve` never creates or starts a milestone. A new story
    > lands in the backlog with a drawn surface. When the impact plan is fully executed,
