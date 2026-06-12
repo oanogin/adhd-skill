@@ -14,8 +14,8 @@ bird's-eye view of behavior. It is **not** a data model (no fields/schema — th
 `docs/DATA.md`) and **not** a placement map (no surfaces/deployables — that is
 `project/map.md`).
 
-`concepts` is a **living stage**, like `prototype` and `stories`: re-run it as
-understanding deepens. When `tracer` or `build` surfaces a new entity not in
+`concepts` is a **living stage**: re-run it as understanding deepens (post-groundwork,
+through `adhd evolve`). When a later stage surfaces a new entity not in
 `CONCEPTS.md`, update `concepts` **first**, then continue.
 
 ## Gate check
@@ -77,4 +77,5 @@ evolves — and always before continuing work that introduced a new entity.
    `node {{scripts_path}}/handoff-prompt.mjs` and give the user the resume prompt.
 3. Drain `project/work/concepts.md`: migrate durable facts to their canonical home,
    then delete the work file.
-4. Tell the user the next runnable stage is `stories`.
+4. Tell the user the next runnable stage: groundwork is complete — `brief` opens the
+   first milestone (flows generation); classic projects continue with `stories`.
