@@ -32,7 +32,7 @@ No skip, no override — this is the skill's central discipline.
 1. **Clarify with `superpowers:brainstorming` + seed working memory.** This high-effort
    stage may span sessions. Create `project/work/evolve.md` with a `## Gate` block, an
    `## Impact plan` checklist, and a `## Log` section, and append to it as you work. It
-   is transient scratch — never a source of truth (see SKILL.md, "Working memory"). Seed
+   is transient scratch — never a source of truth (see reference/working-memory.md). Seed
    `## Gate` with `requirements-confirmed`; clarify scope and direction with the user and
    record their verbatim ok, then
    `node {{scripts_path}}/adhd-state.mjs work-gate evolve` must pass before executing any

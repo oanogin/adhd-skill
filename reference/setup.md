@@ -2,7 +2,7 @@
 
 **Effort:** low
 **Gate:** none — Setup is always runnable; it bootstraps the project.
-**Output:** the canonical project layout (see `SKILL.md`) plus `project/config.json`.
+**Output:** the canonical project layout (tree below) plus `project/config.json`.
 **Sub-skill:** none.
 
 ## Gate check
@@ -41,15 +41,54 @@ re-scaffolding.
    working-memory files (`project/work/<task>.md`) and canonical artifacts carry state
    across it. It is a recommendation, not a requirement — `adhd` works either way.
 
-## Output
-Setup produces the canonical layout defined in `SKILL.md`:
+## Output — the canonical layout
 
-- `.ruler/` — agent instructions (with the seed `00-adhd.md` note if it was empty).
-- `docs/` — with `DECISIONS.md` (`# Decisions` heading only).
-- `project/` — with `config.json` (`generation: flows`) and a `parking.md` (just a
-  `# Parking lot` heading).
-- `project/milestones/` — empty, ready for per-milestone subdirectories.
-- `project/flows/` — created lazily by the `flows` stage; not scaffolded at setup time.
+Setup scaffolds the skeleton of this tree; later stages fill it. **This tree IS the
+project state** — every stage's artifact lives here, and a stage is done the moment its
+artifact exists.
+
+```
+.ruler/                      agent instructions (ruler generates CLAUDE.md / AGENTS.md)
+docs/
+  PRODUCT.md                 Vision output — impeccable reads this
+  DESIGN.md                  design system — impeccable reads/writes this
+  CONCEPTS.md                ubiquitous language + the capability dependency map
+                             (the soft roadmap) — Concepts output
+  DATA.md                    data model / schema — created lazily when a milestone persists data
+  STACK.md                   the CURRENT tech stack + approved libraries — Foundation
+                             authors it, edited in place (always-current, no history)
+  DECISIONS.md               append-only decision log — WHY each stack/arch choice was
+                             made; every STACK.md change gets an entry here
+project/
+  config.json                the only non-doc file — mode, generation, repos,
+                             prototype topology, preflight
+  repos.local.json           gitignored — per-user repo→path bindings (multi mode)
+  parking.md                 durable, user-owned buffer for not-yet-actionable ideas
+  work/<stage>.md            gitignored — transient working memory; milestone form
+                             m<N>-<stage>.md; deleted on completion
+  flows/<scenario>.md        one flow per scenario — global product truth, accumulated
+                             across milestones (Flows output; created lazily)
+  map.md                     participant registry (| Participant | Kind | Concept |)
+                             + domains/deployables
+  surfaces/<name>.md         surface stub — purpose, UX intent, key states only
+                             (behavior is derived: contract <name>)
+  stories.md                 the accumulated backlog index — rows derived at flows
+  milestones/m<N>/
+    brief.md                 Brief — the experience, scope closure, ## Flows list
+    flows.md                 Flows sign-off — per-area sign-offs, waivers, change log
+    realize.md               Realize — mechanism notes + spike findings
+    features.md              the feature DAG — table with Build/Verified columns
+    plans/<feature>.md       per-feature implementation Plan
+    review.md                milestone review-pass findings (arrow coverage)
+    summary.md               Finalize — the milestone summary
+```
+
+At setup time only the skeleton exists:
+- `.ruler/` — with the seed `00-adhd.md` note if it was empty.
+- `docs/DECISIONS.md` (`# Decisions` heading only).
+- `project/config.json` (`generation: flows`) and `project/parking.md` (`# Parking lot`
+  heading only).
+- `project/milestones/` — empty.
 - `.gitignore` — extended with `.superpowers/`, `project/repos.local.json`,
   and `project/work/` (`.impeccable/` stays tracked; `project/` itself stays tracked).
 

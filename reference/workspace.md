@@ -43,13 +43,38 @@
 
    The default is `colocated` (prototype under `/p/` in the production app's codebase);
    leave it unset for that. The prototype home is global — one prototype app for the
-   whole project — so it is set here, not per surface. See SKILL.md, "Prototype
-   topology".
+   whole project — so it is set here, not per surface.
 7. **Orchestration repo.** The `project/` tree (every `.md` artifact and
    `config.json`) stays in the repo where `setup` ran. That orchestration repo may
    itself be one of the registered
    code repos, or a dedicated docs-only repo — either is fine. The orchestration repo
    may also host the standalone prototype app (`prototype-home` with no `--repo`).
+
+## The multi-mode model
+
+In `multi` mode every `adhd` artifact still lives in the orchestration repo's
+`project/` and `docs/`. Only the code-writing stages and commands (`realize` spikes,
+`build`, `fix`, the on-demand `prototype`) reach into a registered code repo, and only
+to write code there. The product is also split into user-defined **domains** — logical
+product slices recorded in `project/map.md`; a milestone may span several domains, but
+each feature lives in exactly one domain (one repo).
+
+## Working in parallel
+
+Milestones are independent `m<N>/` folders with no shared pointer, so several can be in
+flight at once. Parallel milestones are a **team** feature: one developer per
+milestone. Within a milestone, the `features.md` DAG marks which features are
+independent — those parallelize. Three people = three independent features (or three
+milestones).
+
+- **Code** goes on git branches per feature, per repo — normal PR flow.
+- **Flow files** are per-scenario, so parallel milestones drawing different capability
+  areas rarely touch the same file. The participant registry in `project/map.md` is
+  shared and append-mostly — git merges it like any other shared code.
+- **The orchestration `project/` tree** is shared coordination state — keep its `.md`
+  edits on one branch. Different `m<N>/` folders rarely collide.
+- A feature's `build` gate blocks until its dependency features are built — the DAG
+  enforces order across people automatically.
 
 ## On completion
 

@@ -30,7 +30,7 @@ If the gate reports `foundation` is not done, HALT and tell the user to run
 1. **Start working memory + seed the gate.** This high-effort stage may span sessions.
    Create `project/work/concepts.md` with a `## Gate` block, a `## Left to do` checklist,
    and a `## Log` section, and append to it as you work. It is transient scratch — never a
-   source of truth (see SKILL.md, "Working memory"). Seed `## Gate` with
+   source of truth (see reference/working-memory.md). Seed `## Gate` with
    `requirements-confirmed`; clarify scope/direction with the user and check it with their
    verbatim ok, then `node {{scripts_path}}/adhd-state.mjs work-gate concepts` must pass
    before you write this stage's output artifact.

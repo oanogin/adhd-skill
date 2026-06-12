@@ -16,7 +16,7 @@ if a feature is built but not verified, complete its verification first.
 ## Procedure
 1. **Start working memory + seed the gate.** This high-effort stage may span sessions.
    Create `project/work/m{{N}}-review.md` with `## Gate` + `## Left to do` + `## Log` and
-   append as you work — see SKILL.md, "Working memory". Seed `## Gate` with
+   append as you work — see reference/working-memory.md. Seed `## Gate` with
    `requirements-confirmed`; confirm the review scope/approach with the user and check it
    with their verbatim ok, then
    `node {{scripts_path}}/adhd-state.mjs work-gate review --milestone {{N}}` must pass

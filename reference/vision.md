@@ -16,7 +16,7 @@ If the gate reports `setup` is missing, HALT and tell the user to run
 ## Procedure
 1. **Start working memory + seed the gate.** This high-effort stage may span sessions.
    Create `project/work/vision.md` with `## Gate` + `## Left to do` + `## Log` and append
-   as you work — see SKILL.md, "Working memory". Seed `## Gate` with
+   as you work — see reference/working-memory.md. Seed `## Gate` with
    `requirements-confirmed`; clarify scope/direction with the user and check it with their
    verbatim ok, then `node {{scripts_path}}/adhd-state.mjs work-gate vision` must pass
    before you write this stage's output artifact.
