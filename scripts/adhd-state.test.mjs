@@ -597,7 +597,8 @@ test('parseStories: `?`-suffixed surfaces are provisional, not confirmed', () =>
 
 test('validate blocks a brief selecting a story with only provisional Surfaces', () => {
   const cwd = tmp();
-  w(cwd, 'project/config.json', JSON.stringify(defaultConfig()));
+  const cfg = defaultConfig(); cfg.generation = 'classic';
+  w(cwd, 'project/config.json', JSON.stringify(cfg));
   w(cwd, 'docs/PRODUCT.md');
   w(cwd, 'docs/DECISIONS.md', '## d');
   w(cwd, 'docs/CONCEPTS.md');
@@ -718,7 +719,8 @@ test('gate: finalize blocked by an open critical review finding', () => {
 test('validate blocks a brief selecting a story with empty Surfaces', () => {
   const cwd = tmp();
   // satisfy groundwork so validate's order check is clean
-  w(cwd, 'project/config.json', JSON.stringify(defaultConfig()));
+  const cfg = defaultConfig(); cfg.generation = 'classic';
+  w(cwd, 'project/config.json', JSON.stringify(cfg));
   w(cwd, 'docs/PRODUCT.md');
   w(cwd, 'docs/DECISIONS.md', '## d');
   w(cwd, 'docs/CONCEPTS.md');
@@ -1020,4 +1022,27 @@ test('flows-gen statusReport: shows the flows chain', () => {
   const s = statusReport(c);
   assert.match(s, /brief ✓\s+flows ·\s+realize ·/);
   assert.doesNotMatch(s, /ux-refine|tracer/);
+});
+
+test('validate: flow checks — unknown dep, undeclared participant', () => {
+  const c = tmp();
+  groundworkFlows(c);
+  w(c, 'project/map.md', MAP_MD);
+  w(c, 'project/stories.md', '| ID | Story |\n|---|---|\n| S1 | a |\n| S2 | b |');
+  w(c, 'project/flows/invite-redeem.md', FLOW_MD.replace('Depends on: context-switch', 'Depends on: nope'));
+  let r = validate(c);
+  assert.ok(r.blockers.some((b) => /depends on unknown flow "nope"/.test(b)));
+  // arrow to an undeclared participant id
+  w(c, 'project/flows/bad.md', FLOW_MD.replace('RES->>INV: redeem(code)', 'RES->>GHOST: boo').replace('Depends on: context-switch', 'Depends on:'));
+  r = validate(c);
+  assert.ok(r.blockers.some((b) => /flow "bad": arrow references undeclared participant "GHOST"/.test(b)));
+});
+
+test('validate: flows-gen skips the classic Surfaces selection gate', () => {
+  const c = tmp();
+  groundworkFlows(c);
+  w(c, 'project/stories.md', '| ID | Story |\n|---|---|\n| S1 | a |'); // no Surfaces column at all
+  w(c, 'project/milestones/m1/brief.md', 'covers S1');
+  const r = validate(c);
+  assert.ok(!r.blockers.some((b) => /Surfaces/.test(b)));
 });

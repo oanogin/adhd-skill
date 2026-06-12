@@ -750,16 +750,19 @@ export function validate(cwd = process.cwd()) {
   // empty-Surfaces selection gate: a brief may not pick a story with no confirmed
   // Surfaces. A `?`-suffixed (provisional) name does not count — the surface was
   // seeded at `stories` but never prototyped.
-  const stories = parseStories(cwd) ?? [];
-  const byId = Object.fromEntries(stories.map((s) => [s.id, s]));
-  for (const m of milestoneDirs(cwd)) {
-    for (const id of briefStoryIds(cwd, m)) {
-      const s = byId[id];
-      if (s && s.surfaces.length === 0) {
-        const why = s.provisionalSurfaces.length
-          ? `only provisional (\`?\`-suffixed) Surfaces`
-          : 'empty Surfaces';
-        blockers.push(`milestone ${m}: brief selects story "${id}" which has ${why} in project/stories.md — run \`adhd evolve\` to prototype it first`);
+  // Classic-only: flows-gen projects do not use the Surfaces column.
+  if (generation(cwd) !== 'flows') {
+    const stories = parseStories(cwd) ?? [];
+    const byId = Object.fromEntries(stories.map((s) => [s.id, s]));
+    for (const m of milestoneDirs(cwd)) {
+      for (const id of briefStoryIds(cwd, m)) {
+        const s = byId[id];
+        if (s && s.surfaces.length === 0) {
+          const why = s.provisionalSurfaces.length
+            ? `only provisional (\`?\`-suffixed) Surfaces`
+            : 'empty Surfaces';
+          blockers.push(`milestone ${m}: brief selects story "${id}" which has ${why} in project/stories.md — run \`adhd evolve\` to prototype it first`);
+        }
       }
     }
   }
@@ -772,6 +775,40 @@ export function validate(cwd = process.cwd()) {
     if (groundworkDone(cwd, 'foundation') && !exists(cwd, `${docHome}/STACK.md`)) {
       warnings.push(`foundation is satisfied by a legacy ${docHome}/DECISIONS.md entry but ${docHome}/STACK.md is missing — author it from the logged baseline (re-run \`adhd foundation\`)`);
     }
+  }
+  // flow-spec checks — active whenever project/flows/ holds flow files
+  const flows = parseFlows(cwd);
+  if (flows.length) {
+    const flowNames = new Set(flows.map((f) => f.name));
+    const regNames = new Set((parseRegistry(cwd) ?? []).map((p) => p.name));
+    const storyIds = new Set((parseStories(cwd) ?? []).map((s) => s.id));
+    for (const fl of flows) {
+      if (!fl.arrows.length) blockers.push(`flow "${fl.name}": no sequence-diagram arrows found`);
+      for (const issue of fl.branchIssues) blockers.push(`flow "${fl.name}": ${issue}`);
+      const declared = new Set(fl.participants.map((p) => p.id));
+      for (const a of fl.arrows) {
+        for (const end of [a.from, a.to]) {
+          if (!declared.has(end)) blockers.push(`flow "${fl.name}": arrow references undeclared participant "${end}"`);
+        }
+      }
+      if (regNames.size) {
+        for (const p of fl.participants) {
+          if (!regNames.has(p.label) && !regNames.has(p.id)) {
+            blockers.push(`flow "${fl.name}": participant "${p.label}" is not in the project/map.md registry`);
+          }
+        }
+      }
+      if (storyIds.size) {
+        for (const s of fl.stories) {
+          if (!storyIds.has(s)) warnings.push(`flow "${fl.name}": story "${s}" not found in project/stories.md`);
+        }
+      }
+      for (const d of fl.dependsOn) {
+        if (!flowNames.has(d)) blockers.push(`flow "${fl.name}": depends on unknown flow "${d}"`);
+      }
+    }
+    const cyc = findCycle(flows.map((f) => ({ id: f.name, dependsOn: f.dependsOn })));
+    if (cyc) blockers.push(`flow dependency cycle: ${cyc.join(' → ')}`);
   }
   return { ok: blockers.length === 0, blockers, warnings };
 }
