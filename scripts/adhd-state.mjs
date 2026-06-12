@@ -221,6 +221,63 @@ export function parseReviewFindings(cwd, m) {
   })).filter((f) => f.severity);
 }
 
+// ---- flow parsing (project/flows/*.md) ----
+// A flow file holds one scenario: a `Stories:` line, a `Depends on:` line, and a
+// mermaid sequenceDiagram. Arrows are data: the contract command and the
+// validate checks are built on this parse.
+export function parseFlowDiagram(text) {
+  const participants = [];
+  const arrows = [];
+  const branchIssues = [];
+  let inMermaid = false;
+  const sections = []; // open alt/opt/loop/par sections: {label, arrows}
+  for (const raw of text.split('\n')) {
+    const line = raw.trim();
+    if (line.startsWith('```')) { inMermaid = !inMermaid && /^```mermaid/.test(line); continue; }
+    if (!inMermaid) continue;
+    let m;
+    if ((m = /^(?:participant|actor)\s+([\w-]+)(?:\s+as\s+(.+))?\s*$/.exec(line))) {
+      const label = (m[2] ?? m[1]).trim();
+      participants.push({
+        id: m[1],
+        label: label.replace(/\s*\[\w+\]\s*$/, '').trim(),
+        kind: /\[(\w+)\]\s*$/.exec(label)?.[1]?.toLowerCase() ?? null,
+      });
+    } else if ((m = /^([\w-]+)\s*(-{1,2}(?:>>|>|x|\)))\s*([\w-]+)\s*:\s*(.+)$/.exec(line))) {
+      arrows.push({ from: m[1], to: m[3], msg: m[4].replace(/%%.*$/, '').trim() });
+      if (sections.length) sections[sections.length - 1].arrows++;
+    } else if ((m = /^(alt|opt|loop|par)\b/.exec(line))) {
+      sections.push({ label: line, arrows: 0 });
+    } else if (/^(else|and)\b/.test(line)) {
+      const top = sections[sections.length - 1];
+      if (top) {
+        if (top.arrows === 0) branchIssues.push(`branch "${top.label}" has no arrows — dangling branch`);
+        top.label = line; top.arrows = 0;
+      }
+    } else if (/^end\b/.test(line)) {
+      const top = sections.pop();
+      if (top && top.arrows === 0) branchIssues.push(`branch "${top.label}" has no arrows — dangling branch`);
+    }
+  }
+  return { participants, arrows, branchIssues };
+}
+
+export function parseFlows(cwd) {
+  const dir = path.join(cwd, 'project/flows');
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir).filter((f) => f.endsWith('.md')).sort().map((f) => {
+    const text = read(cwd, path.join('project/flows', f));
+    const list = (re) => re.exec(text)?.[1].split(',').map((s) => s.trim())
+      .filter((s) => s && s !== '—' && s !== '-' && !/^none$/i.test(s)) ?? [];
+    return {
+      name: f.slice(0, -3),
+      stories: list(/^stories:\s*(.+)$/im),
+      dependsOn: list(/^depends on:\s*(.+)$/im),
+      ...parseFlowDiagram(text),
+    };
+  });
+}
+
 export function milestoneTrack(cwd, m) {
   const rel = milestoneRel(m, 'brief.md');
   if (!exists(cwd, rel)) return null;

@@ -16,6 +16,7 @@ import {
   setMode, addRepo, removeRepo, bindRepo, unbindRepo, listRepos,
   setPrototypeTopology, setPrototypeHome, confirmPreflight,
   workFileRel, parseGateItems, workGate,
+  parseFlowDiagram, parseFlows,
 } from './adhd-state.mjs';
 
 function tmp() { return fs.mkdtempSync(path.join(os.tmpdir(), 'adhd-')); }
@@ -790,4 +791,62 @@ test('milestoneStageDone: flows-gen artifacts', () => {
   assert.equal(milestoneStageDone(c, 1, 'flows'), true);
   assert.equal(milestoneStageDone(c, 1, 'realize'), true); // done signal = features.md
   assert.equal(milestoneStageDone(c, 1, 'review'), false);
+});
+
+// ---- flow parsing ----
+
+const FLOW_MD = `# Flow: invite-redeem
+
+Stories: S1, S2
+Depends on: context-switch
+
+## Diagram
+\`\`\`mermaid
+sequenceDiagram
+  actor R as Recipient
+  participant RES as invite-resolver [ui]
+  participant INV as invitation [api]
+  R->>RES: paste code
+  RES->>INV: redeem(code)
+  INV->>INV: rate-limit check
+  alt limit hit
+    INV-->>RES: refused
+  else valid
+    INV-->>RES: member granted
+  end
+\`\`\`
+
+## Rules
+none
+
+## Out of scope
+none
+`;
+
+test('parseFlowDiagram: participants, arrows, kinds, self-arrows', () => {
+  const d = parseFlowDiagram(FLOW_MD);
+  assert.deepEqual(d.participants.map((p) => p.id), ['R', 'RES', 'INV']);
+  assert.equal(d.participants[1].kind, 'ui');
+  assert.equal(d.participants[0].kind, null);
+  assert.equal(d.arrows.length, 5);
+  assert.deepEqual(d.arrows[1], { from: 'RES', to: 'INV', msg: 'redeem(code)' });
+  assert.deepEqual(d.branchIssues, []);
+});
+
+test('parseFlowDiagram: dangling alt branch is reported', () => {
+  const bad = FLOW_MD.replace('    INV-->>RES: refused\n', '');
+  const d = parseFlowDiagram(bad);
+  assert.equal(d.branchIssues.length, 1);
+  assert.match(d.branchIssues[0], /alt limit hit/);
+});
+
+test('parseFlows: header fields + diagram per file', () => {
+  const c = tmp();
+  w(c, 'project/flows/invite-redeem.md', FLOW_MD);
+  const flows = parseFlows(c);
+  assert.equal(flows.length, 1);
+  assert.equal(flows[0].name, 'invite-redeem');
+  assert.deepEqual(flows[0].stories, ['S1', 'S2']);
+  assert.deepEqual(flows[0].dependsOn, ['context-switch']);
+  assert.equal(flows[0].arrows.length, 5);
 });
