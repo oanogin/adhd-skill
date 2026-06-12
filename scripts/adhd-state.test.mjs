@@ -7,17 +7,16 @@ import path from 'node:path';
 import {
   defaultConfig, loadConfig, saveConfig, initConfig, CONFIG_VERSION,
   GROUNDWORK_STAGES, MILESTONE_STAGES, FEATURE_STAGES, SURFACE_KINDS, MODES, PROTOTYPE_TOPOLOGIES,
-  GENERATIONS, generation,
-  GROUNDWORK_STAGES_FLOWS, MILESTONE_STAGES_FLOWS, groundworkStages, milestoneStages,
+  PARTICIPANT_KINDS,
   parseTable, parseTables, parseStories, parseFeatures, parseReviewFindings,
-  milestoneTrack, milestoneDirs, briefStoryIds,
+  milestoneDirs,
   groundworkDone, milestoneStageDone, gate, nextStage, statusReport,
-  validate, migrate,
+  validate, migrate, upgradeGeneration,
   setMode, addRepo, removeRepo, bindRepo, unbindRepo, listRepos,
   setPrototypeTopology, setPrototypeHome, confirmPreflight,
   workFileRel, parseGateItems, workGate,
   parseFlowDiagram, parseFlows,
-  parseRegistry, PARTICIPANT_KINDS,
+  parseRegistry,
   contract,
   parseCapabilityMap, closure,
 } from './adhd-state.mjs';
@@ -37,18 +36,15 @@ const FEATURES_MD = [
   '| f-ui  | ui work  | S1 | reg | backend | f-api | | |',
 ].join('\n');
 
+// Flows-generation groundwork helper (the only chain now).
 function groundwork(cwd) {
-  initConfig(cwd);
-  const cfg = loadConfig(cwd); cfg.generation = 'classic'; saveConfig(cwd, cfg);
+  initConfig(cwd); // generation: flows by default
   w(cwd, 'docs/PRODUCT.md');
-  w(cwd, 'docs/DECISIONS.md', '# Decisions\n\n## 2026 — a real decision\n');
-  w(cwd, 'docs/CONCEPTS.md');
-  w(cwd, 'project/map.md');
-  w(cwd, 'project/prototype.md');
-  w(cwd, 'project/stories.md', '| ID | Story | Depends on |\n|----|----|----|\n| S1 | a | |');
+  w(cwd, 'docs/STACK.md');
+  w(cwd, 'docs/CONCEPTS.md', CONCEPTS_MD);
 }
 
-test('defaultConfig: version 3, single, colocated', () => {
+test('defaultConfig: version 3, single, colocated, flows generation', () => {
   const c = defaultConfig();
   assert.equal(c.version, CONFIG_VERSION);
   assert.equal(CONFIG_VERSION, 3);
@@ -58,21 +54,13 @@ test('defaultConfig: version 3, single, colocated', () => {
   assert.equal(c.generation, 'flows');
 });
 
-test('stage lists', () => {
-  assert.deepEqual(GROUNDWORK_STAGES, ['setup', 'vision', 'foundation', 'concepts', 'stories', 'prototype']);
-  assert.deepEqual(MILESTONE_STAGES, ['milestone-brief', 'ux-refine', 'tracer', 'features', 'review', 'finalize']);
+test('stage lists: flows chain only', () => {
+  assert.deepEqual(GROUNDWORK_STAGES, ['setup', 'vision', 'foundation', 'concepts']);
+  assert.deepEqual(MILESTONE_STAGES, ['brief', 'flows', 'realize', 'review', 'finalize']);
   assert.deepEqual(FEATURE_STAGES, ['plan', 'build']);
   assert.deepEqual(SURFACE_KINDS, ['ui', 'api', 'lib']);
   assert.deepEqual(MODES, ['single', 'multi']);
   assert.deepEqual(PROTOTYPE_TOPOLOGIES, ['colocated', 'standalone']);
-  assert.deepEqual(GENERATIONS, ['classic', 'flows']);
-});
-
-test('concepts → stories → prototype groundwork order', () => {
-  const i = GROUNDWORK_STAGES.indexOf('concepts');
-  assert.equal(GROUNDWORK_STAGES[i + 1], 'stories');
-  assert.equal(GROUNDWORK_STAGES[i + 2], 'prototype');
-  assert.equal(GROUNDWORK_STAGES.at(-1), 'prototype');
 });
 
 test('initConfig writes config.json and is idempotent', () => {
@@ -112,7 +100,7 @@ test('parseTables splits separate tables instead of merging them', () => {
   assert.deepEqual(parseTable(t).header, ['id', 'name']);
 });
 
-test('parseStories / parseFeatures / milestoneTrack', () => {
+test('parseStories / parseFeatures', () => {
   const cwd = tmp();
   w(cwd, 'project/stories.md', '| ID | Story | Depends on |\n|--|--|--|\n| S1 | a | |\n| S2 | b | S1 |');
   const stories = parseStories(cwd);
@@ -126,9 +114,18 @@ test('parseStories / parseFeatures / milestoneTrack', () => {
   assert.equal(feats[0].verified, true);
   assert.equal(feats[1].build, false);
   assert.deepEqual(feats[1].dependsOn, ['f-api']);
+});
 
-  w(cwd, 'project/milestones/m1/brief.md', '# Milestone 1 — x\n\nTrack: `production`\n');
-  assert.equal(milestoneTrack(cwd, 1), 'production');
+test('parseStories: only {id, dependsOn} fields (no surfaces/provisionalSurfaces)', () => {
+  const cwd = tmp();
+  w(cwd, 'project/stories.md',
+    '| ID | Story | Depends on | Surfaces |\n|--|--|--|--|\n' +
+    '| S1 | a | | Dashboard |\n' +
+    '| S2 | b | S1 | |');
+  const s = parseStories(cwd);
+  assert.deepEqual(Object.keys(s[0]).sort(), ['dependsOn', 'id']);
+  assert.equal(s[0].surfaces, undefined);
+  assert.equal(s[0].provisionalSurfaces, undefined);
 });
 
 test('groundworkDone derives from files', () => {
@@ -146,11 +143,9 @@ test('groundworkDone derives from files', () => {
   assert.equal(groundworkDone(cwd, 'concepts'), false);
   w(cwd, 'docs/CONCEPTS.md');
   assert.equal(groundworkDone(cwd, 'concepts'), true);
+  // prototype and stories no longer in groundwork chain — returns false for unknown stage
   assert.equal(groundworkDone(cwd, 'prototype'), false);
-  w(cwd, 'project/map.md');
-  assert.equal(groundworkDone(cwd, 'prototype'), false); // map but no sign-off
-  w(cwd, 'project/prototype.md');
-  assert.equal(groundworkDone(cwd, 'prototype'), true);
+  assert.equal(groundworkDone(cwd, 'stories'), false);
 });
 
 test('foundation: docs/STACK.md is the canonical done signal; decision log is legacy', () => {
@@ -173,7 +168,7 @@ test('foundation: docs/STACK.md is the canonical done signal; decision log is le
   assert.ok(!validate(cwd2).warnings.some((x) => /STACK\.md is missing/.test(x)));
 });
 
-test('gate: groundwork chain', () => {
+test('gate: groundwork chain (flows only)', () => {
   const cwd = tmp();
   assert.equal(gate(cwd, 'setup').pass, true);
   assert.equal(gate(cwd, 'vision').pass, false);
@@ -185,46 +180,27 @@ test('gate: groundwork chain', () => {
   assert.equal(gate(cwd, 'concepts').pass, false);
   w(cwd, 'docs/DECISIONS.md', '# Decisions\n\n## a decision\n');
   assert.equal(gate(cwd, 'concepts').pass, true);
-  // concepts done -> stories runnable; prototype NOT yet (stories.md absent)
   w(cwd, 'docs/CONCEPTS.md');
   assert.equal(gate(cwd, 'concepts').pass, true);
-  assert.equal(gate(cwd, 'stories').pass, true);
-  assert.equal(gate(cwd, 'prototype').pass, false);
-  // stories done -> prototype runnable
-  w(cwd, 'project/stories.md', '| ID | Story | Depends on | Surfaces |\n|--|--|--|--|\n| S1 | a | | |');
-  assert.equal(gate(cwd, 'prototype').pass, true);
-  // milestone-brief NOT yet (prototype.md/map.md absent)
-  assert.equal(gate(cwd, 'milestone-brief', { milestone: 1 }).pass, false);
-  // prototype done -> milestone-brief runnable
-  w(cwd, 'project/map.md');
-  w(cwd, 'project/prototype.md');
-  assert.equal(gate(cwd, 'milestone-brief', { milestone: 1 }).pass, true);
+  // brief needs concepts done
+  assert.equal(gate(cwd, 'brief', { milestone: 1 }).pass, true);
 });
 
 test('gate: milestone stages need a milestone and predecessors', () => {
   const cwd = tmp();
   groundwork(cwd);
-  assert.equal(gate(cwd, 'ux-refine').pass, false); // no --milestone
-  assert.equal(gate(cwd, 'milestone-brief', { milestone: 1 }).pass, true);
-  assert.equal(gate(cwd, 'ux-refine', { milestone: 1 }).pass, false);
-  w(cwd, 'project/milestones/m1/brief.md', 'Track: production');
-  assert.equal(gate(cwd, 'ux-refine', { milestone: 1 }).pass, true);
-});
-
-test('gate: tracer refuses a prototype-only milestone', () => {
-  const cwd = tmp();
-  groundwork(cwd);
-  w(cwd, 'project/milestones/m1/brief.md', 'Track: prototype');
-  w(cwd, 'project/milestones/m1/ux-refine.md');
-  const g = gate(cwd, 'tracer', { milestone: 1 });
-  assert.equal(g.pass, false);
-  assert.ok(g.missing.some((x) => /prototype-only/.test(x)));
+  assert.equal(gate(cwd, 'flows').pass, false); // no --milestone
+  assert.equal(gate(cwd, 'brief', { milestone: 1 }).pass, true);
+  assert.equal(gate(cwd, 'flows', { milestone: 1 }).pass, false);
+  w(cwd, 'project/milestones/m1/brief.md');
+  assert.equal(gate(cwd, 'flows', { milestone: 1 }).pass, true);
 });
 
 test('gate: build is blocked by an unbuilt dependency feature', () => {
   const cwd = tmp();
   groundwork(cwd);
-  w(cwd, 'project/milestones/m1/brief.md', 'Track: production');
+  w(cwd, 'project/milestones/m1/brief.md');
+  w(cwd, 'project/milestones/m1/flows.md');
   w(cwd, 'project/milestones/m1/features.md', FEATURES_MD);
   w(cwd, 'project/milestones/m1/plans/f-ui.md');
   // f-ui depends on f-api which IS built in FEATURES_MD -> passes
@@ -237,10 +213,11 @@ test('gate: build is blocked by an unbuilt dependency feature', () => {
   assert.ok(g.missing.some((x) => /unbuilt/.test(x) && /f-api/.test(x)));
 });
 
-test('gate: review needs every feature built and verified (production)', () => {
+test('gate: review needs realize done + every feature built and verified', () => {
   const cwd = tmp();
   groundwork(cwd);
-  w(cwd, 'project/milestones/m1/brief.md', 'Track: production');
+  w(cwd, 'project/milestones/m1/brief.md');
+  w(cwd, 'project/milestones/m1/flows.md');
   w(cwd, 'project/milestones/m1/features.md', FEATURES_MD); // f-ui not built
   assert.equal(gate(cwd, 'review', { milestone: 1 }).pass, false);
   w(cwd, 'project/milestones/m1/features.md', FEATURES_MD
@@ -265,6 +242,34 @@ test('gate: advises when project/parking.md is non-empty, never blocks', () => {
   assert.ok(g.notes.some((nte) => /parking\.md/.test(nte)));
 });
 
+test('gate: pre-flows project is blocked by upgrade guard (all stages except setup)', () => {
+  const cwd = tmp();
+  initConfig(cwd);
+  const cfg = loadConfig(cwd);
+  delete cfg.generation;
+  saveConfig(cwd, cfg);
+  // setup is exempt
+  assert.equal(gate(cwd, 'setup').pass, true);
+  // all other stages fail
+  const r = gate(cwd, 'vision');
+  assert.equal(r.pass, false);
+  assert.ok(r.missing.some((m) => /pre-flows project/.test(m)));
+  const r2 = gate(cwd, 'brief', { milestone: 1 });
+  assert.equal(r2.pass, false);
+  assert.ok(r2.missing.some((m) => /pre-flows project/.test(m)));
+});
+
+test('gate: after upgradeGeneration, pre-flows project gates pass', () => {
+  const cwd = tmp();
+  initConfig(cwd);
+  const cfg = loadConfig(cwd);
+  delete cfg.generation;
+  saveConfig(cwd, cfg);
+  upgradeGeneration(cwd);
+  assert.equal(loadConfig(cwd).generation, 'flows');
+  assert.equal(gate(cwd, 'vision').pass, true);
+});
+
 test('validate: no longer emits the old notes.md drain warning', () => {
   const cwd = tmp();
   initConfig(cwd);
@@ -276,27 +281,18 @@ test('nextStage walks groundwork then a milestone', () => {
   const cwd = tmp();
   assert.equal(nextStage(cwd).stage, 'setup');
   groundwork(cwd);
-  assert.deepEqual(nextStage(cwd), { stage: 'milestone-brief', milestone: 1, feature: null });
-  w(cwd, 'project/milestones/m1/brief.md', 'Track: production');
-  assert.equal(nextStage(cwd, { milestone: 1 }).stage, 'ux-refine');
-  w(cwd, 'project/milestones/m1/ux-refine.md');
-  assert.equal(nextStage(cwd, { milestone: 1 }).stage, 'tracer');
-});
-
-test('nextStage: prototype-only milestone skips tracer/features', () => {
-  const cwd = tmp();
-  groundwork(cwd);
-  w(cwd, 'project/milestones/m1/brief.md', 'Track: prototype');
-  w(cwd, 'project/milestones/m1/ux-refine.md');
-  assert.equal(nextStage(cwd, { milestone: 1 }).stage, 'review');
+  assert.deepEqual(nextStage(cwd), { stage: 'brief', milestone: 1, feature: null });
+  w(cwd, 'project/milestones/m1/brief.md');
+  assert.equal(nextStage(cwd, { milestone: 1 }).stage, 'flows');
+  w(cwd, 'project/milestones/m1/flows.md');
+  assert.equal(nextStage(cwd, { milestone: 1 }).stage, 'realize');
 });
 
 test('nextStage: build order follows feature dependencies', () => {
   const cwd = tmp();
   groundwork(cwd);
-  w(cwd, 'project/milestones/m1/brief.md', 'Track: production');
-  w(cwd, 'project/milestones/m1/ux-refine.md');
-  w(cwd, 'project/milestones/m1/tracer.md');
+  w(cwd, 'project/milestones/m1/brief.md');
+  w(cwd, 'project/milestones/m1/flows.md');
   w(cwd, 'project/milestones/m1/features.md', FEATURES_MD.replace(/done|yes/g, '')); // nothing built
   w(cwd, 'project/milestones/m1/plans/f-api.md');
   w(cwd, 'project/milestones/m1/plans/f-ui.md');
@@ -307,9 +303,8 @@ test('nextStage: build order follows feature dependencies', () => {
 test('nextStage interleaves plan and build feature by feature', () => {
   const cwd = tmp();
   groundwork(cwd);
-  w(cwd, 'project/milestones/m1/brief.md', 'Track: production');
-  w(cwd, 'project/milestones/m1/ux-refine.md');
-  w(cwd, 'project/milestones/m1/tracer.md');
+  w(cwd, 'project/milestones/m1/brief.md');
+  w(cwd, 'project/milestones/m1/flows.md');
   const feats = [
     '| ID | Feature | Story | Domain | Repo | Depends on | Build | Verified |',
     '|--|--|--|--|--|--|--|--|',
@@ -335,22 +330,31 @@ test('nextStage interleaves plan and build feature by feature', () => {
 test('milestones are independent — two can be in flight', () => {
   const cwd = tmp();
   groundwork(cwd);
-  w(cwd, 'project/milestones/m1/brief.md', 'Track: prototype');
-  w(cwd, 'project/milestones/m2/brief.md', 'Track: prototype');
+  w(cwd, 'project/milestones/m1/brief.md');
+  w(cwd, 'project/milestones/m2/brief.md');
   assert.deepEqual(milestoneDirs(cwd), [1, 2]);
-  assert.equal(nextStage(cwd, { milestone: 1 }).stage, 'ux-refine');
-  assert.equal(nextStage(cwd, { milestone: 2 }).stage, 'ux-refine');
+  assert.equal(nextStage(cwd, { milestone: 1 }).stage, 'flows');
+  assert.equal(nextStage(cwd, { milestone: 2 }).stage, 'flows');
 });
 
 test('statusReport mentions the next stage and is legacy-aware', () => {
   const cwd = tmp();
   groundwork(cwd);
-  assert.match(statusReport(cwd), /milestone-brief/);
+  assert.match(statusReport(cwd), /brief/);
   w(cwd, 'project/state.json', '{}');
   assert.match(statusReport(cwd), /legacy/);
 });
 
-test('validate: fresh project ok; legacy state.json blocks', () => {
+test('statusReport: shows the flows chain, no classic stages', () => {
+  const cwd = tmp();
+  groundwork(cwd);
+  w(cwd, 'project/milestones/m1/brief.md');
+  const s = statusReport(cwd);
+  assert.match(s, /brief ✓\s+flows ·\s+realize ·/);
+  assert.doesNotMatch(s, /ux-refine|tracer|milestone-brief/);
+});
+
+test('validate: fresh flows project ok; legacy state.json blocks', () => {
   const cwd = tmp();
   initConfig(cwd);
   assert.equal(validate(cwd).ok, true);
@@ -358,6 +362,27 @@ test('validate: fresh project ok; legacy state.json blocks', () => {
   const r = validate(cwd);
   assert.equal(r.ok, false);
   assert.ok(r.blockers.some((b) => /migrate/.test(b)));
+});
+
+test('validate: pre-flows project (no generation field) emits upgrade blocker', () => {
+  const cwd = tmp();
+  initConfig(cwd);
+  const cfg = loadConfig(cwd);
+  delete cfg.generation;
+  saveConfig(cwd, cfg);
+  const r = validate(cwd);
+  assert.equal(r.ok, false);
+  assert.ok(r.blockers.some((b) => /pre-flows project/.test(b)));
+});
+
+test('validate: after upgradeGeneration, upgrade blocker gone', () => {
+  const cwd = tmp();
+  initConfig(cwd);
+  const cfg = loadConfig(cwd);
+  delete cfg.generation;
+  saveConfig(cwd, cfg);
+  upgradeGeneration(cwd);
+  assert.equal(validate(cwd).ok, true);
 });
 
 test('validate: multi-mode unbound repo, standalone topology, feature cycle', () => {
@@ -381,7 +406,7 @@ test('validate: multi-mode unbound repo, standalone topology, feature cycle', ()
 });
 
 
-test('migrate converts a v2 state.json to config.json and removes it', () => {
+test('migrate converts a v2 state.json to config.json and removes it (no generation stamped)', () => {
   const cwd = tmp();
   w(cwd, 'project/state.json', JSON.stringify({
     version: 2, docHome: 'docs', mode: 'multi',
@@ -392,6 +417,7 @@ test('migrate converts a v2 state.json to config.json and removes it', () => {
   }));
   const r = migrate(cwd);
   assert.equal(r.migrated, true);
+  assert.equal(r.stateConverted, true);
   assert.equal(fs.existsSync(path.join(cwd, 'project/state.json')), false);
   const c = loadConfig(cwd);
   assert.equal(c.version, 3);
@@ -399,6 +425,8 @@ test('migrate converts a v2 state.json to config.json and removes it', () => {
   assert.equal(c.repos.backend.kind, 'api');
   assert.equal(c.prototypeTopology, 'standalone');
   assert.equal(c.preflight.skillsConfirmed, true);
+  // migrate does NOT set generation — upgrade command owns that
+  assert.equal(c.generation, undefined);
   assert.equal(migrate(cwd).migrated, false); // idempotent
 });
 
@@ -483,8 +511,8 @@ test('saveConfig leaves no .tmp file behind', () => {
 // ---- work-file confirmation gate ----
 
 test('workFileRel: groundwork vs milestone path', () => {
-  assert.equal(workFileRel('prototype'), 'project/work/prototype.md');
-  assert.equal(workFileRel('ux-refine', 2), 'project/work/m2-ux-refine.md');
+  assert.equal(workFileRel('concepts'), 'project/work/concepts.md');
+  assert.equal(workFileRel('flows', 2), 'project/work/m2-flows.md');
 });
 
 test('parseGateItems: only reads under ## Gate, parses id/checked/confirmed', () => {
@@ -512,27 +540,27 @@ test('parseGateItems: only reads under ## Gate, parses id/checked/confirmed', ()
 
 test('workGate: missing work file fails closed', () => {
   const cwd = tmp();
-  const r = workGate(cwd, 'prototype');
+  const r = workGate(cwd, 'concepts');
   assert.equal(r.pass, false);
   assert.match(r.missing[0], /work file not found/);
 });
 
 test('workGate: empty / absent gate block fails closed', () => {
   const cwd = tmp();
-  w(cwd, 'project/work/prototype.md', '## Left to do\n- [ ] stuff\n');
-  const r = workGate(cwd, 'prototype');
+  w(cwd, 'project/work/concepts.md', '## Left to do\n- [ ] stuff\n');
+  const r = workGate(cwd, 'concepts');
   assert.equal(r.pass, false);
   assert.match(r.missing[0], /no ## Gate items/);
 });
 
 test('workGate: unchecked and unconfirmed items reported', () => {
   const cwd = tmp();
-  w(cwd, 'project/work/prototype.md', [
+  w(cwd, 'project/work/concepts.md', [
     '## Gate',
     '- [ ] requirements-confirmed — pending',
     '- [x] dashboard — confirmed',
   ].join('\n'));
-  const r = workGate(cwd, 'prototype');
+  const r = workGate(cwd, 'concepts');
   assert.equal(r.pass, false);
   assert.equal(r.missing.length, 2);
   assert.match(r.missing[0], /not checked/);
@@ -541,76 +569,34 @@ test('workGate: unchecked and unconfirmed items reported', () => {
 
 test('workGate: all items checked + confirmed passes', () => {
   const cwd = tmp();
-  w(cwd, 'project/work/prototype.md', [
+  w(cwd, 'project/work/concepts.md', [
     '## Gate',
     '- [x] requirements-confirmed — (yes go ahead)',
     '- [x] dashboard — (looks good)',
   ].join('\n'));
-  const r = workGate(cwd, 'prototype');
+  const r = workGate(cwd, 'concepts');
   assert.equal(r.pass, true);
   assert.deepEqual(r.missing, []);
 });
 
 test('workGate: --item checks a single surface', () => {
   const cwd = tmp();
-  w(cwd, 'project/work/prototype.md', [
+  w(cwd, 'project/work/concepts.md', [
     '## Gate',
     '- [ ] requirements-confirmed — pending',
     '- [x] dashboard — (confirmed ok)',
   ].join('\n'));
-  assert.equal(workGate(cwd, 'prototype', { item: 'dashboard' }).pass, true);
-  assert.equal(workGate(cwd, 'prototype', { item: 'requirements-confirmed' }).pass, false);
-  const unknown = workGate(cwd, 'prototype', { item: 'nope' });
+  assert.equal(workGate(cwd, 'concepts', { item: 'dashboard' }).pass, true);
+  assert.equal(workGate(cwd, 'concepts', { item: 'requirements-confirmed' }).pass, false);
+  const unknown = workGate(cwd, 'concepts', { item: 'nope' });
   assert.equal(unknown.pass, false);
   assert.match(unknown.missing[0], /no gate item "nope"/);
 });
 
 test('workGate: milestone work file resolves m<N> path', () => {
   const cwd = tmp();
-  w(cwd, 'project/work/m3-ux-refine.md', '## Gate\n- [x] requirements-confirmed — (ok)\n');
-  assert.equal(workGate(cwd, 'ux-refine', { milestone: 3 }).pass, true);
-});
-
-test('parseStories reads the Surfaces column', () => {
-  const cwd = tmp();
-  w(cwd, 'project/stories.md',
-    '| ID | Story | Depends on | Surfaces |\n|--|--|--|--|\n' +
-    '| S1 | a | | Dashboard, Settings |\n' +
-    '| S2 | b | S1 | |');
-  const s = parseStories(cwd);
-  assert.deepEqual(s[0].surfaces, ['Dashboard', 'Settings']);
-  assert.deepEqual(s[1].surfaces, []);
-});
-
-test('parseStories: `?`-suffixed surfaces are provisional, not confirmed', () => {
-  const cwd = tmp();
-  w(cwd, 'project/stories.md',
-    '| ID | Story | Surfaces |\n|--|--|--|\n' +
-    '| S1 | a | Dashboard, Reports? |\n' +
-    '| S2 | b | Billing? |');
-  const s = parseStories(cwd);
-  assert.deepEqual(s[0].surfaces, ['Dashboard']);
-  assert.deepEqual(s[0].provisionalSurfaces, ['Reports']);
-  assert.deepEqual(s[1].surfaces, []);
-  assert.deepEqual(s[1].provisionalSurfaces, ['Billing']);
-});
-
-test('validate blocks a brief selecting a story with only provisional Surfaces', () => {
-  const cwd = tmp();
-  const cfg = defaultConfig(); cfg.generation = 'classic';
-  w(cwd, 'project/config.json', JSON.stringify(cfg));
-  w(cwd, 'docs/PRODUCT.md');
-  w(cwd, 'docs/DECISIONS.md', '## d');
-  w(cwd, 'docs/CONCEPTS.md');
-  w(cwd, 'project/map.md');
-  w(cwd, 'project/prototype.md');
-  w(cwd, 'project/stories.md',
-    '| ID | Story | Surfaces |\n|--|--|--|\n| S1 | a | Dash |\n| S2 | b | Billing? |');
-  w(cwd, 'project/milestones/m1/brief.md', '# Milestone 1 — x\nStories: S1, S2.');
-  const r = validate(cwd);
-  assert.equal(r.ok, false);
-  assert.ok(r.blockers.some((b) => /S2/.test(b) && /provisional/.test(b)),
-    `expected a provisional-Surfaces blocker, got: ${JSON.stringify(r.blockers)}`);
+  w(cwd, 'project/work/m3-flows.md', '## Gate\n- [x] requirements-confirmed — (ok)\n');
+  assert.equal(workGate(cwd, 'flows', { milestone: 3 }).pass, true);
 });
 
 test('parseFeatures: Size column read; missing column defaults to M', () => {
@@ -631,7 +617,8 @@ test('parseFeatures: Size column read; missing column defaults to M', () => {
 test('gate: a Size S feature may build without a plan; M may not', () => {
   const cwd = tmp();
   groundwork(cwd);
-  w(cwd, 'project/milestones/m1/brief.md', 'Track: production');
+  w(cwd, 'project/milestones/m1/brief.md');
+  w(cwd, 'project/milestones/m1/flows.md');
   w(cwd, 'project/milestones/m1/features.md', [
     '| ID | Feature | Story | Domain | Repo | Size | Depends on | Build | Verified |',
     '|--|--|--|--|--|--|--|--|--|',
@@ -647,9 +634,8 @@ test('gate: a Size S feature may build without a plan; M may not', () => {
 test('nextStage: Size S feature skips plan and goes straight to build', () => {
   const cwd = tmp();
   groundwork(cwd);
-  w(cwd, 'project/milestones/m1/brief.md', 'Track: production');
-  w(cwd, 'project/milestones/m1/ux-refine.md');
-  w(cwd, 'project/milestones/m1/tracer.md');
+  w(cwd, 'project/milestones/m1/brief.md');
+  w(cwd, 'project/milestones/m1/flows.md');
   w(cwd, 'project/milestones/m1/features.md', [
     '| ID | Feature | Story | Domain | Repo | Size | Depends on | Build | Verified |',
     '|--|--|--|--|--|--|--|--|--|',
@@ -693,7 +679,11 @@ test('parseReviewFindings reads the severity/status table; empty status = open',
 test('gate: finalize blocked by an open critical review finding', () => {
   const cwd = tmp();
   groundwork(cwd);
-  w(cwd, 'project/milestones/m1/brief.md', 'Track: prototype');
+  w(cwd, 'project/milestones/m1/brief.md');
+  w(cwd, 'project/milestones/m1/flows.md');
+  w(cwd, 'project/milestones/m1/features.md', FEATURES_MD
+    .replace('| f-ui  | ui work  | S1 | reg | backend | f-api | | |',
+      '| f-ui  | ui work  | S1 | reg | backend | f-api | done | yes |'));
   w(cwd, 'project/milestones/m1/review.md', [
     '| ID | Finding | Where | Severity | Fix | Status |',
     '|--|--|--|--|--|--|',
@@ -716,75 +706,14 @@ test('gate: finalize blocked by an open critical review finding', () => {
   assert.equal(gate(cwd, 'finalize', { milestone: 1 }).pass, true);
 });
 
-test('validate blocks a brief selecting a story with empty Surfaces', () => {
-  const cwd = tmp();
-  // satisfy groundwork so validate's order check is clean
-  const cfg = defaultConfig(); cfg.generation = 'classic';
-  w(cwd, 'project/config.json', JSON.stringify(cfg));
-  w(cwd, 'docs/PRODUCT.md');
-  w(cwd, 'docs/DECISIONS.md', '## d');
-  w(cwd, 'docs/CONCEPTS.md');
-  w(cwd, 'project/map.md');
-  w(cwd, 'project/prototype.md');
-  w(cwd, 'project/stories.md',
-    '| ID | Story | Surfaces |\n|--|--|--|\n| S1 | a | Dash |\n| S2 | b | |');
-  w(cwd, 'project/milestones/m1/brief.md', '# Milestone 1 — x\nStories: S1, S2.');
-  const r = validate(cwd);
-  assert.equal(r.ok, false);
-  assert.ok(r.blockers.some((b) => /S2/.test(b) && /surfaces/i.test(b)),
-    `expected an empty-Surfaces blocker, got: ${JSON.stringify(r.blockers)}`);
-});
-
-test('evolve gates on groundwork complete and needs no milestone', () => {
+test('evolve gates on concepts done and needs no milestone', () => {
   const cwd = tmp();
   w(cwd, 'project/config.json', JSON.stringify(defaultConfig()));
-  assert.equal(gate(cwd, 'evolve').pass, false); // groundwork not done
+  assert.equal(gate(cwd, 'evolve').pass, false); // concepts not done
   w(cwd, 'docs/PRODUCT.md');
   w(cwd, 'docs/DECISIONS.md', '## d');
   w(cwd, 'docs/CONCEPTS.md');
-  w(cwd, 'project/stories.md', '| ID | Story | Surfaces |\n|--|--|--|\n| S1 | a | Dash |');
-  w(cwd, 'project/map.md');
-  w(cwd, 'project/prototype.md');
   assert.equal(gate(cwd, 'evolve').pass, true);
-});
-
-test('briefStoryIds matches story IDs as whole words in brief.md', () => {
-  const cwd = tmp();
-  w(cwd, 'project/stories.md',
-    '| ID | Story | Surfaces |\n|--|--|--|\n| S1 | a | Dash |\n| S2 | b | |\n| LEGAL | c | Page |');
-  w(cwd, 'project/milestones/m1/brief.md',
-    '# Milestone 1 — x\nChosen stories: S1 and LEGAL. Note: S22 is a separate id.');
-  const ids = briefStoryIds(cwd, 1);
-  assert.deepEqual([...ids].sort(), ['LEGAL', 'S1']);
-});
-
-test('generation: new projects are flows-gen, legacy configs are classic', () => {
-  const c = tmp();
-  assert.equal(generation(c), 'flows'); // pre-setup default
-  initConfig(c);
-  assert.equal(loadConfig(c).generation, 'flows');
-  assert.equal(generation(c), 'flows');
-  // simulate a legacy config with no generation field
-  const cfg = loadConfig(c);
-  delete cfg.generation;
-  saveConfig(c, cfg);
-  assert.equal(generation(c), 'classic');
-});
-
-test('migrate: stamps generation classic on a legacy config', () => {
-  const c = tmp();
-  initConfig(c);
-  const cfg = loadConfig(c);
-  delete cfg.generation;
-  saveConfig(c, cfg);
-  const r = migrate(c);
-  assert.equal(loadConfig(c).generation, 'classic');
-  assert.equal(r.generationStamped, true);
-});
-
-test('flows-gen stage lists', () => {
-  assert.deepEqual(GROUNDWORK_STAGES_FLOWS, ['setup', 'vision', 'foundation', 'concepts']);
-  assert.deepEqual(MILESTONE_STAGES_FLOWS, ['brief', 'flows', 'realize', 'review', 'finalize']);
 });
 
 test('milestoneStageDone: flows-gen artifacts', () => {
@@ -797,6 +726,9 @@ test('milestoneStageDone: flows-gen artifacts', () => {
   assert.equal(milestoneStageDone(c, 1, 'flows'), true);
   assert.equal(milestoneStageDone(c, 1, 'realize'), true); // done signal = features.md
   assert.equal(milestoneStageDone(c, 1, 'review'), false);
+  // old classic stages return false
+  assert.equal(milestoneStageDone(c, 1, 'milestone-brief'), false);
+  assert.equal(milestoneStageDone(c, 1, 'tracer'), false);
 });
 
 // ---- flow parsing ----
@@ -940,16 +872,9 @@ test('closure: transitive solid prerequisites + soft in-edges surfaced', () => {
   assert.deepEqual(r2.soft, ['EV -.-> INV']); // soft in-edge: decide, never blocks
 });
 
-function groundworkFlows(cwd) {
-  initConfig(cwd); // generation: flows
-  w(cwd, 'docs/PRODUCT.md');
-  w(cwd, 'docs/STACK.md');
-  w(cwd, 'docs/CONCEPTS.md', CONCEPTS_MD);
-}
-
-test('flows-gen gates: brief → flows → realize chain', () => {
+test('gate: brief → flows → realize chain', () => {
   const c = tmp();
-  groundworkFlows(c);
+  groundwork(c);
   assert.equal(gate(c, 'brief', { milestone: 1 }).pass, true);
   assert.equal(gate(c, 'flows', { milestone: 1 }).pass, false); // no brief.md
   w(c, 'project/milestones/m1/brief.md');
@@ -959,9 +884,9 @@ test('flows-gen gates: brief → flows → realize chain', () => {
   assert.equal(gate(c, 'realize', { milestone: 1 }).pass, true);
 });
 
-test('flows-gen gates: plan/build/review/finalize ride the features DAG, no tracks', () => {
+test('gate: plan/build/review/finalize ride the features DAG, no tracks', () => {
   const c = tmp();
-  groundworkFlows(c);
+  groundwork(c);
   w(c, 'project/milestones/m1/brief.md');
   w(c, 'project/milestones/m1/flows.md');
   w(c, 'project/milestones/m1/features.md', FEATURES_MD);
@@ -970,63 +895,21 @@ test('flows-gen gates: plan/build/review/finalize ride the features DAG, no trac
   w(c, 'project/milestones/m1/plans/f-ui.md');
   assert.equal(gate(c, 'build', { milestone: 1, feature: 'f-ui' }).pass, true); // f-api built
   assert.equal(gate(c, 'review', { milestone: 1 }).pass, false); // f-ui not built
-  assert.equal(gate(c, 'evolve', {}).pass, true); // flows gen: concepts done is enough
+  assert.equal(gate(c, 'evolve', {}).pass, true); // concepts done is enough
 });
 
-test('classic gates unchanged: stories still gated on concepts', () => {
+test('validate: flows project skips the classic Surfaces selection gate entirely', () => {
   const c = tmp();
   groundwork(c);
-  const cfg = loadConfig(c); cfg.generation = 'classic'; saveConfig(c, cfg);
-  assert.equal(gate(c, 'stories', {}).pass, true);
-  assert.equal(gate(c, 'milestone-brief', { milestone: 1 }).pass, true);
-  // classic evolve still needs the prototype stage (not just concepts)
-  assert.equal(gate(c, 'evolve', {}).pass, true); // groundwork() includes prototype.md + map.md
-  // classic plan still rides the features stage, not realize
-  w(c, 'project/milestones/m1/brief.md', 'Track: production');
-  const planGate = gate(c, 'plan', { milestone: 1, feature: 'f-api' });
-  assert.equal(planGate.pass, false);
-  assert.match(planGate.missing.join(' '), /features not done/);
-});
-
-test('classic evolve gate fails without prototype', () => {
-  const c = tmp();
-  initConfig(c);
-  const cfg = loadConfig(c); cfg.generation = 'classic'; saveConfig(c, cfg);
-  w(c, 'docs/PRODUCT.md');
-  w(c, 'docs/STACK.md');
-  w(c, 'docs/CONCEPTS.md');
-  w(c, 'project/stories.md', '| ID | Story |\n|---|---|\n| S1 | a |');
-  const r = gate(c, 'evolve', {});
-  assert.equal(r.pass, false);
-  assert.match(r.missing.join(' '), /prototype not done/);
-});
-
-test('flows-gen nextStage: walks brief → flows → realize → feature loop → review → finalize', () => {
-  const c = tmp();
-  groundworkFlows(c);
-  assert.deepEqual(nextStage(c), { stage: 'brief', milestone: 1, feature: null });
-  w(c, 'project/milestones/m1/brief.md');
-  assert.equal(nextStage(c).stage, 'flows');
-  w(c, 'project/milestones/m1/flows.md');
-  assert.equal(nextStage(c).stage, 'realize');
-  w(c, 'project/milestones/m1/features.md', FEATURES_MD);
-  assert.deepEqual(nextStage(c), { stage: 'plan', milestone: 1, feature: 'f-ui' });
-  w(c, 'project/milestones/m1/plans/f-ui.md');
-  assert.deepEqual(nextStage(c), { stage: 'build', milestone: 1, feature: 'f-ui' });
-});
-
-test('flows-gen statusReport: shows the flows chain', () => {
-  const c = tmp();
-  groundworkFlows(c);
-  w(c, 'project/milestones/m1/brief.md');
-  const s = statusReport(c);
-  assert.match(s, /brief ✓\s+flows ·\s+realize ·/);
-  assert.doesNotMatch(s, /ux-refine|tracer/);
+  w(c, 'project/stories.md', '| ID | Story |\n|---|---|\n| S1 | a |'); // no Surfaces column at all
+  w(c, 'project/milestones/m1/brief.md', 'covers S1');
+  const r = validate(c);
+  assert.ok(!r.blockers.some((b) => /Surfaces/.test(b)));
 });
 
 test('validate: flow checks — unknown dep, undeclared participant', () => {
   const c = tmp();
-  groundworkFlows(c);
+  groundwork(c);
   w(c, 'project/map.md', MAP_MD);
   w(c, 'project/stories.md', '| ID | Story |\n|---|---|\n| S1 | a |\n| S2 | b |');
   w(c, 'project/flows/invite-redeem.md', FLOW_MD.replace('Depends on: context-switch', 'Depends on: nope'));
@@ -1036,15 +919,6 @@ test('validate: flow checks — unknown dep, undeclared participant', () => {
   w(c, 'project/flows/bad.md', FLOW_MD.replace('RES->>INV: redeem(code)', 'RES->>GHOST: boo').replace('Depends on: context-switch', 'Depends on:'));
   r = validate(c);
   assert.ok(r.blockers.some((b) => /flow "bad": arrow references undeclared participant "GHOST"/.test(b)));
-});
-
-test('validate: flows-gen skips the classic Surfaces selection gate', () => {
-  const c = tmp();
-  groundworkFlows(c);
-  w(c, 'project/stories.md', '| ID | Story |\n|---|---|\n| S1 | a |'); // no Surfaces column at all
-  w(c, 'project/milestones/m1/brief.md', 'covers S1');
-  const r = validate(c);
-  assert.ok(!r.blockers.some((b) => /Surfaces/.test(b)));
 });
 
 // ---- Fix 1: activation token arrows ----
@@ -1087,7 +961,7 @@ sequenceDiagram
 
 test('validate: unparseable arrow-like lines produce blockers', () => {
   const c = tmp();
-  groundworkFlows(c);
+  groundwork(c);
   const badFlow = `# Flow: bad-flow
 Stories: S1
 
@@ -1109,10 +983,8 @@ sequenceDiagram
 
 test('validate: participant kind mismatch with registry → blocker', () => {
   const c = tmp();
-  groundworkFlows(c);
+  groundwork(c);
   w(c, 'project/map.md', MAP_MD);
-  // invitation is registered as 'service' but flow declares [api]
-  const mismatchFlow = FLOW_MD; // FLOW_MD still has [api] at this point — used to detect mismatch
   // We construct a fresh flow where invitation is declared as [api] but registry says service
   const flowWithWrongKind = `# Flow: invite-redeem
 Stories: S1, S2
@@ -1134,7 +1006,7 @@ sequenceDiagram
 
 test('validate: participant with no [kind] suffix → warning (not blocker)', () => {
   const c = tmp();
-  groundworkFlows(c);
+  groundwork(c);
   w(c, 'project/map.md', MAP_MD);
   // invite-resolver has no [kind] suffix in the flow
   const flowNoKind = `# Flow: invite-redeem
@@ -1159,7 +1031,7 @@ sequenceDiagram
 
 test('validate: actor participant with no [kind] suffix and registry kind actor → no warning', () => {
   const c = tmp();
-  groundworkFlows(c);
+  groundwork(c);
   w(c, 'project/map.md', MAP_MD);
   // Recipient is declared as `actor R as Recipient` — no [kind] suffix; registry says actor
   const flowActorNoSuffix = `# Flow: invite-redeem
@@ -1178,4 +1050,17 @@ sequenceDiagram
   const r = validate(c);
   assert.ok(!r.warnings.some((w) => /Recipient.*no \[kind\]/.test(w)),
     `actor with matching registry kind should not warn, got: ${JSON.stringify(r.warnings)}`);
+});
+
+// ---- upgrade detector ----
+
+test('upgradeGeneration: sets generation = flows on config', () => {
+  const cwd = tmp();
+  initConfig(cwd);
+  const cfg = loadConfig(cwd);
+  delete cfg.generation;
+  saveConfig(cwd, cfg);
+  assert.equal(loadConfig(cwd).generation, undefined);
+  upgradeGeneration(cwd);
+  assert.equal(loadConfig(cwd).generation, 'flows');
 });

@@ -13,18 +13,13 @@ export const CONFIG_FILE = 'project/config.json';
 export const LOCAL_REPOS_FILE = 'project/repos.local.json';
 export const LEGACY_STATE_FILE = 'project/state.json';
 
-export const GROUNDWORK_STAGES = ['setup', 'vision', 'foundation', 'concepts', 'stories', 'prototype'];
-export const MILESTONE_STAGES = ['milestone-brief', 'ux-refine', 'tracer', 'features', 'review', 'finalize'];
+export const GROUNDWORK_STAGES = ['setup', 'vision', 'foundation', 'concepts'];
+export const MILESTONE_STAGES = ['brief', 'flows', 'realize', 'review', 'finalize'];
 export const FEATURE_STAGES = ['plan', 'build'];
-
-export const GROUNDWORK_STAGES_FLOWS = ['setup', 'vision', 'foundation', 'concepts'];
-export const MILESTONE_STAGES_FLOWS = ['brief', 'flows', 'realize', 'review', 'finalize'];
 
 export const SURFACE_KINDS = ['ui', 'api', 'lib'];
 export const MODES = ['single', 'multi'];
-export const MILESTONE_TRACKS = ['prototype', 'production'];
 export const PROTOTYPE_TOPOLOGIES = ['colocated', 'standalone'];
-export const GENERATIONS = ['classic', 'flows'];
 export const PARTICIPANT_KINDS = ['actor', 'ui', 'service', 'store', 'external'];
 
 // ---- paths & io ----
@@ -88,23 +83,6 @@ function requireConfig(cwd) {
   return config;
 }
 
-// A project's generation decides its stage chain. New projects are 'flows'
-// (no config yet = a project being created now); a config without the field
-// is a pre-redesign project -> 'classic'.
-export function generation(cwd = process.cwd()) {
-  const c = loadConfig(cwd);
-  if (!c) return 'flows';
-  return c.generation === 'flows' ? 'flows' : 'classic';
-}
-
-export function groundworkStages(cwd = process.cwd()) {
-  return generation(cwd) === 'flows' ? GROUNDWORK_STAGES_FLOWS : GROUNDWORK_STAGES;
-}
-
-export function milestoneStages(cwd = process.cwd()) {
-  return generation(cwd) === 'flows' ? MILESTONE_STAGES_FLOWS : MILESTONE_STAGES;
-}
-
 // ---- local repo bindings (gitignored) ----
 function loadLocalRepos(cwd) {
   const p = localReposPath(cwd);
@@ -154,20 +132,11 @@ export function parseStories(cwd) {
   const { header, rows } = parseTable(read(cwd, 'project/stories.md'));
   const idC = header.indexOf('id');
   const depC = header.indexOf('depends on');
-  const surfC = header.indexOf('surfaces');
   if (idC < 0) return [];
-  return rows.map((r) => {
-    // A `?`-suffixed surface name is provisional: seeded at `stories` for a
-    // surface that does not exist yet; the `prototype` stage clears the `?`
-    // when it builds the surface. Provisional names do not make a story selectable.
-    const all = surfC >= 0 ? clean(r[surfC]).split(',').map((s) => s.trim()).filter(Boolean) : [];
-    return {
-      id: clean(r[idC]),
-      dependsOn: depC >= 0 ? clean(r[depC]).split(',').map((s) => s.trim()).filter(Boolean) : [],
-      surfaces: all.filter((s) => !s.endsWith('?')),
-      provisionalSurfaces: all.filter((s) => s.endsWith('?')).map((s) => s.slice(0, -1).trim()).filter(Boolean),
-    };
-  }).filter((s) => s.id);
+  return rows.map((r) => ({
+    id: clean(r[idC]),
+    dependsOn: depC >= 0 ? clean(r[depC]).split(',').map((s) => s.trim()).filter(Boolean) : [],
+  })).filter((s) => s.id);
 }
 
 function milestoneRel(m, ...sub) { return path.join('project/milestones', `m${m}`, ...sub); }
@@ -363,28 +332,6 @@ export function closure(cwd, targets) {
   };
 }
 
-export function milestoneTrack(cwd, m) {
-  const rel = milestoneRel(m, 'brief.md');
-  if (!exists(cwd, rel)) return null;
-  const mt = read(cwd, rel).match(/track:\s*`?(production|prototype)/i);
-  return mt ? mt[1].toLowerCase() : 'production';
-}
-
-// Story IDs (from stories.md) that appear as whole words in m<N>/brief.md.
-// Used to enforce the empty-Surfaces selection gate without mandating a brief format.
-export function briefStoryIds(cwd, m) {
-  const rel = milestoneRel(m, 'brief.md');
-  if (!exists(cwd, rel)) return new Set();
-  const text = read(cwd, rel);
-  const ids = (parseStories(cwd) ?? []).map((s) => s.id);
-  const found = new Set();
-  for (const id of ids) {
-    const re = new RegExp(`(?<![\\w-])${id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w-])`);
-    if (re.test(text)) found.add(id);
-  }
-  return found;
-}
-
 function milestoneTitle(cwd, m) {
   const rel = milestoneRel(m, 'brief.md');
   if (!exists(cwd, rel)) return null;
@@ -406,19 +353,15 @@ export function groundworkDone(cwd, stage) {
         || (exists(cwd, `${docHome}/DECISIONS.md`)
           && /^##\s/m.test(read(cwd, `${docHome}/DECISIONS.md`)));
     case 'concepts': return exists(cwd, `${docHome}/CONCEPTS.md`);
-    case 'prototype':
-      return exists(cwd, 'project/prototype.md')
-        && exists(cwd, 'project/map.md');
-    case 'stories': return exists(cwd, 'project/stories.md');
     default: return false;
   }
 }
 
 export function milestoneStageDone(cwd, m, stage) {
-  const f = { 'milestone-brief': 'brief.md', 'ux-refine': 'ux-refine.md', tracer: 'tracer.md',
-    features: 'features.md', review: 'review.md', finalize: 'summary.md',
-    // flows generation
-    brief: 'brief.md', flows: 'flows.md', realize: 'features.md' }[stage];
+  const f = {
+    brief: 'brief.md', flows: 'flows.md', realize: 'features.md',
+    review: 'review.md', finalize: 'summary.md',
+  }[stage];
   return f ? exists(cwd, milestoneRel(m, f)) : false;
 }
 
@@ -430,34 +373,32 @@ function depsBuilt(features, f) {
 }
 
 // ---- gates ----
+const PRE_FLOWS_MSG = 'pre-flows project — upgrade required: seed the participant registry in project/map.md, ensure docs/CONCEPTS.md has the capability dependency map, then run `adhd-state.mjs upgrade` (see README, "Upgrading a pre-flows project")';
+
 export function gate(cwd, stage, { milestone, feature } = {}) {
   const missing = [];
   const need = (ok, msg) => { if (!ok) missing.push(msg); };
   const gw = (s) => groundworkDone(cwd, s);
   const ms = (s) => milestone != null && milestoneStageDone(cwd, milestone, s);
-  const needsMilestone = ['milestone-brief', 'ux-refine', 'tracer', 'features', 'plan', 'build', 'review', 'finalize', 'brief', 'flows', 'realize'];
+  const needsMilestone = ['brief', 'flows', 'realize', 'plan', 'build', 'review', 'finalize'];
   if (needsMilestone.includes(stage) && milestone == null) {
     return { pass: false, missing: ['--milestone is required for this stage'] };
   }
-  const track = milestone != null ? milestoneTrack(cwd, milestone) : null;
+
+  // Upgrade guard: if a config exists and is not flows-generation, refuse to run any stage
+  // (setup is exempt — no config yet is fine).
+  if (stage !== 'setup') {
+    const config = loadConfig(cwd);
+    if (config !== null && (config.generation ?? null) !== 'flows') {
+      return { pass: false, missing: [PRE_FLOWS_MSG] };
+    }
+  }
 
   switch (stage) {
     case 'setup': break;
     case 'vision': need(gw('setup'), 'setup not done — no project/config.json'); break;
     case 'foundation': need(gw('vision'), 'vision not done — docs/PRODUCT.md missing'); break;
     case 'concepts': need(gw('foundation'), 'foundation not done — no docs/STACK.md (and no legacy decision logged in docs/DECISIONS.md)'); break;
-    case 'stories': need(gw('concepts'), 'concepts not done — docs/CONCEPTS.md missing'); break;
-    case 'prototype': need(gw('stories'), 'stories not done — project/stories.md missing'); break;
-    case 'milestone-brief': need(gw('prototype'), 'prototype not done — project/prototype.md / project/map.md missing'); break;
-    case 'ux-refine': need(ms('milestone-brief'), `milestone ${milestone}: milestone-brief not done`); break;
-    case 'tracer':
-      need(ms('ux-refine'), `milestone ${milestone}: ux-refine not done`);
-      need(track !== 'prototype', `milestone ${milestone} is prototype-only — tracer does not apply`);
-      break;
-    case 'features':
-      need(ms('tracer'), `milestone ${milestone}: tracer not done`);
-      need(track !== 'prototype', `milestone ${milestone} is prototype-only — features does not apply`);
-      break;
     case 'brief':
       need(gw('concepts'), 'concepts not done — docs/CONCEPTS.md missing');
       break;
@@ -468,8 +409,7 @@ export function gate(cwd, stage, { milestone, feature } = {}) {
       need(ms('flows'), `milestone ${milestone}: flows not signed off — m${milestone}/flows.md missing`);
       break;
     case 'plan': {
-      if (generation(cwd) === 'flows') need(ms('realize'), `milestone ${milestone}: realize not done — m${milestone}/features.md missing`);
-      else need(ms('features'), `milestone ${milestone}: features not done`);
+      need(ms('realize'), `milestone ${milestone}: realize not done — m${milestone}/features.md missing`);
       const feats = parseFeatures(cwd, milestone) ?? [];
       need(feats.some((f) => f.id === feature), `milestone ${milestone}: no feature "${feature}" in features.md`);
       break;
@@ -490,20 +430,10 @@ export function gate(cwd, stage, { milestone, feature } = {}) {
       break;
     }
     case 'review':
-      if (generation(cwd) === 'flows') {
-        need(ms('realize'), `milestone ${milestone}: realize not done — m${milestone}/features.md missing`);
-        for (const f of parseFeatures(cwd, milestone) ?? []) {
-          if (!f.build) missing.push(`feature "${f.id}" not built`);
-          else if (!f.verified) missing.push(`feature "${f.id}" built but not verified`);
-        }
-      } else if (track === 'prototype') {
-        need(ms('ux-refine'), `milestone ${milestone}: ux-refine not done`);
-      } else {
-        need(ms('features'), `milestone ${milestone}: features not done`);
-        for (const f of parseFeatures(cwd, milestone) ?? []) {
-          if (!f.build) missing.push(`feature "${f.id}" not built`);
-          else if (!f.verified) missing.push(`feature "${f.id}" built but not verified`);
-        }
+      need(ms('realize'), `milestone ${milestone}: realize not done — m${milestone}/features.md missing`);
+      for (const f of parseFeatures(cwd, milestone) ?? []) {
+        if (!f.build) missing.push(`feature "${f.id}" not built`);
+        else if (!f.verified) missing.push(`feature "${f.id}" built but not verified`);
       }
       break;
     case 'finalize':
@@ -515,8 +445,7 @@ export function gate(cwd, stage, { milestone, feature } = {}) {
       }
       break;
     case 'evolve':
-      if (generation(cwd) === 'flows') need(gw('concepts'), 'concepts not done — docs/CONCEPTS.md missing');
-      else need(gw('prototype'), 'groundwork not complete — prototype not done (project/prototype.md / project/map.md)');
+      need(gw('concepts'), 'concepts not done — docs/CONCEPTS.md missing');
       break;
     default: return { pass: false, missing: [`unknown stage: ${stage}`] };
   }
@@ -585,14 +514,14 @@ export function workGate(cwd, stage, { milestone, item } = {}) {
 // ---- next stage ----
 export function nextStage(cwd = process.cwd(), { milestone } = {}) {
   if (!loadConfig(cwd)) return { stage: 'setup', milestone: null, feature: null };
-  for (const s of groundworkStages(cwd)) {
+  for (const s of GROUNDWORK_STAGES) {
     if (!groundworkDone(cwd, s)) return { stage: s, milestone: null, feature: null };
   }
   const dirs = milestoneDirs(cwd);
   let target = milestone;
   if (target == null) {
     target = dirs.find((m) => !milestoneComplete(cwd, m));
-    if (target == null) return { stage: generation(cwd) === 'flows' ? 'brief' : 'milestone-brief', milestone: (dirs.at(-1) ?? 0) + 1, feature: null };
+    if (target == null) return { stage: 'brief', milestone: (dirs.at(-1) ?? 0) + 1, feature: null };
   }
   return milestoneNext(cwd, target);
 }
@@ -602,10 +531,6 @@ function milestoneComplete(cwd, m) {
 }
 
 function milestoneNext(cwd, m) {
-  return generation(cwd) === 'flows' ? milestoneNextFlows(cwd, m) : milestoneNextClassic(cwd, m);
-}
-
-function milestoneNextFlows(cwd, m) {
   const at = (stage, feature = null) => ({ stage, milestone: m, feature });
   if (!milestoneStageDone(cwd, m, 'brief')) return at('brief');
   if (!milestoneStageDone(cwd, m, 'flows')) return at('flows');
@@ -624,36 +549,6 @@ function milestoneNextFlows(cwd, m) {
   return at('done');
 }
 
-function milestoneNextClassic(cwd, m) {
-  const at = (stage, feature = null) => ({ stage, milestone: m, feature });
-  if (!milestoneStageDone(cwd, m, 'milestone-brief')) return at('milestone-brief');
-  if (!milestoneStageDone(cwd, m, 'ux-refine')) return at('ux-refine');
-  if (milestoneTrack(cwd, m) !== 'prototype') {
-    if (!milestoneStageDone(cwd, m, 'tracer')) return at('tracer');
-    if (!milestoneStageDone(cwd, m, 'features')) return at('features');
-    // Interleaved plan -> build, one feature at a time, in dependency order:
-    // for the first not-yet-built feature whose deps are built, plan it if it
-    // is not planned yet, otherwise build it. Only then move to the next feature.
-    // Size S features skip plan and go straight to build.
-    const feats = parseFeatures(cwd, m) ?? [];
-    const needsPlan = (f) => f.size !== 'S' && !planDone(cwd, m, f.id);
-    let blocked = null;
-    for (const f of feats) {
-      if (f.build) continue;
-      if (depsBuilt(feats, f)) {
-        return at(needsPlan(f) ? 'plan' : 'build', f.id);
-      }
-      if (!blocked) blocked = f;
-    }
-    if (blocked) {
-      return at(needsPlan(blocked) ? 'plan' : 'build', blocked.id);
-    }
-  }
-  if (!milestoneStageDone(cwd, m, 'review')) return at('review');
-  if (!milestoneStageDone(cwd, m, 'finalize')) return at('finalize');
-  return at('done');
-}
-
 // ---- status ----
 const ICON = (done) => (done ? '✓' : '·');
 
@@ -663,16 +558,11 @@ export function statusReport(cwd = process.cwd()) {
   if (exists(cwd, LEGACY_STATE_FILE)) {
     lines.push('! legacy project/state.json present — run `adhd-state.mjs migrate`.', '');
   }
-  lines.push('Groundwork:  ' + groundworkStages(cwd).map((s) => `${s} ${ICON(groundworkDone(cwd, s))}`).join('  '));
+  lines.push('Groundwork:  ' + GROUNDWORK_STAGES.map((s) => `${s} ${ICON(groundworkDone(cwd, s))}`).join('  '));
   for (const m of milestoneDirs(cwd)) {
     const title = milestoneTitle(cwd, m);
-    const track = milestoneTrack(cwd, m);
-    const trackSuffix = generation(cwd) !== 'flows' && track ? ` [${track}]` : '';
-    lines.push(`Milestone ${m}${title ? ` — ${title}` : ''}${trackSuffix}:`);
-    const stages = generation(cwd) === 'flows'
-      ? MILESTONE_STAGES_FLOWS
-      : (track === 'prototype' ? ['milestone-brief', 'ux-refine', 'review', 'finalize'] : MILESTONE_STAGES);
-    lines.push('  ' + stages.map((s) => `${s} ${ICON(milestoneStageDone(cwd, m, s))}`).join('  '));
+    lines.push(`Milestone ${m}${title ? ` — ${title}` : ''}:`);
+    lines.push('  ' + MILESTONE_STAGES.map((s) => `${s} ${ICON(milestoneStageDone(cwd, m, s))}`).join('  '));
     for (const f of parseFeatures(cwd, m) ?? []) {
       lines.push(`  feature ${f.id}:  plan ${ICON(planDone(cwd, m, f.id))}  build ${ICON(f.build)}` +
         (f.verified ? '  verified' : ''));
@@ -710,6 +600,10 @@ export function validate(cwd = process.cwd()) {
   if (!config) {
     return { ok: false, blockers: ['No project/config.json — run `adhd setup` first.'], warnings: [] };
   }
+  // Upgrade detector: fail-closed for pre-flows projects.
+  if ((config.generation ?? null) !== 'flows') {
+    blockers.push(PRE_FLOWS_MSG);
+  }
   if (exists(cwd, LEGACY_STATE_FILE)) {
     blockers.push('legacy project/state.json present — run `adhd-state.mjs migrate` to upgrade');
   }
@@ -718,7 +612,7 @@ export function validate(cwd = process.cwd()) {
   }
   // groundwork order coherence
   let seenIncomplete = false;
-  for (const s of groundworkStages(cwd)) {
+  for (const s of GROUNDWORK_STAGES) {
     if (!groundworkDone(cwd, s)) seenIncomplete = true;
     else if (seenIncomplete) blockers.push(`groundwork stage "${s}" is done but an earlier stage is not`);
   }
@@ -735,7 +629,7 @@ export function validate(cwd = process.cwd()) {
   // standalone prototype topology needs a home
   if ((config.prototypeTopology ?? 'colocated') === 'standalone') {
     const proto = config.prototype ?? {};
-    if (groundworkDone(cwd, 'prototype') && !proto.subpath && !proto.repo) {
+    if (!proto.subpath && !proto.repo) {
       blockers.push('prototype topology is "standalone" but no prototype home is set — run `adhd workspace`');
     }
     if (proto.repo && config.mode === 'multi' && !(config.repos ?? {})[proto.repo]) {
@@ -755,25 +649,6 @@ export function validate(cwd = process.cwd()) {
     }
     const cyc = findCycle(feats);
     if (cyc) blockers.push(`milestone ${m}: feature dependency cycle: ${cyc.join(' → ')}`);
-  }
-  // empty-Surfaces selection gate: a brief may not pick a story with no confirmed
-  // Surfaces. A `?`-suffixed (provisional) name does not count — the surface was
-  // seeded at `stories` but never prototyped.
-  // Classic-only: flows-gen projects do not use the Surfaces column.
-  if (generation(cwd) !== 'flows') {
-    const stories = parseStories(cwd) ?? [];
-    const byId = Object.fromEntries(stories.map((s) => [s.id, s]));
-    for (const m of milestoneDirs(cwd)) {
-      for (const id of briefStoryIds(cwd, m)) {
-        const s = byId[id];
-        if (s && s.surfaces.length === 0) {
-          const why = s.provisionalSurfaces.length
-            ? `only provisional (\`?\`-suffixed) Surfaces`
-            : 'empty Surfaces';
-          blockers.push(`milestone ${m}: brief selects story "${id}" which has ${why} in project/stories.md — run \`adhd evolve\` to prototype it first`);
-        }
-      }
-    }
   }
   if (exists(cwd, 'project/notes.md')) {
     warnings.push('project/notes.md is legacy (removed from the model) — drain durable entries to a canonical home, then delete it; `adhd-state.mjs migrate` removes it if empty and scaffolds project/parking.md');
@@ -919,9 +794,17 @@ export function confirmPreflight(cwd = process.cwd()) {
   return config;
 }
 
+// ---- upgrade: set generation = 'flows' on a pre-flows project ----
+export function upgradeGeneration(cwd = process.cwd()) {
+  const config = requireConfig(cwd);
+  config.generation = 'flows';
+  saveConfig(cwd, config);
+  return config;
+}
+
 // ---- migrate: v2 state.json -> v3 config.json, and notes.md -> parking.md ----
 export function migrate(cwd = process.cwd()) {
-  const result = { migrated: false, stateConverted: false, parkingCreated: false, notesDeleted: false, notesKept: false, generationStamped: false };
+  const result = { migrated: false, stateConverted: false, parkingCreated: false, notesDeleted: false, notesKept: false };
 
   // 1. Legacy v2 state.json -> v3 config.json (if present).
   const legacy = path.join(cwd, LEGACY_STATE_FILE);
@@ -937,6 +820,8 @@ export function migrate(cwd = process.cwd()) {
     config.prototype = old.prototype ?? { repo: null, subpath: null };
     config.preflight = old.preflight ?? { skillsConfirmed: false, confirmedAt: null };
     if (old.createdAt) config.createdAt = old.createdAt;
+    // Do NOT set generation here — the upgrade command owns that.
+    delete config.generation;
     saveConfig(cwd, config);
     fs.rmSync(legacy);
     result.stateConverted = true;
@@ -961,17 +846,7 @@ export function migrate(cwd = process.cwd()) {
     }
   }
 
-  // 3. Stamp generation on configs that predate the field (classic chain).
-  {
-    const config = loadConfig(cwd);
-    if (config && !config.generation) {
-      config.generation = 'classic';
-      saveConfig(cwd, config);
-      result.generationStamped = true;
-    }
-  }
-
-  result.migrated = result.stateConverted || result.parkingCreated || result.notesDeleted || result.generationStamped;
+  result.migrated = result.stateConverted || result.parkingCreated || result.notesDeleted;
   if (!result.migrated && !result.notesKept) result.reason = loadConfig(cwd) ? 'already migrated' : 'no adhd project here';
   return result;
 }
@@ -1050,8 +925,12 @@ function main(argv) {
       if (r.parkingCreated) acts.push('created project/parking.md');
       if (r.notesDeleted) acts.push('removed empty project/notes.md');
       if (r.notesKept) acts.push('kept non-empty project/notes.md — drain it to a canonical home, then delete it');
-      if (r.generationStamped) acts.push('stamped generation: classic');
       console.log(acts.length ? `migrated: ${acts.join('; ')}` : `nothing to migrate (${r.reason})`);
+      break;
+    }
+    case 'upgrade': {
+      upgradeGeneration(cwd);
+      console.log('generation = flows — project upgraded');
       break;
     }
     case 'preflight-confirm':
@@ -1126,7 +1005,7 @@ function main(argv) {
       break;
     }
     default:
-      console.error('Usage: adhd-state.mjs <init|read|status|next|gate|work-gate|validate|audit|migrate|preflight-confirm|workspace-mode|workspace-add|workspace-remove|workspace-list|repo-bind|repo-unbind|prototype-topology|prototype-home|contract|closure>');
+      console.error('Usage: adhd-state.mjs <init|read|status|next|gate|work-gate|validate|audit|migrate|upgrade|preflight-confirm|workspace-mode|workspace-add|workspace-remove|workspace-list|repo-bind|repo-unbind|prototype-topology|prototype-home|contract|closure>');
       process.exitCode = 1;
   }
 }
