@@ -11,8 +11,9 @@ High-effort stages get a `project/work/<stage>.md` (milestone form
 `project/work/<task>.md`. All of `project/work/` is gitignored; each file is drained to
 its canonical home and deleted when the work is done.
 
-The high-effort stages — `vision`, `concepts`, `flows`, `realize`, `review`, `evolve`,
-and the on-demand `prototype` — create their work file as their first procedure step (a
+The high-effort stages — `vision`, `concepts`, `flows`, `realize`, `review` — plus
+the high-effort `evolve` and `prototype` commands
+create their work file as their first procedure step (a
 discipline the stage follows, not a script-enforced step). Medium/low stages (including
 `build` — its plan already is the memory) create none, with one exception: `brief`
 (medium) does — it carries user touchpoint #1.
@@ -24,6 +25,9 @@ The file has three light zones:
 ## Left to do      ← checklist; unchecked items are the resume pointer
 ## Log             ← free-form, newest last: what was done / what failed / decisions
 ```
+
+(`evolve` names its checklist zone `## Impact plan` instead of `## Left to do` —
+same role, same resume semantics; the scripts are heading-agnostic.)
 
 Write to it as the work proceeds, so a session that ends mid-stage resumes cleanly. It
 is **transient scratch — never a source of truth**. On stage completion, drain durable

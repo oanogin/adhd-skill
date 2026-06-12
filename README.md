@@ -132,12 +132,12 @@ two or three can be in flight at once. The next milestone is started simply by r
 |---|---|---|---|---|---|
 | `setup` | groundwork | low | `project/config.json` | none | [reference/setup.md](reference/setup.md) |
 | `vision` | groundwork | high | `docs/PRODUCT.md` | none | [reference/vision.md](reference/vision.md) |
-| `foundation` | groundwork | medium | `docs/STACK.md` | none | [reference/foundation.md](reference/foundation.md) |
+| `foundation` | groundwork | medium | `docs/STACK.md` (+ `DECISIONS.md` entry) | none | [reference/foundation.md](reference/foundation.md) |
 | `concepts` | groundwork (living) | high | `docs/CONCEPTS.md` (incl. capability map) | brainstorming | [reference/concepts.md](reference/concepts.md) |
 | `brief` | per-milestone | medium | `m<N>/brief.md` | brainstorming | [reference/brief.md](reference/brief.md) |
-| `flows` | per-milestone | high | `m<N>/flows.md` + `project/flows/*` | brainstorming | [reference/flows.md](reference/flows.md) |
+| `flows` | per-milestone | high | `m<N>/flows.md` + `project/flows/*` + `map.md` registry | brainstorming | [reference/flows.md](reference/flows.md) |
 | `realize` | per-milestone | high | `m<N>/features.md` (+ `m<N>/realize.md`) | none | [reference/realize.md](reference/realize.md) |
-| `plan` | per-feature | medium | `m<N>/plans/<feature>.md` (skipped for `Size: S` features) | writing-plans | [reference/plan.md](reference/plan.md) |
+| `plan` | per-feature | medium | `m<N>/plans/<feature>.md` (skipped for `Size: S`) | writing-plans | [reference/plan.md](reference/plan.md) |
 | `build` | per-feature | medium | code + `Build`/`Verified` in `features.md` | impeccable craft / executing-plans | [reference/build.md](reference/build.md) |
 | `review` | per-milestone | high | `m<N>/review.md` | none | [reference/review.md](reference/review.md) |
 | `finalize` | per-milestone | low | `m<N>/summary.md` | none | [reference/finalize.md](reference/finalize.md) |
@@ -232,7 +232,7 @@ project/
                              topology, preflight
   repos.local.json           gitignored — per-user repo→path bindings (multi mode)
   parking.md                 durable, user-owned buffer for not-yet-actionable ideas (committed)
-  work/<stage>.md            gitignored — per-task working memory (high-effort stages);
+  work/<stage>.md            gitignored — per-task working memory (high-effort stages + brief);
                              milestone form `m<N>-<stage>.md`; deleted on completion
   flows/<scenario>.md        one flow per scenario — global product truth, accumulated
                              across milestones (Flows output)
@@ -284,7 +284,7 @@ not by hand. Everything else is plain markdown you (and `adhd`) edit directly.
 - **Fresh sessions** — when a session gets long, `adhd` emits a ready-to-paste resume
   prompt (`handoff-prompt.mjs`); set `autoCompact: false` so you control when to
   `/clear`.
-- **Working memory** — high-effort stages keep a transient `project/work/<stage>.md`
+- **Working memory** — high-effort stages (plus `brief`) keep a transient `project/work/<stage>.md`
   so a session that ends mid-stage resumes cleanly. It is drained and deleted on
   completion, never a source of truth.
 

@@ -53,7 +53,7 @@ if a feature is built but not verified, complete its verification first.
      live with it — record their ok in the `Fix` cell.
 7. **Resolve each finding through the right door — never freelance:**
    - **small code defect** → `adhd fix` (see [fix.md](fix.md)), then set `Status: fixed`;
-   - **substantial production work** (production-track) → append a feature row
+   - **substantial production work** → append a feature row
      (e.g. `f-rev-1`) to `m{{N}}/features.md` with a `Size` and dependencies — the
      normal `plan`/`build` machinery and gates apply; set the finding `fixed` once that
      feature is built and verified;
@@ -66,6 +66,22 @@ if a feature is built but not verified, complete its verification first.
 
    The `finalize` gate refuses to run while any `critical` finding is `open` — that is
    the machine check behind "do not advance with open critical items".
+
+## Quality bar
+
+Checked before the artifact is written:
+
+- **An empty findings table is a claim that needs evidence.** Zero findings is rare
+  on a full arrow-coverage pass; it is acceptable only when `review.md` records what
+  was checked — per flow: arrows compared against code; per entity: `contract`
+  output compared against what the code exposes. "All surfaces reviewed, everything
+  looks good" with no per-flow record is an unfinished review, not a clean one.
+- **Findings are falsifiable.** Each names the place plus observed-vs-specified —
+  "flow submit-order draws a refusal when the stock guard fails; code silently
+  accepts" decides; "UX could be better" decides nothing.
+- **Severity follows user impact, not fix effort.** A one-line fix for a broken
+  milestone journey is still `critical`; a large refactor for a cosmetic nit is
+  still `minor`.
 
 ## Output
 `project/milestones/m{{N}}/review.md` with the findings table

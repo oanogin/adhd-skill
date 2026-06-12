@@ -1,13 +1,14 @@
 # adhd — Codex tool mapping
 
 The `adhd` skill is authored against Claude Code: its markdown uses the placeholder
-token `{{scripts_path}}` (defined in `SKILL.md`, "Conventions") and refers to Claude
-Code tool names (`Read`, `Write`, `Edit`, `Bash`). A Codex agent running `adhd`
-resolves the tool names using the table below; `{{scripts_path}}` it resolves exactly
-as `SKILL.md` says. The conceptual mapping — which capability fills which role — is
-what matters; nothing in `adhd` depends on a Claude-Code-specific tool. Codex has no
-slash-command syntax: invoke the `adhd` skill directly (load `SKILL.md` and follow it)
-with the stage as the argument.
+token `{{scripts_path}}` (defined in `SKILL.md`, "Conventions"), and its dependency
+skills (`superpowers`, `impeccable`) reference Claude Code tool names (`Read`,
+`Write`, `Edit`, `Bash`). A Codex agent resolves those tool names using the table
+below; `{{scripts_path}}` it resolves exactly as `SKILL.md` says. The conceptual
+mapping — which capability fills which role — is what matters; nothing in `adhd`
+itself depends on a Claude-Code-specific tool. Codex has no slash-command syntax:
+invoke the `adhd` skill directly (load `SKILL.md` and follow it) with the stage as
+the argument.
 
 ## Mapping table
 
@@ -20,18 +21,11 @@ with the stage as the argument.
 
 ## Required-skill preflight
 
-Before mutating any project file, a Codex agent MUST state the preflight line
-defined in `SKILL.md`:
-
-```text
-ADHD_PREFLIGHT: skills=pass gate=pass|fail:<stage> mutation=open
-```
-
-`skills=pass` confirms the `superpowers` plugin and `impeccable` are
-present and invocable; if either is missing, name it and HALT instead of
-emitting the line. `gate=pass` or `gate=fail:<stage>` reports the hard-gate
-check for the stage being run. `mutation=open` is stated only once the agent is
-clear to write files. No file mutation happens before this line appears.
+Before mutating any project file, a Codex agent states the `ADHD_PREFLIGHT` line
+**exactly as defined in `SKILL.md`, "Required-skill preflight"** — that section is
+the single source of the line's format and field semantics. If a required skill is
+missing, name it and HALT instead of emitting the line; no file mutation happens
+before the line appears.
 
 ## Closing note
 

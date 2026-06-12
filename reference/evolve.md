@@ -1,7 +1,8 @@
-# adhd — Evolve
+# adhd — evolve (management command)
 
 **Effort:** high
-**Gate:** groundwork complete — the `concepts` stage is done (`docs/CONCEPTS.md` exists).
+**Gate:** the only gated management command — groundwork must be complete (`concepts`
+done, `docs/CONCEPTS.md` exists), because `evolve` mutates the living artifacts.
 **Output:** none of its own — it mutates the living groundwork artifacts; "done" = its
 work file is drained and deleted.
 **Sub-skill:** `superpowers:brainstorming`.
@@ -32,7 +33,7 @@ No skip, no override — this is the skill's central discipline.
 ## Procedure
 
 1. **Clarify with `superpowers:brainstorming` + seed working memory.** This high-effort
-   stage may span sessions. Create `project/work/evolve.md` with a `## Gate` block, an
+   command may span sessions. Create `project/work/evolve.md` with a `## Gate` block, an
    `## Impact plan` checklist, and a `## Log` section, and append to it as you work. It
    is transient scratch — never a source of truth (see reference/working-memory.md). Seed
    `## Gate` with `requirements-confirmed`; clarify scope and direction with the user and
@@ -75,7 +76,7 @@ registry), `docs/DATA.md` (as applicable).
 
 ## On completion
 
-1. The stage is **done** when every `## Impact plan` item is checked AND
+1. The command is **done** when every `## Impact plan` item is checked AND
    `project/work/evolve.md` is drained and deleted.
 2. Drain durable facts to their canonical homes first — nothing informational should
    remain only in the work file.

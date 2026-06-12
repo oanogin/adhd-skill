@@ -19,7 +19,9 @@ change, not a prototype decision.
 
 1. **Working memory.** Create `project/work/prototype.md` with:
    - `## Gate` — seed with `requirements-confirmed` plus one line per surface in the
-     slice. Each surface line is checked only when the user signs off that surface;
+     slice. Confirm the slice scope with the user, record their verbatim ok, and
+     check it: `node {{scripts_path}}/adhd-state.mjs work-gate prototype --item requirements-confirmed`.
+     Each surface line is checked only when the user signs off that surface;
      record the verbatim ok on that line and run
      `node {{scripts_path}}/adhd-state.mjs work-gate prototype --item <surface>`.
    - `## Left to do` — checklist of surfaces remaining.

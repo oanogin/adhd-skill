@@ -39,6 +39,23 @@ If the gate reports `setup` is missing, HALT and tell the user to run
    `impeccable` rejects a PRODUCT.md that still contains unresolved placeholder
    markers, so the file must be complete when Vision ends.
 
+## Quality bar
+
+Checked before the artifact is written — structure alone is not done. A failed check
+means **interview deeper** (ask a sharper follow-up) — never pad or invent to pass it:
+
+- **Swap test (every section).** If the sentence stays true with a competitor's name
+  swapped in, it is too generic to guide anything. "Busy professionals who manage
+  tasks" fails; "on-call engineers triaging alerts at 3am on a phone" passes.
+- **Rejection power.** A reader holding only PRODUCT.md must be able to reject at
+  least one plausible-sounding feature or direction. If nothing could ever be
+  rejected, the principles are platitudes — re-interview.
+- **Principles trade something away.** Each strategic principle names what it gives
+  up: "X over Y". "Keep it simple" decides nothing; "no configuration — opinionated
+  defaults over flexibility" decides arguments.
+- **Anti-references are concrete.** Name actual products, feels, or patterns to avoid
+  — "must not feel like a ticketing queue", not "not bloated".
+
 ## Output
 `docs/PRODUCT.md` with these seven sections:
 

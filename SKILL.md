@@ -1,6 +1,6 @@
 ---
 name: adhd
-description: "Use when starting, structuring, or building a software project end-to-end and you want a conductor that front-loads vision, scope, and structure before any code, then forbids skipping ahead. Triggers: /adhd, project kickoff, 'where am I in the build', milestone planning, scope discipline, flow diagram sign-off, resume after a fresh session, new feature idea raised mid-project, a bugfix or in-place code correction on an adhd project, a stage gate refusing to run."
+description: "Use when starting, structuring, planning, or building any software project end-to-end — from first idea to shipped milestones — even if the user doesn't ask for process. Triggers: /adhd, 'start a new project', 'I have an app idea', 'plan my app', project kickoff, milestone planning, 'where am I in the build', resume after a fresh session, a new feature idea raised mid-project, a bugfix on an adhd project, scope discipline, flow diagram sign-off, a stage gate refusing to run."
 argument-hint: "[stage] [milestone|feature]"
 user-invocable: true
 license: Apache 2.0
@@ -36,7 +36,9 @@ not from its own location.
 
 `adhd` hard-depends on the **`superpowers` plugin** (`brainstorming`, `writing-plans`,
 `executing-plans`, and friends) and the **`impeccable` skill** (UI work in the
-on-demand `prototype` command and inside `build`). No fallback, no degraded mode.
+on-demand `prototype` command and inside `build`). No fallback, no degraded mode —
+several stages ARE thin orchestrations of these skills, so "improvising without them"
+silently replaces the procedure the user installed `adhd` for.
 Before ANY file mutation, self-confirm: state in the response that both are present
 and invocable. If either is missing, name it and HALT — installing them is the user's
 job. `setup` records the confirmation via `adhd-state.mjs preflight-confirm`.
@@ -116,10 +118,10 @@ the stage produces output or writes implementation**, checked fail-closed with
 |---|---|---|---|---|---|
 | `setup` | groundwork | low | `project/config.json` | none | [reference/setup.md](reference/setup.md) |
 | `vision` | groundwork | high | `docs/PRODUCT.md` | none | [reference/vision.md](reference/vision.md) |
-| `foundation` | groundwork | medium | `docs/STACK.md` | none | [reference/foundation.md](reference/foundation.md) |
+| `foundation` | groundwork | medium | `docs/STACK.md` (+ `DECISIONS.md` entry) | none | [reference/foundation.md](reference/foundation.md) |
 | `concepts` | groundwork (living) | high | `docs/CONCEPTS.md` (incl. capability map) | brainstorming | [reference/concepts.md](reference/concepts.md) |
 | `brief` | per-milestone | medium | `m<N>/brief.md` | brainstorming | [reference/brief.md](reference/brief.md) |
-| `flows` | per-milestone | high | `m<N>/flows.md` + `project/flows/*` | brainstorming | [reference/flows.md](reference/flows.md) |
+| `flows` | per-milestone | high | `m<N>/flows.md` + `project/flows/*` + `map.md` registry | brainstorming | [reference/flows.md](reference/flows.md) |
 | `realize` | per-milestone | high | `m<N>/features.md` (+ `m<N>/realize.md`) | none | [reference/realize.md](reference/realize.md) |
 | `plan` | per-feature | medium | `m<N>/plans/<feature>.md` (skipped for `Size: S`) | writing-plans | [reference/plan.md](reference/plan.md) |
 | `build` | per-feature | medium | code + `Build`/`Verified` in `features.md` | impeccable craft / executing-plans | [reference/build.md](reference/build.md) |
@@ -142,12 +144,9 @@ accumulated across milestones, owned by none; `m<N>/brief.md` lists which flows 
 milestone owns. Format and authoring rules:
 [reference/flows.md](reference/flows.md).
 
-- **Registry.** Every participant must exist in `project/map.md`'s registry table
-  (`| Participant | Kind | Concept |`, Kind ∈ actor/ui/service/store/external) —
-  script-enforced by `validate`. No ad-hoc names, no synonym drift.
-- **Logical altitude (hard rule).** Participants are concepts — a service, a store, a
-  surface — never a framework, database, or deployment decision. A guard ("check rate
-  limit") is behavior, not tech. Mechanisms are settled at `realize`, never in a flow.
+- **Registry.** Every participant must exist in `project/map.md`'s registry —
+  script-enforced by `validate`. No ad-hoc names, no synonym drift. Table format,
+  altitude rule, and sizing: [reference/flows.md](reference/flows.md).
 - **Derived contracts — never stored.** A flow is vertical (one scenario, many
   participants); rework risk is horizontal (one entity, many flows). The horizontal
   view is computed: `node {{scripts_path}}/adhd-state.mjs contract <participant>`
@@ -175,12 +174,9 @@ milestone owns. Format and authoring rules:
 
 `realize` carves the signed-off flows into **features** — small work units cut from
 diagram segments, each in exactly one domain (one repo), recorded as the
-`m<N>/features.md` table (`ID | Feature | Domain | Repo | Size | Depends on |
-Build | Verified` — `adhd-state.mjs` parses it; keep the layout intact). Carving is
-**entity-aware, skeleton-first**: an entity's first feature is its skeleton shaped
-from its full `contract`; per-flow features fill behavior. The `Feature` cell names
-the flow(s) implemented — `plan`/`build` read it to find the diagrams. `Size: S`
-skips `plan`. Full carving rules: [reference/realize.md](reference/realize.md).
+`m<N>/features.md` table (`adhd-state.mjs` parses it for the build-order gate — keep
+the column layout intact). `Size: S` skips `plan`. Carving rules, the column spec,
+and a worked example: [reference/realize.md](reference/realize.md).
 
 ## Prototype (on demand)
 
@@ -201,36 +197,25 @@ skip is exactly the failure mode it exists to prevent.
 
 ### Red flags — STOP
 
-You are about to break a gate if you catch yourself thinking any of these:
+You are about to break a gate if you catch yourself thinking anything in the left
+column. Each row means: STOP. Run the gate. Run the missing predecessor stage.
 
-- "The user clearly wants code, I'll skip ahead and backfill the stage later."
-- "This project is small, gates are overkill here."
-- "Setup/vision is obvious, I'll start a stage or two in."
-- "The gate says `missing` but I already know the answer in my head."
-- "I'll create the artifact file now and finish the stage's work after."
-- "I'll run the stage but skip its reference file — I remember the procedure."
-- "User said go fast / no clarifying questions, so gates don't apply."
-- "One `git commit` without an explicit ok is fine, it's clearly wanted."
-
-Each of these means: STOP. Run the gate. Run the missing predecessor stage.
-
-### Rationalization table
-
-| Excuse | Reality |
+| Rationalization | Reality |
 |---|---|
-| "It's a small product — skip the groundwork." | Small scope still needs vision + concepts or the build wanders. They run fast at low effort. Run them. |
-| "User wants code now." | `adhd`'s value is code that fits a plan. Skipping the plan is the exact thing the user invoked `adhd` to prevent. |
-| "I know the predecessor's output — no need to run it." | The output is a file later stages and fresh sessions read. In-your-head ≠ on disk. Run the stage. |
-| "'No clarifying questions' means skip gates." | That instruction sets pace, not discipline. A gate is not a question. |
-| "The gate is a false positive." | The gate checks whether the artifact file exists. If it says missing, the file is missing. Produce the artifact, never fake the check. |
-| "I'll create the file now, finish the work later." | Existence IS the done signal — later stages trust it. An empty/stub file is a broken gate. |
-| "I'll backfill the skipped stage afterward." | Later lacks the context this stage has now. Stages are ordered because each feeds the next. |
-| "One commit without explicit ok is harmless." | The commit gate has zero exceptions. Ask first. |
+| "Small product / gates are overkill here — skip the groundwork." | Small scope still needs vision + concepts or the build wanders. They run fast at low effort. Run them. |
+| "The user clearly wants code now — skip ahead, backfill the stage later." | `adhd`'s value is code that fits a plan; skipping the plan is the exact thing the user invoked it to prevent. And later lacks the context this stage has now — stages are ordered because each feeds the next. |
+| "Setup/vision is obvious / I already know the predecessor's output." | The output is a file later stages and fresh sessions read. In-your-head ≠ on disk. Run the stage. |
+| "The gate says `missing` but it's a false positive." | The gate checks whether the artifact file exists. If it says missing, the file is missing. Produce the artifact, never fake the check. |
+| "I'll create the artifact file now, finish the work after." | Existence IS the done signal — later stages trust it. An empty/stub file is a broken gate. |
+| "I'll run the stage from memory, skip its reference file." | The reference owns the gate check, procedure, and completion steps — and it evolves. Load it. |
+| "User said go fast / no clarifying questions, so gates don't apply." | That instruction sets pace, not discipline. A gate is not a question. |
+| "One `git commit` without an explicit ok is fine, it's clearly wanted." | The commit gate has zero exceptions. Ask first. |
 
 ## Management commands
 
-Not stages — no gates, callable anytime. One line each; the reference owns the
-procedure:
+Not stages — callable anytime; only `evolve` carries a gate of its own (groundwork
+must be complete, since it mutates the living artifacts). One line each; the
+reference owns the procedure:
 
 - `workspace` — multi mode, repo registry, prototype topology, parallel work.
   [reference/workspace.md](reference/workspace.md)
@@ -257,11 +242,17 @@ or feature, edit the markdown.
 ## Routing
 
 1. **No argument** — orient, validate, route. Run `adhd-state.mjs status` and
-   `adhd-state.mjs validate`; print both. State where the project sits and restate
-   user intent in one line. If `validate` reports blockers, name the fix and HALT.
-   Otherwise name the next runnable stage. Stop.
-2. **First word is a stage or management command** — the 11 stages are in the table;
-   the 7 management commands are above. Load the matching `reference/<name>.md` and
+   `adhd-state.mjs validate`; print both. Then list `project/work/` — an existing
+   work file means a stage is in flight and **that file is the resume pointer**
+   (its unchecked `## Left to do` items say where to pick up; its `## Gate` items
+   may still need confirmation): load
+   [reference/working-memory.md](reference/working-memory.md) and resume there.
+   This matters most after an unplanned compaction, when no handoff prompt was
+   generated. State where the project sits and restate user intent in one line. If
+   `validate` reports blockers, name the fix and HALT. Otherwise name the next
+   runnable stage. Stop.
+2. **First word is a stage or management command** — the stages are in the table;
+   the management commands are above. Load the matching `reference/<name>.md` and
    follow it exactly — it owns the gate check, the procedure, and the completion
    steps. Never run a stage from memory.
 3. **First word matches nothing** — treat the input as a task description. Run
@@ -288,15 +279,16 @@ If `project/config.json` does not exist, the only runnable stage is `setup`.
   never silently patched on either side: wrong diagram → `evolve`; wrong code →
   `fix`.
 - **Confirm before implementing** — the work-file `## Gate` rule (see "Working
-  memory"). Confirmations concentrate at two touchpoints per milestone — the `brief`
-  boundary and the per-area flow sign-off; downstream runs gate-light: `build`'s only
-  user interrupts are code-contradicts-diagram and the commit gate.
-- **Hard read scope (`plan`/`build`)** — a feature's context is its feature row, its
-  flow diagram(s), `contract <P>` per implemented participant, the surface stub, and
-  the target repo's code. Whole-product reads (`CONCEPTS.md`, `map.md`
-  wholesale) are forbidden — the flow slice IS the context.
-- **Commit gate** — NEVER `git commit` without the user's explicit "ok" / "lgtm". No
-  exceptions.
+  memory"). The two heavy touchpoints per milestone are the `brief` boundary and the
+  per-area flow sign-off; `realize` and `review` each open with a light scope ok;
+  `build` runs gate-light — its only user interrupts are code-contradicts-diagram
+  and the commit gate.
+- **Hard read scope (`plan`/`build`)** — the flow slice IS the feature's context;
+  whole-product reads are forbidden. The exact read list lives in
+  [reference/plan.md](reference/plan.md) / [reference/build.md](reference/build.md).
+- **Commit gate** — never `git commit` without the user's explicit "ok" / "lgtm". No
+  exceptions: commits are the user's audit trail and publish point — only they decide
+  when work is ready to become history.
 - **Small steps** — every stage and feature is bounded; split before starting if it
   will not fit cleanly.
 - **Effort hints** — each stage carries a suggested reasoning effort; surface it.
@@ -304,7 +296,8 @@ If `project/config.json` does not exist, the only runnable stage is `setup`.
   user the resume prompt (it leads with the active work file and points at
   `parking.md`). `autoCompact: false` recommended.
 - **No "MVP"** — never write "MVP" in any artifact or message. Say "Milestone 1" or
-  "the first valuable product".
+  "the first valuable product": MVP framing invites effort-sized, cut-down scoping,
+  which contradicts the value-sized, ready-to-use milestone definition.
 - **Capability, not mechanism** — product-scope artifacts (`PRODUCT.md`,
   `map.md`, `flows/*`) name capabilities, never stack/framework/
   database/architecture. Flows are logical-altitude.
@@ -321,33 +314,24 @@ If `project/config.json` does not exist, the only runnable stage is `setup`.
 
 ## Sub-skill output routing
 
-`brainstorming` and `writing-plans` default output to `docs/superpowers/`. OVERRIDE on
-every invocation: flow files → `project/flows/<scenario>.md`, surface stubs →
-`project/surfaces/`, feature plans → `project/milestones/m<N>/plans/`. Leave
+`brainstorming` and `writing-plans` default output to `docs/superpowers/` — an
+artifact landing there is orphaned outside the canonical layout and breaks
+the-files-are-the-truth. Override the path on every invocation: flow files →
+`project/flows/<scenario>.md`, surface stubs → `project/surfaces/`, feature plans →
+`project/milestones/m<N>/plans/`. Leave
 `.superpowers/` (gitignored) and `.impeccable/` (tracked) untouched.
 
 ## Common mistakes
 
-Operational slips (gate rationalizations are tabled above):
+Cross-stage operational slips (gate rationalizations are tabled above; stage-local
+mistakes live in each stage's reference file, loaded when the stage runs):
 
 | Mistake | Fix |
 |---|---|
 | Hand-editing `project/config.json`. | Owned by `adhd-state.mjs` — config subcommands only. |
-| Creating a stage's artifact before the work is complete. | Existence = done. Draft in `project/work/<stage>.md`; canonical file last. |
-| Running a stage from memory, skipping its reference file. | The reference owns the gate check, procedure, and completion steps. Load it. |
-| Letting sub-skills write to their default `docs/superpowers/` paths. | Pass the canonical target on every invocation. |
-| Using an undeclared participant in a flow. | Register it in `project/map.md` first; `validate` fails on ad-hoc names. |
-| Restating a CONCEPTS rule inside a flow. | Reference and place, never restate — a restated rule is a second home that will drift. |
-| Hand-picking the flow set at `flows`. | Derive it from the CONCEPTS sweep — every declared behavior gets an arrow or an explicit waiver. |
-| Implementing arrows beyond the current flow. | Shape signatures for the full contract; implement only this flow's arrows. |
-| Editing a signed-off flow outside `evolve`. | `evolve` is the single front door — diagram corrected and re-validated first. |
-| Invoking `impeccable` for a non-`ui` participant. | `impeccable` runs only for `ui` work. |
-| Breaking the `features.md` column layout. | The script parses it for the build-order gate — keep the columns. |
-| Full `plan` ceremony on a `Size: S` feature (or building `M`/`L` unplanned). | `S` builds directly from flow slice + contract + row; `M`/`L` require the plan. Re-size `S`→`M` if real design decisions appear. |
-| Routing a code-only defect through `evolve` (or a spec change through `fix`). | Spec right + code wrong → `fix`. Spec wrong → `evolve`. |
+| Letting sub-skills write to their default `docs/superpowers/` paths. | Pass the canonical target on every invocation (see "Sub-skill output routing"). |
 | In `multi` mode, writing `project/`/`docs/` artifacts into a code repo. | All artifacts live in the orchestration repo; code repos get only code. |
-| Leaving a `project/work/<task>.md` behind after its stage is done. | Drain durable facts, delete the file — `verify` flags stale work files. |
-| Putting fields, schema, or participants into `docs/CONCEPTS.md`. | Fields → `DATA.md`; participants/placement → the `map.md` registry. |
+| Routing a code-only defect through `evolve` (or a spec change through `fix`). | Spec right + code wrong → `fix`. Spec wrong → `evolve`. |
 
 ## Scripts
 

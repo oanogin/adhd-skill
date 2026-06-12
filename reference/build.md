@@ -28,7 +28,9 @@ DAG order is not optional.
    `node {{scripts_path}}/adhd-state.mjs contract <P>` per implemented participant +
    surface stub + repo code. Whole-product reads are forbidden. Implement ONLY the
    current flow's arrows; keep signatures shaped for the full contract. For UI craft
-   within a task use `impeccable craft` so the implementation matches the design system.
+   within a task use `impeccable craft` so the implementation matches the design
+   system — and only for `ui` participants; `impeccable` has no role in
+   service/store work.
 
    **Code contradicts a diagram → STOP.** Never silently patch either side: a wrong
    diagram is a spec change — route it through `adhd evolve`; wrong code with a right

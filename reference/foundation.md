@@ -59,6 +59,19 @@ user to run `adhd vision` first.
    later stage (`realize` settles infra mechanisms;
    `docs/DATA.md` is authored lazily).
 
+## Quality bar
+
+Checked before the artifacts are written:
+
+- **Rationale survives the rejected-alternative test.** A DECISIONS entry names the
+  constraint or trade-off that could have picked otherwise — "team knows TypeScript;
+  retraining cost outweighs Go's deploy simplicity" decides; "popular, modern, well
+  supported" describes every mainstream choice and decides nothing. A why-less entry
+  is a missing entry.
+- **Every baseline line is firm.** Each entry would be expensive to leave open *now*;
+  if the first milestone that needs it could decide it instead, it does not belong
+  here. No open-ended lines ("as needed", "TBD").
+
 ## Output
 - `docs/STACK.md` — `## Baseline` + `## Libraries` (current state, no history).
 - `docs/DECISIONS.md` — the baseline decision logged with rationale.

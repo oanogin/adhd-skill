@@ -25,7 +25,7 @@ with clean eyes and does not pollute the conductor's context:
 ## The checklist (what the sub-agent verifies)
 
 1. **CONCEPTS ↔ DATA, both directions.** Every entity in `docs/DATA.md` (its `## `
-   headings) is defined in `docs/CONCEPTS.md`. If a production-track milestone is
+   headings) is defined in `docs/CONCEPTS.md`. If a milestone is
    complete, also flag (as a warning) `CONCEPTS.md` entities that have no `DATA.md`
    coverage, and likely **renames** — a near-match name present in one file but not the
    other.
@@ -64,6 +64,13 @@ with clean eyes and does not pollute the conductor's context:
     no milestone brief's `## Flows` list. Structural sanity (mermaid parse, undeclared
     participants, unknown deps, cycles) is covered by `adhd-state.mjs validate` — do
     not re-audit it here.
+11. **Quality-bar regressions.** Stage references define a `## Quality bar` for their
+    artifacts (`vision`, `concepts`, `flows`, `foundation`, `realize`, `review`).
+    Spot-check existing artifacts against their stage's bar — generic swap-test
+    failures in `PRODUCT.md`, vague arrows or "not needed" waivers in flows,
+    unanchored registry rows, why-less `DECISIONS.md` entries, gestured-at mechanism
+    notes, empty review tables without coverage evidence. The bar text in each
+    reference file is the single source — apply it, do not restate it.
 
 ## Output
 

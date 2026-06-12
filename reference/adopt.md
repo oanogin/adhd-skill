@@ -66,7 +66,8 @@ milestone or a `docs/DECISIONS.md` entry. `adopt` does not block on it.
 5. **Record completion.** After the user confirms each artifact, write the canonical
    file. A groundwork stage is done the moment its artifact exists — there is no
    separate completion command. (`setup` is already done once `config.json` exists;
-   `foundation` is done once `docs/DECISIONS.md` carries a logged decision.)
+   `foundation` is done once `docs/STACK.md` exists — a logged `DECISIONS.md` entry
+   alone is only the legacy signal.)
 
 ## On completion
 

@@ -50,13 +50,50 @@ If the gate reports `foundation` is not done, HALT and tell the user to run
 6. **Author the capability dependency map.** As a required section of `docs/CONCEPTS.md`,
    write a Mermaid flowchart of the product's capability areas. Each node is a named
    capability area. A solid edge (`-->`) means hard prerequisite (prerequisite → dependent);
-   a dashed edge (`-.->`) means soft/enhances. Mark areas that are already built (e.g.
-   with a label or comment). An area is **pickable next** when every solid in-edge comes
-   from a built area — this is the pickable-next rule. This map is the soft roadmap from
-   which milestones are selected: the `brief` stage runs
+   a dashed edge (`-.->`) means soft/enhances. **Built-marker convention:** a built
+   area carries `✓` at the end of its node label — the scripts parse only the edges,
+   so this label suffix is the one canonical marker every session reads and writes.
+   An area is **pickable next** when every solid in-edge comes from a built area —
+   this is the pickable-next rule. This map is the soft roadmap from which milestones
+   are selected: the `brief` stage runs
    `node {{scripts_path}}/adhd-state.mjs closure <areaId>...` over it to compute
-   transitive prerequisites for a candidate area.
+   transitive prerequisites for a candidate area (node ids, e.g. `catalog`, are what
+   `closure` takes as arguments).
+
+   ```mermaid
+   flowchart TD
+     accounts[Account management ✓]
+     catalog[Item catalog ✓]
+     ordering[Order placement]
+     tracking[Order tracking]
+     sharing[Shared workspaces]
+     accounts --> ordering
+     catalog --> ordering
+     ordering --> tracking
+     accounts -.-> sharing
+   ```
+
+   Here `ordering` is pickable next (both solid in-edges come from built areas);
+   `tracking` is not (its prerequisite `ordering` is unbuilt); `sharing` is pickable —
+   its only in-edge is soft, surfaced by `closure` as a decide-explicitly item.
 7. **Write `docs/CONCEPTS.md` last** — its existence is the stage's done signal.
+
+## Quality bar
+
+Checked before the artifact is written — structure alone is not done:
+
+- **Borderline test (every entity).** The one-line definition must let a reader
+  decide a borderline case: "is an archived item still a Task?" If two readers could
+  answer differently, the definition is too loose — sharpen it with the user.
+- **Lifecycles are walkable.** Every core entity names its states and what moves it
+  between them. An entity with no states and no rules is either trivial (say so) or
+  under-elicited (go back).
+- **Invariants are falsifiable.** Each governing rule names entity + condition that
+  could be violated — "a Task cannot leave Draft without an owner" passes; "data
+  stays consistent" decides nothing.
+- **Capability areas are capabilities.** Map nodes name what the product can do,
+  never screens, components, or tech; no orphan nodes — every area connects to the
+  map or is explicitly marked standalone.
 
 ## Output
 - `docs/CONCEPTS.md`, with three zones plus the capability map:
@@ -64,8 +101,9 @@ If the gate reports `foundation` is not done, HALT and tell the user to run
   - **Relationships** — a Mermaid `erDiagram` with conceptual cardinality.
   - **Helicopter view** — actors, core lifecycles/states, governing entity/state rules.
   - **Capability dependency map** — a Mermaid flowchart of capability areas; solid
-    edges = hard prerequisites, dashed = soft/enhances; built areas marked. This is the
-    soft roadmap milestones are picked off.
+    edges = hard prerequisites, dashed = soft/enhances; built areas marked with the
+    `✓` label suffix (example in step 6). This is the soft roadmap milestones are
+    picked off.
 
 ## Re-running
 `concepts` is **re-runnable**. Re-run it whenever the entity set or its behavior model

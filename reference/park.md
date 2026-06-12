@@ -30,7 +30,14 @@ sketches are all fine.
    `# Parking lot` heading first if it does not exist. Write the clarified item as a
    self-contained block under that heading, in whatever form fits it best (prose,
    list, mermaid, code). Make it understandable cold, months later, with no session
-   context.
+   context. Example entry:
+
+   ```markdown
+   ## Bulk import from spreadsheet
+   Users with an existing inventory want a one-time import instead of manual entry.
+   Needs: column-mapping step, duplicate handling (merge vs skip — user undecided),
+   and a dry-run preview. Blocked on: the item model gaining stable external ids.
+   ```
 3. **Confirm and stop.** Show the user the entry as written. `park` is done the moment
    the entry is in `project/parking.md`. Do not implement anything; do not commit without
    the user's explicit "ok".

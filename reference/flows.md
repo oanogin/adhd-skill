@@ -21,6 +21,9 @@ If it reports missing items, HALT. Tell the user exactly which predecessor stage
 1. **Start working memory + seed the gate.** Create `project/work/m{{N}}-flows.md`
    with `## Gate` + `## Left to do` + `## Log`. Seed one gate line per capability
    area in the brief (per-area batch sign-off), plus `requirements-confirmed`.
+   Confirm the milestone's flow scope/approach with the user, record their verbatim
+   ok on `requirements-confirmed`, and check it:
+   `node {{scripts_path}}/adhd-state.mjs work-gate flows --milestone {{N}} --item requirements-confirmed`.
 2. **Run the CONCEPTS sweep — never hand-pick the flow set.** For every in-scope
    entity, walk its CONCEPTS lifecycle + invariants + relationships: every declared
    behavior either gets a flow arrow in this milestone or an explicit waiver. The
@@ -53,7 +56,10 @@ If it reports missing items, HALT. Tell the user exactly which predecessor stage
    `node {{scripts_path}}/adhd-state.mjs work-gate flows --milestone {{N}} --item <area>`
    must pass per area. Sign-off means the user actually read the diagrams.
 7. **Write `m{{N}}/flows.md` LAST** — the flow list (final), per-area sign-offs,
-   waivers, and every change request and its resolution. Its existence = stage done.
+   waivers, and every change request and its resolution. Before writing it, run
+   `node {{scripts_path}}/adhd-state.mjs work-gate flows --milestone {{N}}` with no
+   `--item`: every area line plus `requirements-confirmed` must pass — a fail means
+   an area was never actually signed off. Its existence = stage done.
 8. **UI uncertainty?** If a surface's UX is genuinely uncertain, note it in
    `m{{N}}/flows.md` and run the on-demand `adhd prototype` command for that slice —
    it is never a gate.
@@ -92,6 +98,32 @@ Behavior that does not fit an arrow. Reference concepts, never restate.
 Participant ids in arrows are word characters only (`U`, `SVC`); hyphenated
 human-readable names belong in the `as` label. The `[kind]` suffix on the label is
 required and must match the participant's registry row.
+
+## Quality bar
+
+Part of sign-off eligibility. The concern checklist says *whether* each concern is
+covered; this bar says *how well*. A flow failing any check is not
+sign-off-eligible, regardless of structure:
+
+- **Arrows are commands/events, never gestures or vague verbs.** Test: could two
+  developers implement different behavior from this arrow's text? Then it is too
+  vague. `submit order(items)` passes; `interacts with the page`, `handle order`,
+  `process` fail.
+- **Guards name the condition checked.** `stock available?`, `rate limit exceeded?`
+  — never `check things are valid`. The downstream `contract` view is only as
+  precise as the arrow text.
+- **Waivers carry a real reason.** A waiver explains why the concern is out of scope
+  *for this milestone* — "single-tenant milestone, no authn surface yet" — never
+  "not needed". Waiving a concern that is obviously load-bearing for the scenario
+  (authn on an order submission) additionally requires the user's explicit ok,
+  recorded in the waiver line.
+- **Registry rows are anchored and sized.** The `Concept` column names a
+  `docs/CONCEPTS.md` entity (or the actor) — never `—` or "the system". One
+  participant per responsibility: a catch-all `backend` hides every contract the
+  `contract` command exists to derive; split it per concept.
+- **Surface stubs survive the swap test.** A stub's purpose and UX intent must be
+  false for some other surface — "clean and easy to use" describes every surface
+  and specifies none.
 
 ## Re-running
 Flow files are living, global product truth — accumulated across milestones, owned by
