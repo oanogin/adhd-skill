@@ -236,14 +236,14 @@ export function parseFlowDiagram(text) {
     if (line.startsWith('```')) { inMermaid = !inMermaid && /^```mermaid/.test(line); continue; }
     if (!inMermaid) continue;
     let m;
-    if ((m = /^(?:participant|actor)\s+([\w-]+)(?:\s+as\s+(.+))?\s*$/.exec(line))) {
+    if ((m = /^(?:participant|actor)\s+(\w+)(?:\s+as\s+(.+))?\s*$/.exec(line))) {
       const label = (m[2] ?? m[1]).trim();
       participants.push({
         id: m[1],
         label: label.replace(/\s*\[\w+\]\s*$/, '').trim(),
         kind: /\[(\w+)\]\s*$/.exec(label)?.[1]?.toLowerCase() ?? null,
       });
-    } else if ((m = /^([\w-]+)\s*(-{1,2}(?:>>|>|x|\)))\s*([\w-]+)\s*:\s*(.+)$/.exec(line))) {
+    } else if ((m = /^(\w+)\s*(-{1,2}(?:>>|>|x|\)))\s*(\w+)\s*:\s*(.+)$/.exec(line))) {
       arrows.push({ from: m[1], to: m[3], msg: m[4].replace(/%%.*$/, '').trim() });
       if (sections.length) sections[sections.length - 1].arrows++;
     } else if ((m = /^(alt|opt|loop|par)\b/.exec(line))) {

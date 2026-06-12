@@ -830,6 +830,7 @@ test('parseFlowDiagram: participants, arrows, kinds, self-arrows', () => {
   assert.equal(d.participants[0].kind, null);
   assert.equal(d.arrows.length, 5);
   assert.deepEqual(d.arrows[1], { from: 'RES', to: 'INV', msg: 'redeem(code)' });
+  assert.deepEqual(d.arrows[3], { from: 'INV', to: 'RES', msg: 'refused' }); // double-dash op keeps from intact
   assert.deepEqual(d.branchIssues, []);
 });
 
