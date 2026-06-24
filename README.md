@@ -9,16 +9,15 @@ three failures: rewriting the app for lack of an upfront plan, drawing screens b
 scope is locked, and uncovering must-have behavior late during implementation.
 
 `adhd` does not design or build itself. It conducts: it owns sequencing and
-discipline; `brainstorming`, `impeccable`, and `writing-plans` do the work inside
-each stage.
+discipline; `brainstorming` and `impeccable` do the work inside each stage.
 
 ## Requirements
 
 `adhd` hard-depends on two things. No fallback, no degraded mode:
 
 - the **`superpowers` plugin** — `adhd` invokes `brainstorming` (concepts, brief,
-  flows, evolve, and park), `writing-plans` (plan stage), and `executing-plans`
-  (build stage) from it. The whole plugin is required, not just those three: other
+  flows, evolve, and park) and `executing-plans` (build stage) from it. The whole
+  plugin is required, not just those two: other
   superpowers skills (`subagent-driven-development`, `systematic-debugging`, and so on)
   are useful during the build stage too.
 - the **`impeccable` skill** — UI design, used by the on-demand `prototype` command
@@ -49,6 +48,17 @@ history (nothing reads it, nothing blocks on it), `CONCEPTS.md`/`PRODUCT.md`/
 `STACK.md` are unchanged, and the old prototype app remains a useful UX reference. The next
 milestone runs `brief → flows` and flows accumulate from there. In-flight pre-flows
 milestones should be finished or re-briefed under the new chain.
+
+## Upgrading to flow-slug features
+
+Projects whose `features.md` predates the flows-as-source-of-truth redesign use numeric
+IDs (`ac1`, `c2`…), a verbose `realize.md`, and code-heavy plan files. To migrate, per
+milestone: re-run `adhd-state.mjs features-scaffold --milestone <N>` (regenerates the
+table with flow-slug IDs and derived deps), copy each old row's `Build`/`Verified`/
+`Domain`/`Repo`/`Size` onto the matching slug row, fold `realize.md` mechanism notes into
+`docs/STACK.md` + `docs/DECISIONS.md` (then shrink it to a delta or delete it), and delete
+the code-heavy plan files — re-author a short code-free gap memo only where real unknowns
+remain. `validate` flags leftovers (code fences in plans, non-slug IDs).
 
 ## Usage
 
@@ -114,11 +124,11 @@ GROUNDWORK
 PER-MILESTONE LOOP
   brief      (choose capability areas from the map; define the experience; list flows)
   flows      (declare each interaction as a mermaid sequence diagram; sign off)
-  realize    (carve flows into a feature DAG; settle mechanisms)
+  realize    (generate the feature DAG from the flows; settle mechanisms)
 
-  per feature, DAG order — plan it, build it, next:
-    plan     (implementation plan; skipped for Size S)
-    build    (build the feature)
+  per feature, DAG order — build directly; plan only on real unknowns:
+    plan     (OPTIONAL on-demand gap memo — weak points/gaps/edge cases, no code)
+    build    (build the feature from flow + contract + STACK/DECISIONS)
 
   review     (findings table; open criticals block finalize)
   finalize   (clean up docs, write milestone summary)
@@ -136,8 +146,8 @@ two or three can be in flight at once. The next milestone is started simply by r
 | `concepts` | groundwork (living) | high | `docs/CONCEPTS.md` (incl. capability map) | brainstorming | [reference/concepts.md](reference/concepts.md) |
 | `brief` | per-milestone | medium | `m<N>/brief.md` | brainstorming | [reference/brief.md](reference/brief.md) |
 | `flows` | per-milestone | high | `m<N>/flows.md` + `project/flows/*` + `map.md` registry | brainstorming | [reference/flows.md](reference/flows.md) |
-| `realize` | per-milestone | high | `m<N>/features.md` (+ `m<N>/realize.md`) | none | [reference/realize.md](reference/realize.md) |
-| `plan` | per-feature | medium | `m<N>/plans/<feature>.md` (skipped for `Size: S`) | writing-plans | [reference/plan.md](reference/plan.md) |
+| `realize` | per-milestone | high | `m<N>/features.md` (generated) + tiny `m<N>/realize.md` delta | none | [reference/realize.md](reference/realize.md) |
+| `plan` | per-feature, on-demand | medium | `m<N>/plans/<slug>.md` (OPTIONAL gap memo) | none | [reference/plan.md](reference/plan.md) |
 | `build` | per-feature | medium | code + `Build`/`Verified` in `features.md` | impeccable craft / executing-plans | [reference/build.md](reference/build.md) |
 | `review` | per-milestone | high | `m<N>/review.md` | none | [reference/review.md](reference/review.md) |
 | `finalize` | per-milestone | low | `m<N>/summary.md` | none | [reference/finalize.md](reference/finalize.md) |
@@ -166,11 +176,24 @@ via the `closure` command:
 node ~/.claude/skills/adhd/scripts/adhd-state.mjs closure <areaId>...
 ```
 
+The flows and code slices an entity touches — the impact set for a change — come from
+the `affected` command:
+
+```bash
+node ~/.claude/skills/adhd/scripts/adhd-state.mjs affected <entity>
+```
+
+It lists every flow naming the entity plus its conventional code slice
+(`src/lib/flows/<slug>/`). Use it before a change to answer "what does touching this
+break?" — no maintained mapping doc.
+
 **Hard read scope at `plan`/`build`.** A feature's context is EXACTLY: its row in
 `m<N>/features.md` + the flow diagram(s) named in its `Feature` cell + `contract <P>`
-for every participant it implements + the surface stub (if applicable) + the target
-repo's code. Whole-product reads (`docs/CONCEPTS.md`,
-`project/map.md` wholesale) are forbidden — the flow slice IS the context.
+for every participant it implements + `docs/STACK.md` and the relevant `docs/DECISIONS.md`
+entries + `m<N>/realize.md` (tiny mechanism delta, if present) + the surface stub (if
+applicable) + the gap memo `m<N>/plans/<slug>.md` (if one exists) + the target repo's
+code. Whole-product reads (`docs/CONCEPTS.md`, `project/map.md` wholesale) are forbidden
+— the flow slice IS the context.
 
 ## Prototype (on demand)
 
@@ -241,14 +264,17 @@ project/
   surfaces/<name>.md         surface stub — purpose, UX intent, key states only
                              (behavior is derived: `contract <name>`)
   milestones/m<N>/
-    brief.md                 Brief — the experience, scope closure, `## Flows` list
+    brief.md                 Brief — Vision, Scope, `## Flows` list
     flows.md                 Flows sign-off — per-area sign-offs, waivers, change log
-    realize.md               Realize — mechanism notes + spike findings
-    features.md              the feature DAG
-    plans/<feature>.md       per-feature implementation Plan
+    realize.md               Realize — tiny mechanism delta (may be absent)
+    features.md              the feature DAG — generated; IDs = flow slug
+    plans/<slug>.md          OPTIONAL gap memo — weak points/gaps/edge cases, no code
     review.md                milestone review-pass findings
     summary.md               Finalize — the milestone summary
 ```
+
+Feature code is not in this tree: each flow's implementation lives in its 1:1 code slice
+`src/lib/flows/<slug>/` (the slot `build` fills), mirroring `project/flows/<slug>.md`.
 
 `project/config.json` is owned by `scripts/adhd-state.mjs` — mutate it via the CLI,
 not by hand. Everything else is plain markdown you (and `adhd`) edit directly.
@@ -276,8 +302,8 @@ not by hand. Everything else is plain markdown you (and `adhd`) edit directly.
 - **Single source of truth** — `adhd verify` (an agent-driven pass) checks the `.md`
   artifacts for drift, orphans, and misplaced info; `adhd-state.mjs validate` covers
   fast structural sanity — including flow checks (mermaid parse, undeclared participants,
-  registry membership, flow-dependency cycles) whenever `project/flows/`
-  has files.
+  registry membership, flow-dependency cycles) and feature checks (code fences in plan
+  memos, non-slug feature IDs) whenever `project/flows/` has files.
 - **parking.md** — a durable, committed buffer you own, for ideas/details not yet ready
   to build. Free-form; an item stays until you implement it, then you remove it. Capture
   into it with `/adhd park`; every stage and feature surfaces it at its gate-check.
@@ -300,4 +326,4 @@ Codex and Cursor are supported. See `reference/codex-tools.md` and
 - `reference/working-memory.md` — full rules for transient work files and the
   durable parking lot.
 - `scripts/` — `adhd-state.mjs` (read/derive + `config.json` CLI; subcommands
-  include `upgrade` and `migrate`), `handoff-prompt.mjs`.
+  include `features-scaffold`, `affected`, `upgrade`, and `migrate`), `handoff-prompt.mjs`.
