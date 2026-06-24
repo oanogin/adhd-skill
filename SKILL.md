@@ -99,6 +99,11 @@ mermaid sequence diagram — order, branches, guards, error paths — and signed
 before any code. The signed-off flow set is the behavior contract everything
 downstream reads.
 
+**Terseness bar.** Flows are the single source of truth; every `project/` and `docs/`
+artifact is terse and *references* flows by path/arrow rather than restating them. No
+stage re-narrates a flow diagram in prose, and plans hold no code. An artifact earns
+its place only by holding information that lives nowhere else.
+
 ## Working memory (summary — full rules in [reference/working-memory.md](reference/working-memory.md))
 
 Two non-canonical stores. **Transient scratch**: `project/work/<stage>.md`
@@ -122,16 +127,17 @@ the stage produces output or writes implementation**, checked fail-closed with
 | `concepts` | groundwork (living) | high | `docs/CONCEPTS.md` (incl. capability map) | brainstorming | [reference/concepts.md](reference/concepts.md) |
 | `brief` | per-milestone | medium | `m<N>/brief.md` | brainstorming | [reference/brief.md](reference/brief.md) |
 | `flows` | per-milestone | high | `m<N>/flows.md` + `project/flows/*` + `map.md` registry | brainstorming | [reference/flows.md](reference/flows.md) |
-| `realize` | per-milestone | high | `m<N>/features.md` (+ `m<N>/realize.md`) | none | [reference/realize.md](reference/realize.md) |
-| `plan` | per-feature | medium | `m<N>/plans/<feature>.md` (skipped for `Size: S`) | writing-plans | [reference/plan.md](reference/plan.md) |
+| `realize` | per-milestone | high | `m<N>/features.md` (generated) + tiny `m<N>/realize.md` mechanism delta | none | [reference/realize.md](reference/realize.md) |
+| `plan` | per-feature, on-demand | medium | `m<N>/plans/<slug>.md` (OPTIONAL gap memo, on-demand) | none | [reference/plan.md](reference/plan.md) |
 | `build` | per-feature | medium | code + `Build`/`Verified` in `features.md` | impeccable craft / executing-plans | [reference/build.md](reference/build.md) |
 | `review` | per-milestone | high | `m<N>/review.md` | none | [reference/review.md](reference/review.md) |
 | `finalize` | per-milestone | low | `m<N>/summary.md` | none | [reference/finalize.md](reference/finalize.md) |
 
 Flow: groundwork `setup → vision → foundation → concepts`. Per milestone:
 `brief → flows → realize`, then the feature DAG in dependency order **one feature at a
-time** — `plan` it then `build` it before moving to the next, never all plans up front
-— then `review → finalize`. `prototype` is an **on-demand command**, not a stage.
+time** — `build` each feature directly; run `plan` on-demand only for a feature with
+real unknowns (build never waits on a plan) — then `review → finalize`. `prototype` is
+an **on-demand command**, not a stage.
 There is no "advance" step: the next milestone is created by running `brief` again.
 `adhd-state.mjs status` shows every milestone; `next --milestone <N>` names a specific
 one's next stage.
@@ -172,11 +178,12 @@ milestone owns. Format and authoring rules:
 
 ## Features and the work DAG
 
-`realize` carves the signed-off flows into **features** — small work units cut from
-diagram segments, each in exactly one domain (one repo), recorded as the
-`m<N>/features.md` table (`adhd-state.mjs` parses it for the build-order gate — keep
-the column layout intact). `Size: S` skips `plan`. Carving rules, the column spec,
-and a worked example: [reference/realize.md](reference/realize.md).
+`realize` generates **features** from the signed-off flows — the feature ID is the
+flow slug, deps are derived, recorded as the `m<N>/features.md` table (`adhd-state.mjs`
+generates and parses it for the build-order gate — keep the column layout intact). Plan
+is an optional on-demand gap memo and never gates build; `Size` is informational.
+Generation rules, the column spec, and a worked example:
+[reference/realize.md](reference/realize.md).
 
 ## Prototype (on demand)
 

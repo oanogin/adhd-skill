@@ -68,6 +68,23 @@ No skip, no override — this is the skill's central discipline.
    > route the affected code to `adhd fix` (code wrong, diagram right) or a new feature
    > row in the owning milestone's `features.md` (new work).
 
+   > **Two-places bug rule.** A bug is fixed in **two** places: the flow diagram (if the
+   > behavior it draws is wrong) **+** the flow's code in `src/lib/flows/<slug>/`. A
+   > *new* mechanism or schema choice is the only thing that adds a **third** place — one
+   > line in `docs/DECISIONS.md`. Nothing else gets re-narrated anywhere.
+
+   > **Worked example — renaming a flow.** The slug is the stable feature ID *and* the
+   > code-slice dir name, so a rename is a breaking change, never a casual edit:
+   > 1. Edit the flow file (`project/flows/<old>.md` → `<new>.md`) and the participant
+   >    registry in `project/map.md`.
+   > 2. `node {{scripts_path}}/adhd-state.mjs validate`, then run the flow checks of the
+   >    `verify` pass and get the user's sign-off on the diff.
+   > 3. `node {{scripts_path}}/adhd-state.mjs features-scaffold --milestone <N>` to
+   >    re-derive the feature row under the new slug ID (merge preserves
+   >    Build/Verified/Domain/Repo/Size).
+   > 4. Rename the gap memo `m<N>/plans/<old>.md` → `<new>.md` if one exists, and the
+   >    code slice `src/lib/flows/<old>/` → `src/lib/flows/<new>/`.
+
 ## Output
 
 None of its own. `evolve` leaves the living artifacts updated and mutually consistent:

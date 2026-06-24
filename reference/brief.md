@@ -35,15 +35,21 @@ If it reports missing items, HALT. Tell the user exactly which predecessor stage
    each was pulled), soft-edge decisions, and explicit deferrals with waiver notes.
    This is user touchpoint #1 — record the verbatim ok on `requirements-confirmed`
    and check it with `node {{scripts_path}}/adhd-state.mjs work-gate brief --milestone {{N}}`.
-5. **Write `m{{N}}/brief.md`:** the experience statement; the in-scope area list
-   (stated + pulled, each with its reason); deferrals + waivers; and a `## Flows`
-   section listing the flow names this milestone will own (seeded now, refined by the
-   `flows` stage). Realizability rule: every solid in-edge of every in-scope area is
-   either already built or in this milestone.
+5. **Write `m{{N}}/brief.md`** — exactly three short sections, terse, no flow
+   re-narration:
+   - `## Vision` — why this milestone exists, in business terms (2-4 sentences). Not a
+     flow walkthrough.
+   - `## Scope` — in-scope capability areas, one line each with its reason (stated or
+     why-pulled); then deferrals + waiver notes.
+   - `## Flows` — the flow slugs this milestone owns, one per line (seeded now, refined
+     by the `flows` stage). Each flow slug here becomes the stable feature ID downstream.
+
+   Realizability rule: every solid in-edge of every in-scope area is either already built
+   or in this milestone.
 
 ## Output
-`project/milestones/m{{N}}/brief.md` — experience statement, scope (stated/pulled/
-deferred), `## Flows` list. No `Track:` line — the flows generation has no tracks.
+`project/milestones/m{{N}}/brief.md` — `## Vision` / `## Scope` / `## Flows` only. No
+`Track:` line — the flows generation has no tracks.
 
 ## On completion
 1. Write the output file — the stage is done the moment `m{{N}}/brief.md` exists.

@@ -335,6 +335,185 @@ export function parseBriefFlows(cwd, m) {
   return out;
 }
 
+// ---- features-scaffold: generate m<N>/features.md from the flows ----
+// The flow slug is the stable feature ID and the code-slice dir name. Skeleton
+// rows are derived for every service/store participant a milestone's flows use;
+// inter-flow deps come from each flow's "Depends on:" line (the canonical
+// source). The agent fills Domain/Repo/Size and adds non-flow rows by hand;
+// re-running merges by ID and preserves those.
+const FEATURES_HEADER = ['ID', 'Feature', 'Domain', 'Repo', 'Size', 'Depends on', 'Build', 'Verified'];
+const SKELETON_KINDS = new Set(['service', 'store']);
+
+// The skeleton entity name for a participant: its human label (what the registry
+// and CONCEPTS use), lowercased and slugified, suffixed with "-skeleton".
+function skeletonName(participant) {
+  const base = (participant.label || participant.id || '').trim().toLowerCase()
+    .replace(/\s+/g, '-');
+  return `${base}-skeleton`;
+}
+
+function buildFeaturesRows(cwd, m) {
+  const briefFlows = new Set(parseBriefFlows(cwd, m));
+  const allFlows = parseFlows(cwd);
+  // The milestone's flows = those the brief lists AND that have a file.
+  const flows = allFlows.filter((f) => briefFlows.has(f.name));
+  const skeletons = new Map(); // name -> entity label
+  const perFlow = []; // { slug, deps:Set }
+  for (const fl of flows) {
+    const flowSkels = new Set();
+    for (const p of fl.participants) {
+      if (SKELETON_KINDS.has((p.kind ?? '').toLowerCase())) {
+        const name = skeletonName(p);
+        skeletons.set(name, p.label || p.id);
+        flowSkels.add(name);
+      }
+    }
+    const deps = new Set([...flowSkels, ...fl.dependsOn]);
+    deps.delete(fl.name); // never self-depend
+    perFlow.push({ slug: fl.name, deps });
+  }
+  // Collision: a flow slug equal to a skeleton name.
+  for (const { slug } of perFlow) {
+    if (skeletons.has(slug)) {
+      throw new Error(`features-scaffold: flow slug "${slug}" collides with the "${slug}" entity-skeleton row — rename the flow (route through evolve)`);
+    }
+  }
+  const rows = [];
+  for (const name of [...skeletons.keys()].sort()) {
+    rows.push({ id: name, feature: `${skeletons.get(name)} skeleton`, deps: [] });
+  }
+  for (const { slug, deps } of perFlow) {
+    rows.push({ id: slug, feature: slug, deps: [...deps].sort() });
+  }
+  return rows;
+}
+
+// Scaffold ownership is recorded in a leading HTML comment so a re-run can tell
+// a STALE scaffold row (its flow was deleted) from a hand-authored agent row.
+// parseTable ignores the comment; it is the only durable ownership marker.
+const OWNED_RE = /<!--\s*scaffold-owned:\s*([^>]*?)\s*-->/i;
+function parseOwnedIds(cwd, m) {
+  const rel = milestoneRel(m, 'features.md');
+  if (!exists(cwd, rel)) return new Set();
+  const mt = OWNED_RE.exec(read(cwd, rel));
+  if (!mt) return new Set();
+  return new Set(mt[1].split(',').map((s) => s.trim()).filter(Boolean));
+}
+
+// Render rows -> the standard 8-col markdown table, merging preserved columns.
+function renderFeaturesTable(scaffoldRows, existing, priorOwned) {
+  const exById = new Map((existing ?? []).map((r) => [r.id, r]));
+  const scaffoldIds = new Set(scaffoldRows.map((r) => r.id));
+  const cell = (v) => (v == null || v === '' ? ' ' : ` ${v} `);
+  const ownedComment = `<!-- scaffold-owned: ${scaffoldRows.map((r) => r.id).join(', ')} -->`;
+  const lines = [ownedComment, '', `| ${FEATURES_HEADER.join(' | ')} |`, `|${FEATURES_HEADER.map(() => '--').join('|')}|`];
+  const emit = (id, feature, domain, repo, size, deps, build, verified) => {
+    lines.push('|' + [
+      cell(id), cell(feature), cell(domain), cell(repo), cell(size),
+      cell(deps), cell(build), cell(verified),
+    ].join('|') + '|');
+  };
+  // Scaffold-owned rows first (regenerated structure, preserved agent columns).
+  for (const r of scaffoldRows) {
+    const ex = exById.get(r.id);
+    emit(r.id, ex?.featureLabel ?? r.feature, ex?.domain, ex?.repo,
+      ex?.sizeRaw, r.deps.join(', '),
+      ex?.buildRaw, ex?.verifiedRaw);
+  }
+  // Agent-added rows (IDs the scaffold does not own) — preserved VERBATIM.
+  const dropped = [];
+  for (const ex of existing ?? []) {
+    if (scaffoldIds.has(ex.id)) continue;
+    if (ex.kind === 'scaffold') { dropped.push(ex.id); continue; } // stale skeleton/slug
+    if (ex.rawLine) { lines.push(ex.rawLine); }
+    else {
+      emit(ex.id, ex.featureLabel ?? ex.id, ex.domain, ex.repo, ex.sizeRaw,
+        (ex.dependsOnRaw ?? ''), ex.buildRaw, ex.verifiedRaw);
+    }
+  }
+  return { table: lines.join('\n') + '\n', dropped };
+}
+
+// Read the existing features.md preserving raw cells + raw line for verbatim rows.
+function readExistingFeatureRows(cwd, m, scaffoldIds) {
+  const rel = milestoneRel(m, 'features.md');
+  if (!exists(cwd, rel)) return [];
+  const text = read(cwd, rel);
+  const { header, rows } = parseTable(text);
+  const c = (name) => header.indexOf(name);
+  const idC = c('id'), featC = c('feature'), domainC = c('domain'),
+    repoC = c('repo'), sizeC = c('size'), depC = c('depends on'),
+    buildC = c('build'), verC = c('verified');
+  // Map raw table lines by ID so verbatim preservation keeps exact formatting.
+  const rawByLine = text.split('\n').filter((l) => l.trim().startsWith('|') && l.trim().endsWith('|'));
+  const rawById = new Map();
+  for (const l of rawByLine) {
+    const cells = l.trim().slice(1, -1).split('|').map((x) => x.trim());
+    if (idC >= 0 && cells[idC]) rawById.set(clean(cells[idC]), l);
+  }
+  return rows.map((r) => {
+    const id = clean(r[idC]);
+    return {
+      id,
+      featureLabel: featC >= 0 ? clean(r[featC]) || null : null,
+      domain: domainC >= 0 ? clean(r[domainC]) || null : null,
+      repo: repoC >= 0 ? clean(r[repoC]) || null : null,
+      sizeRaw: sizeC >= 0 ? clean(r[sizeC]) || null : null,
+      dependsOnRaw: depC >= 0 ? clean(r[depC]) || null : null,
+      buildRaw: buildC >= 0 ? clean(r[buildC]) || null : null,
+      verifiedRaw: verC >= 0 ? clean(r[verC]) || null : null,
+      rawLine: rawById.get(id) ?? null,
+      kind: scaffoldIds.has(id) ? 'scaffold' : 'agent',
+    };
+  }).filter((r) => r.id);
+}
+
+export function featuresScaffold(cwd = process.cwd(), m, { dryRun = false } = {}) {
+  const scaffoldRows = buildFeaturesRows(cwd, m);
+  const scaffoldIds = new Set(scaffoldRows.map((r) => r.id));
+  // Classify existing rows: any existing row whose ID is a flow-slug OR skeleton
+  // name *under the current scaffold* is scaffold-owned; an existing scaffold-type
+  // row (looks like "<x>-skeleton" or matches no current flow) that the scaffold
+  // no longer produces is dropped.
+  const existing = readExistingFeatureRows(cwd, m, scaffoldIds);
+  const priorOwned = parseOwnedIds(cwd, m);
+  // A row is a STALE scaffold row (drop + report) when it is not in the current
+  // scaffold AND either (a) it was scaffold-owned on the prior run, or (b) it is
+  // shaped like an <entity>-skeleton (covers a first migration with no marker).
+  for (const ex of existing) {
+    if (!scaffoldIds.has(ex.id) && (priorOwned.has(ex.id) || /-skeleton$/.test(ex.id))) {
+      ex.kind = 'scaffold';
+    }
+  }
+  const { table, dropped } = renderFeaturesTable(scaffoldRows, existing, priorOwned);
+  const rel = milestoneRel(m, 'features.md');
+  if (dryRun) return { written: false, table, dropped };
+  const p = path.join(cwd, rel);
+  fs.mkdirSync(path.dirname(p), { recursive: true });
+  fs.writeFileSync(p, table);
+  return { written: true, table, dropped };
+}
+
+// ---- affected <entity>: flows that touch a participant (id or label) ----
+// Conservative: reports the flows + the conventional code-slice path string
+// only. It does NOT scan real code or repos.
+export function affectedFlows(cwd = process.cwd(), entity) {
+  const want = (entity ?? '').trim().toLowerCase();
+  const out = [];
+  for (const fl of parseFlows(cwd)) {
+    const hit = fl.participants.some((p) =>
+      (p.id ?? '').toLowerCase() === want || (p.label ?? '').toLowerCase() === want);
+    if (hit) {
+      out.push({
+        slug: fl.name,
+        flowFile: `project/flows/${fl.name}.md`,
+        codeSlice: `src/lib/flows/${fl.name}/`,
+      });
+    }
+  }
+  return out;
+}
+
 function milestoneTitle(cwd, m) {
   const rel = milestoneRel(m, 'brief.md');
   if (!exists(cwd, rel)) return null;
@@ -421,10 +600,8 @@ export function gate(cwd, stage, { milestone, feature } = {}) {
       const feats = parseFeatures(cwd, milestone) ?? [];
       const f = feats.find((x) => x.id === feature);
       if (!f) { missing.push(`milestone ${milestone}: no feature "${feature}" in features.md`); break; }
-      // Size S features may skip the plan stage entirely.
-      if (f.size !== 'S') {
-        need(planDone(cwd, milestone, feature), `feature "${feature}": not planned — m${milestone}/plans/${feature}.md missing (only Size S features may skip plan)`);
-      }
+      // Plan never gates build: a feature builds as soon as its deps are built.
+      // (Run `adhd plan` on-demand only for features with real unknowns.)
       if (!depsBuilt(feats, f)) {
         const byId = Object.fromEntries(feats.map((x) => [x.id, x]));
         const blockers = (f.dependsOn ?? []).filter((d) => !byId[d]?.build);
@@ -539,14 +716,14 @@ function milestoneNext(cwd, m) {
   if (!milestoneStageDone(cwd, m, 'flows')) return at('flows');
   if (!milestoneStageDone(cwd, m, 'realize')) return at('realize');
   const feats = parseFeatures(cwd, m) ?? [];
-  const needsPlan = (f) => f.size !== 'S' && !planDone(cwd, m, f.id);
+  // Plan is user-invoked only; an unbuilt deps-ready feature always routes to build.
   let blocked = null;
   for (const f of feats) {
     if (f.build) continue;
-    if (depsBuilt(feats, f)) return at(needsPlan(f) ? 'plan' : 'build', f.id);
+    if (depsBuilt(feats, f)) return at('build', f.id);
     if (!blocked) blocked = f;
   }
-  if (blocked) return at(needsPlan(blocked) ? 'plan' : 'build', blocked.id);
+  if (blocked) return at('build', blocked.id);
   if (!milestoneStageDone(cwd, m, 'review')) return at('review');
   if (!milestoneStageDone(cwd, m, 'finalize')) return at('finalize');
   return at('done');
@@ -567,7 +744,9 @@ export function statusReport(cwd = process.cwd()) {
     lines.push(`Milestone ${m}${title ? ` — ${title}` : ''}:`);
     lines.push('  ' + MILESTONE_STAGES.map((s) => `${s} ${ICON(milestoneStageDone(cwd, m, s))}`).join('  '));
     for (const f of parseFeatures(cwd, m) ?? []) {
-      lines.push(`  feature ${f.id}:  plan ${ICON(planDone(cwd, m, f.id))}  build ${ICON(f.build)}` +
+      // plan is an OPTIONAL gap memo, never a gate — render it as "(memo)" only.
+      lines.push(`  feature ${f.id}:  build ${ICON(f.build)}` +
+        (planDone(cwd, m, f.id) ? '  (memo)' : '') +
         (f.verified ? '  verified' : ''));
     }
   }
@@ -652,6 +831,31 @@ export function validate(cwd = process.cwd()) {
     }
     const cyc = findCycle(feats);
     if (cyc) blockers.push(`milestone ${m}: feature dependency cycle: ${cyc.join(' → ')}`);
+    // ID provenance: every features.md ID should be a flow slug, an <entity>-skeleton,
+    // or an agent-added row. Flag anything that is plainly none of these (graceful
+    // warning, not a blocker — eases migration off numeric IDs).
+    const flowNames = new Set(parseFlows(cwd).map((f) => f.name));
+    for (const f of feats) {
+      const ok = flowNames.has(f.id) || /-skeleton$/.test(f.id);
+      // An agent-added row is anything not shaped like a stale flow slug. We only
+      // warn on IDs that look like they were meant to be a flow slug but match none.
+      if (!ok && !/[A-Z]/.test(f.id) && /^[a-z][a-z0-9-]*$/.test(f.id) && flowNames.size) {
+        // could be a legit agent core/ui row; warn so verify can adjudicate.
+        warnings.push(`milestone ${m}: features.md ID "${f.id}" is neither a flow slug nor an <entity>-skeleton — confirm it is an intentional core/ui row`);
+      }
+    }
+  }
+  // plan files are OPTIONAL gap memos and must hold NO code: a fenced code block
+  // in any m<N>/plans/*.md is a blocker (code belongs in src/lib/flows/<slug>/).
+  for (const m of milestoneDirs(cwd)) {
+    const dir = path.join(cwd, milestoneRel(m, 'plans'));
+    if (!fs.existsSync(dir)) continue;
+    for (const f of fs.readdirSync(dir).filter((x) => x.endsWith('.md'))) {
+      const body = read(cwd, milestoneRel(m, 'plans', f));
+      if (/^```/m.test(body)) {
+        blockers.push(`milestone ${m}: plan m${m}/plans/${f} contains a fenced code block — plans are code-free gap memos (move code to src/lib/flows/<slug>/)`);
+      }
+    }
   }
   // brief ## Flows coverage — once the flows stage is done, every flow the brief
   // lists must have its file (the list is the coverage denominator for review/verify)
@@ -871,6 +1075,7 @@ function parseFlags(args) {
     else if (args[i] === '--remote') flags.remote = args[++i];
     else if (args[i] === '--subpath') flags.subpath = args[++i];
     else if (args[i] === '--item') flags.item = args[++i];
+    else if (args[i] === '--dry-run') flags.dryRun = true;
     else rest.push(args[i]);
   }
   return { flags, rest };
@@ -1004,6 +1209,32 @@ function main(argv) {
       if (r.guards.length) console.log('guards / self:\n' + r.guards.map((l) => `  ${l}`).join('\n'));
       break;
     }
+    case 'features-scaffold': {
+      if (flags.milestone == null || Number.isNaN(flags.milestone)) {
+        console.error('Usage: adhd-state.mjs features-scaffold --milestone <N> [--dry-run]');
+        process.exitCode = 1; break;
+      }
+      let r;
+      try { r = featuresScaffold(cwd, flags.milestone, { dryRun: Boolean(flags.dryRun) }); }
+      catch (e) { console.error(e.message); process.exitCode = 1; break; }
+      if (flags.dryRun) {
+        console.log(r.table);
+        console.log('# dry-run — nothing written');
+      } else {
+        console.log(`wrote project/milestones/m${flags.milestone}/features.md`);
+      }
+      if (r.dropped?.length) console.log(`dropped stale scaffold rows: ${r.dropped.join(', ')}`);
+      break;
+    }
+    case 'affected': {
+      const [entity] = rest;
+      if (!entity) { console.error('Usage: adhd-state.mjs affected <entity>'); process.exitCode = 1; break; }
+      const r = affectedFlows(cwd, entity);
+      if (!r.length) { console.log(`participant "${entity}": no flows under project/flows/ touch it`); break; }
+      console.log(`# Flows affected by "${entity}":\n`);
+      for (const x of r) console.log(`  ${x.slug}  —  ${x.flowFile}  ->  ${x.codeSlice}`);
+      break;
+    }
     case 'closure': {
       if (!rest.length) { console.error('Usage: adhd-state.mjs closure <areaId> [...areaId]'); process.exitCode = 1; break; }
       const r = closure(cwd, rest);
@@ -1012,7 +1243,7 @@ function main(argv) {
       break;
     }
     default:
-      console.error('Usage: adhd-state.mjs <init|read|status|next|gate|work-gate|validate|migrate|upgrade|preflight-confirm|workspace-mode|workspace-add|workspace-remove|workspace-list|repo-bind|repo-unbind|prototype-topology|prototype-home|contract|closure>');
+      console.error('Usage: adhd-state.mjs <init|read|status|next|gate|work-gate|validate|migrate|upgrade|preflight-confirm|workspace-mode|workspace-add|workspace-remove|workspace-list|repo-bind|repo-unbind|prototype-topology|prototype-home|contract|closure|features-scaffold|affected>');
       process.exitCode = 1;
   }
 }

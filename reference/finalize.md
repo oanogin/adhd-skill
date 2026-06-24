@@ -23,7 +23,10 @@ with the user's explicit ok; see [review.md](review.md)).
 ## Procedure
 1. **Drain and migrate any `project/work/*.md`.** Migrate every durable fact to its
    canonical home, then delete the work file — the milestone's record is the current
-   set of docs, not a drift of scratch files.
+   set of docs, not a drift of scratch files. The `m<N>/realize.md` mechanism delta (if
+   it exists at all — baseline-only milestones skip it) drains to nothing: its facts
+   already live in `docs/STACK.md` and `docs/DECISIONS.md`. Confirm those are current,
+   then the delta carries no orphaned fact.
 2. **Update the canonical docs to the milestone's reality.** Reflect what the milestone
    actually changed: decisions in `docs/DECISIONS.md`, the current stack in
    `docs/STACK.md` (every stack change the milestone made must be there, with its

@@ -38,7 +38,10 @@ if a feature is built but not verified, complete its verification first.
    silently skipped. Run the `verify` pass (see [reference/verify.md](verify.md)) and resolve findings.
 5. **Arrow coverage (flows generation).** For every flow the milestone owns
    (the `## Flows` list in `brief.md`): every arrow has an implementation, and every
-   implementation traces to an arrow. Run it per entity too — compare
+   implementation traces to an arrow. Locate a flow's code by convention — the slug maps
+   1:1 to `src/lib/flows/<slug>/`; for an entity, run
+   `node {{scripts_path}}/adhd-state.mjs affected <participant>` to list every flow it
+   touches and the conventional slice path of each. Run it per entity too — compare
    `node {{scripts_path}}/adhd-state.mjs contract <participant>` against what the code
    exposes; partial implementations must be explicit (deferred arrows listed with their
    waiver), never silent. Unimplemented arrows or untraceable code are findings.

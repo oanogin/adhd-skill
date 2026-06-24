@@ -32,6 +32,10 @@ If it reports missing items, HALT. Tell the user exactly which predecessor stage
    exist in `project/map.md`'s registry table:
    `| Participant | Kind | Concept |` with Kind ∈ actor/ui/service/store/external.
    Add participants as flows need them — never invent an undeclared name inline.
+
+   **The flow slug is the stable feature ID** and the code-slice dir name
+   (`src/lib/flows/<slug>/`). It is never a sequence number. Renaming a flow is a
+   breaking change — route it through `adhd evolve`, never edit the filename casually.
 4. **Draw the flows, area by area.** For each capability area in the brief:
    - One scenario per file, `project/flows/<scenario>.md`, format below.
    - **Logical altitude only.** Participants are concepts (a service, a store, a
@@ -43,6 +47,11 @@ If it reports missing items, HALT. Tell the user exactly which predecessor stage
      validation, rate-limit, error paths, empty/zero states, concurrency/idempotency,
      audit. Each concern either has its arrow or is explicitly waived in
      `## Out of scope`. Drawn or waived — a silent gap is not an option.
+   - **`Depends on:` is the canonical inter-flow dependency source.** The feature DAG
+     is derived from each flow's `Depends on:` line, so it must be deliberately set:
+     a slug list (`Depends on: order-store, submit-order`) or `Depends on: none`. A
+     flow that clearly consumes another flow's contract but says `none` is a sign-off
+     finding — set it before sign-off.
    - Consistency-check each area batch against every previously drawn flow (this
      milestone's and all built ones) before starting the next area:
      `node {{scripts_path}}/adhd-state.mjs validate`.

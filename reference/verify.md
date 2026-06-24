@@ -54,23 +54,28 @@ with clean eyes and does not pollute the conductor's context:
    finalized milestone (`summary.md` exists) with findings still `open`.
 9. **STACK ↔ DECISIONS drift.** A technology named in `docs/STACK.md` with no
    corresponding entry in `docs/DECISIONS.md` (warning), or — stronger — a stack
-   element that decisions or `realize` notes show in use but that is absent from
-   `docs/STACK.md`. `STACK.md` is current state; `DECISIONS.md` is the log — both
-   must tell the same story.
+   element that `DECISIONS.md` shows in use but that is absent from `docs/STACK.md`.
+   `STACK.md` is current state; `DECISIONS.md` is the log — both must tell the same
+   story.
 10. **Flow checks (when `project/flows/` exists):** same trigger → contradictory
     outcomes across flows; participant pairs whose message contracts conflict; state
     transitions violating `docs/CONCEPTS.md` lifecycles; messages consumed that no flow
-    produces; registry orphans (registered participants no flow uses); flows owned by
-    no milestone brief's `## Flows` list. Structural sanity (mermaid parse, undeclared
-    participants, unknown deps, cycles) is covered by `adhd-state.mjs validate` — do
-    not re-audit it here.
-11. **Quality-bar regressions.** Stage references define a `## Quality bar` for their
-    artifacts (`vision`, `concepts`, `flows`, `foundation`, `realize`, `review`).
-    Spot-check existing artifacts against their stage's bar — generic swap-test
-    failures in `PRODUCT.md`, vague arrows or "not needed" waivers in flows,
-    unanchored registry rows, why-less `DECISIONS.md` entries, gestured-at mechanism
-    notes, empty review tables without coverage evidence. The bar text in each
-    reference file is the single source — apply it, do not restate it.
+    produces; **registry orphans** — a `project/map.md` participant used by no flow;
+    flows owned by no milestone brief's `## Flows` list. Structural sanity (mermaid
+    parse, undeclared participants, unknown deps, cycles) is covered by
+    `adhd-state.mjs validate` — do not re-audit it here.
+11. **Plans hold no code.** Any `m<N>/plans/*.md` containing a fenced code block is a
+    **blocker** — gap memos are code-free (inline `identifiers` in a question are fine;
+    a fenced block never is). Code belongs in `src/lib/flows/<slug>/`.
+12. **Feature-ID integrity.** Every ID in an `m<N>/features.md` must be either a flow
+    slug (a `project/flows/<id>.md` exists), an `<entity>-skeleton` name, or an
+    agent-added core/ui row — anything else is a drift finding.
+13. **Code-slice coverage.** Every feature should have a code slice at
+    `src/lib/flows/<slug>/` (1:1 with `project/flows/<slug>.md`). A missing or misnamed
+    slice for a built feature is a finding.
+14. **Stale realize prose.** Any reference to the now-removed verbose `realize.md` prose
+    pattern (a per-milestone `realize.md` that re-narrates flows or dumps mechanism prose
+    rather than the tiny mechanism delta) is a finding.
 
 ## Output
 

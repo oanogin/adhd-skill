@@ -19,6 +19,8 @@ import {
   parseRegistry,
   contract,
   parseCapabilityMap, closure,
+  parseBriefFlows,
+  featuresScaffold, affectedFlows,
 } from './adhd-state.mjs';
 
 function tmp() { return fs.mkdtempSync(path.join(os.tmpdir(), 'adhd-')); }
@@ -299,7 +301,7 @@ test('nextStage: build order follows feature dependencies', () => {
   assert.equal(nextStage(cwd, { milestone: 1 }).feature, 'f-api');
 });
 
-test('nextStage interleaves plan and build feature by feature', () => {
+test('nextStage routes straight to build (plan is on-demand, never routed)', () => {
   const cwd = tmp();
   groundwork(cwd);
   w(cwd, 'project/milestones/m1/brief.md');
@@ -312,17 +314,14 @@ test('nextStage interleaves plan and build feature by feature', () => {
   ].join('\n');
   w(cwd, 'project/milestones/m1/features.md', feats);
   const nx = () => { const n = nextStage(cwd, { milestone: 1 }); return [n.stage, n.feature]; };
-  // nothing planned/built -> plan the first workable feature
-  assert.deepEqual(nx(), ['plan', 'f-api']);
-  // f-api planned -> next is BUILD f-api, NOT plan f-ui (interleaved, not plan-all-first)
-  w(cwd, 'project/milestones/m1/plans/f-api.md');
+  // nothing built -> build the first workable feature directly (NO plan routing)
   assert.deepEqual(nx(), ['build', 'f-api']);
-  // f-api built -> now plan f-ui
+  // even with a plan memo present, routing is still build
+  w(cwd, 'project/milestones/m1/plans/f-api.md', '## Gaps\n- none\n');
+  assert.deepEqual(nx(), ['build', 'f-api']);
+  // f-api built -> build f-ui next (deps satisfied)
   w(cwd, 'project/milestones/m1/features.md',
     feats.replace('| f-api | a | d | r | | | |', '| f-api | a | d | r | | done | yes |'));
-  assert.deepEqual(nx(), ['plan', 'f-ui']);
-  // f-ui planned -> build f-ui
-  w(cwd, 'project/milestones/m1/plans/f-ui.md');
   assert.deepEqual(nx(), ['build', 'f-ui']);
 });
 
@@ -613,7 +612,7 @@ test('parseFeatures: Size column read; missing column defaults to M', () => {
   assert.ok(parseFeatures(cwd, 2).every((f) => f.size === 'M'));
 });
 
-test('gate: a Size S feature may build without a plan; M may not', () => {
+test('gate: size drives no routing — both S and M build without a plan', () => {
   const cwd = tmp();
   groundwork(cwd);
   w(cwd, 'project/milestones/m1/brief.md');
@@ -626,11 +625,11 @@ test('gate: a Size S feature may build without a plan; M may not', () => {
   ].join('\n'));
   assert.equal(gate(cwd, 'build', { milestone: 1, feature: 'f-s' }).pass, true);
   const g = gate(cwd, 'build', { milestone: 1, feature: 'f-m' });
-  assert.equal(g.pass, false);
-  assert.ok(g.missing.some((x) => /not planned/.test(x)));
+  assert.equal(g.pass, true);
+  assert.ok(!g.missing.some((x) => /not planned/.test(x)));
 });
 
-test('nextStage: Size S feature skips plan and goes straight to build', () => {
+test('nextStage: size is informational — every deps-ready feature routes to build', () => {
   const cwd = tmp();
   groundwork(cwd);
   w(cwd, 'project/milestones/m1/brief.md');
@@ -650,7 +649,7 @@ test('nextStage: Size S feature skips plan and goes straight to build', () => {
     '| f-m | medium | d | r | M | f-s | | |',
   ].join('\n'));
   n = nextStage(cwd, { milestone: 1 });
-  assert.deepEqual([n.stage, n.feature], ['plan', 'f-m']);
+  assert.deepEqual([n.stage, n.feature], ['build', 'f-m']);
 });
 
 test('parseReviewFindings reads the severity/status table; empty status = open', () => {
@@ -902,10 +901,8 @@ test('gate: plan/build/review/finalize ride the features DAG, no tracks', () => 
   w(c, 'project/milestones/m1/brief.md');
   w(c, 'project/milestones/m1/flows.md');
   w(c, 'project/milestones/m1/features.md', FEATURES_MD);
-  assert.equal(gate(c, 'plan', { milestone: 1, feature: 'f-ui' }).pass, true);
-  assert.equal(gate(c, 'build', { milestone: 1, feature: 'f-ui' }).pass, false); // unplanned M
-  w(c, 'project/milestones/m1/plans/f-ui.md');
-  assert.equal(gate(c, 'build', { milestone: 1, feature: 'f-ui' }).pass, true); // f-api built
+  assert.equal(gate(c, 'plan', { milestone: 1, feature: 'f-ui' }).pass, true); // thin "feature exists"
+  assert.equal(gate(c, 'build', { milestone: 1, feature: 'f-ui' }).pass, true); // f-api built; plan never gates
   assert.equal(gate(c, 'review', { milestone: 1 }).pass, false); // f-ui not built
   assert.equal(gate(c, 'evolve', {}).pass, true); // concepts done is enough
 });
@@ -1121,4 +1118,248 @@ test('validate: flows done + every brief-listed flow has its file → no coverag
   const r = validate(c);
   assert.ok(!r.blockers.some((b) => /brief lists flow/.test(b)),
     `expected no brief-coverage blocker, got: ${JSON.stringify(r.blockers)}`);
+});
+
+// ---- features-scaffold (flows → features DAG generation) ----
+
+// Two flows. checkout depends on cart (its "Depends on:" line). Both touch a
+// `cart` store + an `order` service; checkout also touches a [ui] and an actor.
+const FLOW_CART = `# Flow: cart-add
+Depends on: none
+
+\`\`\`mermaid
+sequenceDiagram
+  actor U as Shopper
+  participant PG as cart-page [ui]
+  participant CART as cart [store]
+  U->>PG: add item
+  PG->>CART: put(item)
+\`\`\`
+`;
+const FLOW_CHECKOUT = `# Flow: checkout
+Depends on: cart-add
+
+\`\`\`mermaid
+sequenceDiagram
+  actor U as Shopper
+  participant PG as checkout-page [ui]
+  participant CART as cart [store]
+  participant ORD as order [service]
+  participant PAY as stripe [external]
+  U->>PG: submit
+  PG->>CART: read()
+  PG->>ORD: place(cart)
+  ORD->>PAY: charge()
+\`\`\`
+`;
+
+function scaffoldSetup(c) {
+  groundwork(c);
+  w(c, 'project/milestones/m1/brief.md', '# M1\n\n## Flows\n- cart-add\n- checkout\n');
+  w(c, 'project/flows/cart-add.md', FLOW_CART);
+  w(c, 'project/flows/checkout.md', FLOW_CHECKOUT);
+}
+
+test('featuresScaffold: initial generation — slug IDs, skeleton rows for service/store only, derived deps', () => {
+  const c = tmp();
+  scaffoldSetup(c);
+  const res = featuresScaffold(c, 1);
+  assert.equal(res.written, true);
+  const feats = parseFeatures(c, 1);
+  const ids = feats.map((f) => f.id);
+  // skeleton rows only for store/service participants (cart, order) — NOT ui/actor/external
+  assert.ok(ids.includes('cart-skeleton'));
+  assert.ok(ids.includes('order-skeleton'));
+  assert.ok(!ids.includes('cart-page-skeleton'));
+  assert.ok(!ids.includes('stripe-skeleton'));
+  assert.ok(!ids.includes('shopper-skeleton'));
+  // per-flow rows keyed by slug
+  assert.ok(ids.includes('cart-add'));
+  assert.ok(ids.includes('checkout'));
+  // cart-add deps = cart-skeleton (its store) ∪ none
+  const cartAdd = feats.find((f) => f.id === 'cart-add');
+  assert.deepEqual(new Set(cartAdd.dependsOn), new Set(['cart-skeleton']));
+  // checkout deps = (cart-skeleton, order-skeleton) ∪ (cart-add from Depends on)
+  const checkout = feats.find((f) => f.id === 'checkout');
+  assert.deepEqual(new Set(checkout.dependsOn), new Set(['cart-skeleton', 'order-skeleton', 'cart-add']));
+});
+
+test('featuresScaffold: idempotent re-run preserves Build/Verified/Domain/Repo/Size and agent-added rows', () => {
+  const c = tmp();
+  scaffoldSetup(c);
+  featuresScaffold(c, 1);
+  // Agent fills Domain/Repo/Size and adds a non-flow core row + a ui row by hand.
+  const filled = [
+    '| ID | Feature | Domain | Repo | Size | Depends on | Build | Verified |',
+    '|--|--|--|--|--|--|--|--|',
+    '| scaffold | project scaffold | infra | app | S | | done | yes |',
+    '| cart-skeleton | cart skeleton | commerce | app | S | scaffold | done | yes |',
+    '| order-skeleton | order skeleton | commerce | app | M | scaffold | | |',
+    '| cart-add | cart-add flow | commerce | app | M | cart-skeleton | done | yes |',
+    '| checkout | checkout flow | commerce | app | L | cart-skeleton, order-skeleton, cart-add | | |',
+    '| storefront-ui | storefront surface | ui | app | M | cart-add, checkout | | |',
+  ].join('\n');
+  w(c, 'project/milestones/m1/features.md', filled);
+  featuresScaffold(c, 1);
+  const feats = parseFeatures(c, 1);
+  const byId = Object.fromEntries(feats.map((f) => [f.id, f]));
+  // scaffold-owned rows keep their agent-set columns
+  assert.equal(byId['cart-add'].domain, 'commerce');
+  assert.equal(byId['cart-add'].repo, 'app');
+  assert.equal(byId['cart-add'].size, 'M');
+  assert.equal(byId['cart-add'].build, true);
+  assert.equal(byId['cart-add'].verified, true);
+  assert.equal(byId['cart-skeleton'].build, true);
+  // agent-added rows survive verbatim
+  assert.ok(byId['scaffold']);
+  assert.equal(byId['scaffold'].build, true);
+  assert.ok(byId['storefront-ui']);
+  assert.deepEqual(new Set(byId['storefront-ui'].dependsOn), new Set(['cart-add', 'checkout']));
+});
+
+test('featuresScaffold: slug/skeleton collision is an error', () => {
+  const c = tmp();
+  groundwork(c);
+  // a flow literally named "cart-skeleton" whose own store implies a cart-skeleton row
+  w(c, 'project/milestones/m1/brief.md', '# M1\n\n## Flows\n- cart-skeleton\n');
+  w(c, 'project/flows/cart-skeleton.md', `# Flow: cart-skeleton
+Depends on: none
+
+\`\`\`mermaid
+sequenceDiagram
+  participant PG as page [ui]
+  participant CART as cart [store]
+  PG->>CART: put()
+\`\`\`
+`);
+  assert.throws(() => featuresScaffold(c, 1), /collision|rename/i);
+});
+
+test('featuresScaffold: a scaffold-type row whose flow no longer exists is dropped and reported', () => {
+  const c = tmp();
+  scaffoldSetup(c);
+  featuresScaffold(c, 1);
+  // remove the checkout flow + drop it from the brief
+  fs.rmSync(path.join(c, 'project/flows/checkout.md'));
+  w(c, 'project/milestones/m1/brief.md', '# M1\n\n## Flows\n- cart-add\n');
+  const res = featuresScaffold(c, 1);
+  const ids = parseFeatures(c, 1).map((f) => f.id);
+  assert.ok(!ids.includes('checkout'));
+  assert.ok(!ids.includes('order-skeleton')); // its only owner was checkout
+  assert.ok(res.dropped.includes('checkout'));
+});
+
+test('featuresScaffold: --dry-run prints the diff without writing', () => {
+  const c = tmp();
+  scaffoldSetup(c);
+  const res = featuresScaffold(c, 1, { dryRun: true });
+  assert.equal(res.written, false);
+  assert.equal(fs.existsSync(path.join(c, 'project/milestones/m1/features.md')), false);
+  assert.ok(typeof res.table === 'string' && /cart-add/.test(res.table));
+});
+
+// ---- affected <entity> ----
+
+test('affectedFlows: matches by participant id and by label, reports slice path', () => {
+  const c = tmp();
+  scaffoldSetup(c);
+  // by label "cart" — present in both flows
+  const byLabel = affectedFlows(c, 'cart');
+  assert.deepEqual(byLabel.map((x) => x.slug).sort(), ['cart-add', 'checkout']);
+  assert.equal(byLabel[0].flowFile, `project/flows/${byLabel[0].slug}.md`);
+  assert.equal(byLabel[0].codeSlice, `src/lib/flows/${byLabel[0].slug}/`);
+  // by id "ORD" — only checkout
+  const byId = affectedFlows(c, 'ORD');
+  assert.deepEqual(byId.map((x) => x.slug), ['checkout']);
+  // case-insensitive
+  assert.deepEqual(affectedFlows(c, 'CART').map((x) => x.slug).sort(), ['cart-add', 'checkout']);
+});
+
+// ---- gate/next no longer require a plan ----
+
+test('gate: build no longer requires a plan (deps-only)', () => {
+  const c = tmp();
+  groundwork(c);
+  w(c, 'project/milestones/m1/brief.md');
+  w(c, 'project/milestones/m1/flows.md');
+  w(c, 'project/milestones/m1/features.md', [
+    '| ID | Feature | Domain | Repo | Size | Depends on | Build | Verified |',
+    '|--|--|--|--|--|--|--|--|',
+    '| f-m | medium | d | r | M | | | |',
+  ].join('\n'));
+  // M-size feature with no plan file -> still passes (plan no longer gates build)
+  const g = gate(c, 'build', { milestone: 1, feature: 'f-m' });
+  assert.equal(g.pass, true);
+  assert.ok(!g.missing.some((x) => /not planned/.test(x)));
+});
+
+test('nextStage: a deps-ready M feature routes to build, not plan', () => {
+  const c = tmp();
+  groundwork(c);
+  w(c, 'project/milestones/m1/brief.md');
+  w(c, 'project/milestones/m1/flows.md');
+  w(c, 'project/milestones/m1/features.md', [
+    '| ID | Feature | Domain | Repo | Size | Depends on | Build | Verified |',
+    '|--|--|--|--|--|--|--|--|',
+    '| f-m | medium | d | r | M | | | |',
+  ].join('\n'));
+  const n = nextStage(c, { milestone: 1 });
+  assert.deepEqual([n.stage, n.feature], ['build', 'f-m']);
+});
+
+test('gate: plan stays runnable as a thin "feature exists" check, never gates build', () => {
+  const c = tmp();
+  groundwork(c);
+  w(c, 'project/milestones/m1/brief.md');
+  w(c, 'project/milestones/m1/flows.md');
+  w(c, 'project/milestones/m1/features.md', [
+    '| ID | Feature | Domain | Repo | Size | Depends on | Build | Verified |',
+    '|--|--|--|--|--|--|--|--|',
+    '| f-m | medium | d | r | M | | | |',
+  ].join('\n'));
+  assert.equal(gate(c, 'plan', { milestone: 1, feature: 'f-m' }).pass, true);
+  assert.equal(gate(c, 'plan', { milestone: 1, feature: 'ghost' }).pass, false);
+});
+
+// ---- validate: code-in-plan blocker ----
+
+test('validate: a plan file with a fenced code block is a blocker', () => {
+  const c = tmp();
+  groundwork(c);
+  w(c, 'project/milestones/m1/brief.md');
+  w(c, 'project/milestones/m1/plans/checkout.md',
+    '## Tasks\n- [ ] wire it\n\n```ts\nconst x = 1;\n```\n');
+  const r = validate(c);
+  assert.ok(r.blockers.some((b) => /plan/i.test(b) && /code block/i.test(b)),
+    `expected code-in-plan blocker, got: ${JSON.stringify(r.blockers)}`);
+});
+
+test('validate: a clean plan file (no fence) is fine', () => {
+  const c = tmp();
+  groundwork(c);
+  w(c, 'project/milestones/m1/brief.md');
+  w(c, 'project/milestones/m1/plans/checkout.md',
+    '## Gaps\n- confirm shape of `APIError.body.code`\n\n## Tasks\n- [ ] wire it\n');
+  const r = validate(c);
+  assert.ok(!r.blockers.some((b) => /code block/i.test(b)));
+});
+
+test('validate: a features.md ID that is neither flow-slug nor skeleton → warning (graceful)', () => {
+  const c = tmp();
+  groundwork(c);
+  w(c, 'project/milestones/m1/brief.md', '# M1\n\n## Flows\n- cart-add\n');
+  w(c, 'project/flows/cart-add.md', FLOW_CART);
+  w(c, 'project/milestones/m1/features.md', [
+    '| ID | Feature | Domain | Repo | Size | Depends on | Build | Verified |',
+    '|--|--|--|--|--|--|--|--|',
+    '| cart-add | flow | d | r | M | cart-skeleton | | |',
+    '| cart-skeleton | sk | d | r | S | | | |',
+    '| weird-orphan | ? | d | r | M | | | |',
+  ].join('\n'));
+  const r = validate(c);
+  assert.ok(r.warnings.some((x) => /weird-orphan/.test(x)),
+    `expected unknown-id warning, got: ${JSON.stringify(r.warnings)}`);
+  // legit ids do not warn
+  assert.ok(!r.warnings.some((x) => /"cart-add"/.test(x)));
+  assert.ok(!r.warnings.some((x) => /"cart-skeleton"/.test(x)));
 });
