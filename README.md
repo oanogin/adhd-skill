@@ -81,6 +81,10 @@ Management commands sit outside the stage flow:
   the artifact updates across living stages, and drive the re-runs.
 - `/adhd park` — capture a not-yet-actionable idea into the durable parking lot
   (`project/parking.md`) after a clarifying dialogue.
+- `/adhd jet` — lossless session handoff: sweeps the session so every material fact
+  (progress, decisions) is saved to its canonical home and loose ends (ideas, spec
+  changes) ride the prompt as pending, then emits a copy/paste resume prompt for a fresh
+  session.
 - `/adhd fix` — correct existing code in place (a bug, misplaced files, a convention
   violation) when the spec is right and the code is wrong — no milestone or `evolve`
   ceremony. A fix that turns out to change scope escalates to `evolve`.
@@ -307,8 +311,9 @@ not by hand. Everything else is plain markdown you (and `adhd`) edit directly.
 - **parking.md** — a durable, committed buffer you own, for ideas/details not yet ready
   to build. Free-form; an item stays until you implement it, then you remove it. Capture
   into it with `/adhd park`; every stage and feature surfaces it at its gate-check.
-- **Fresh sessions** — when a session gets long, `adhd` emits a ready-to-paste resume
-  prompt (`handoff-prompt.mjs`); set `autoCompact: false` so you control when to
+- **Fresh sessions** — when a session gets long, run `/adhd jet`: it sweeps the session
+  so every material fact is saved to its canonical home, then emits a ready-to-paste
+  resume prompt (`handoff-prompt.mjs`); set `autoCompact: false` so you control when to
   `/clear`.
 - **Working memory** — high-effort stages (plus `brief`) keep a transient `project/work/<stage>.md`
   so a session that ends mid-stage resumes cleanly. It is drained and deleted on

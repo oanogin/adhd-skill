@@ -235,6 +235,9 @@ reference owns the procedure:
   [reference/evolve.md](reference/evolve.md)
 - `park` — capture a not-yet-actionable idea into `project/parking.md`.
   [reference/park.md](reference/park.md)
+- `jet` — lossless session handoff: sweep the session, save every material fact that
+  isn't yet on disk to its canonical home, then emit a copy/paste resume prompt.
+  [reference/jet.md](reference/jet.md)
 - `fix` — correct code in place when the spec is right and the code is wrong;
   escalates to `evolve` the moment the spec itself must change.
   [reference/fix.md](reference/fix.md)
@@ -299,9 +302,10 @@ If `project/config.json` does not exist, the only runnable stage is `setup`.
 - **Small steps** — every stage and feature is bounded; split before starting if it
   will not fit cleanly.
 - **Effort hints** — each stage carries a suggested reasoning effort; surface it.
-- **Fresh sessions** — when a session gets long, run `handoff-prompt.mjs` and hand the
-  user the resume prompt (it leads with the active work file and points at
-  `parking.md`). `autoCompact: false` recommended.
+- **Fresh sessions** — when a session gets long, run `adhd jet` ([reference/jet.md](reference/jet.md)):
+  it sweeps the session so every material fact is saved to its canonical home, then hands
+  the user a copy/paste resume prompt (via `handoff-prompt.mjs`, which leads with the work
+  file and points at `parking.md`). `autoCompact: false` recommended.
 - **No "MVP"** — never write "MVP" in any artifact or message. Say "Milestone 1" or
   "the first valuable product": MVP framing invites effort-sized, cut-down scoping,
   which contradicts the value-sized, ready-to-use milestone definition.
